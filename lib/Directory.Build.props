@@ -1,0 +1,4 @@
+<Project>
+  <!-- Vendored code builds as upstream does: this file stops the repo's stricter settings
+       (warnings as errors, analyzers, version) in ../Directory.Build.props from applying here. -->
+</Project>

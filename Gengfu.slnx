@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/lib/">
+    <Project Path="lib/TSLib/TSLib.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Gengfu.App/Gengfu.App.csproj" />
+    <Project Path="src/Gengfu.Core/Gengfu.Core.csproj" />
+    <Project Path="src/Gengfu.TeamSpeak/Gengfu.TeamSpeak.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Gengfu.Core.Tests/Gengfu.Core.Tests.csproj" />
+  </Folder>
+</Solution>

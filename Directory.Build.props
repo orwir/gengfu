@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <!-- The app version: the only place it is written. The About entry and the release workflow read it from the build. -->
+    <Version>0.1.0-dev</Version>
+    <Product>Gengfu</Product>
+    <Authors>orwir</Authors>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,280 @@
+// TSLib - A free TeamSpeak 3 and 5 client library
+// Copyright (C) 2017  TSLib contributors
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the Open Software License v. 3.0
+//
+// You should have received a copy of the Open Software License along with this
+// program. If not, see <https://opensource.org/licenses/OSL-3.0>.
+
+using Chaos.NaCl.Ed25519Ref10;
+using System;
+using System.Buffers.Binary;
+using System.Collections.Generic;
+using System.Security.Cryptography;
+using TSLib.Helper;
+
+namespace TSLib.Full;
+
+public class Licenses
+{
+	public static ReadOnlySpan<byte> LicenseRootKey =>
+	[
+		0xcd, 0x0d, 0xe2, 0xae, 0xd4, 0x63, 0x45, 0x50, 0x9a, 0x7e, 0x3c, 0xfd, 0x8f, 0x68, 0xb3, 0xdc, 0x75, 0x55, 0xb2,
+		0x9d, 0xcc, 0xec, 0x73, 0xcd, 0x18, 0x75, 0x0f, 0x99, 0x38, 0x12, 0x40, 0x8a
+	];
+
+	public List<LicenseBlock> Blocks { get; } = [];
+
+	public static R<Licenses, string> Parse(ReadOnlySpan<byte> data)
+	{
+		if (data.Length < 1)
+			return "License too short";
+		var version = data[0];
+		if (version != 1)
+			return "Unsupported version";
+
+		// Read licenses
+		var res = new Licenses();
+		data = data[1..];
+		while (data.Length > 0)
+		{
+			// Read next license
+			var result = LicenseBlock.Parse(data);
+			if (!result.Ok)
+				return result.Error;
+			var (license, len) = result.Value;
+
+			// TODO Check valid times
+
+			res.Blocks.Add(license);
+			data = data[len..];
+		}
+		return res;
+	}
+
+	public byte[] DeriveKey()
+	{
+		var round = LicenseRootKey.ToArray(); //Ed25519.DecodePoint(LicenseRootKey);
+		foreach (var block in Blocks)
+			round = block.DeriveKey(round);
+		return round;
+	}
+}
+
+public abstract class LicenseBlock
+{
+	private const int MinBlockLen = 42;
+
+	public abstract ChainBlockType Type { get; }
+	public DateTime NotValidBefore { get; set; }
+	public DateTime NotValidAfter { get; set; }
+#pragma warning disable CS8618
+	public byte[] Key { get; set; }
+	public byte[] Hash { get; set; }
+#pragma warning restore CS8618
+
+	public static R<(LicenseBlock block, int read), string> Parse(ReadOnlySpan<byte> data)
+	{
+		if (data.Length < MinBlockLen)
+		{
+			return "License too short";
+		}
+		if (data[0] != 0)
+		{
+			return $"Wrong key kind {data[0]} in license";
+		}
+
+		LicenseBlock block;
+		int read;
+		switch (data[33])
+		{
+		case 0:
+			if (!ReadNullString(data[46..]).Get(out var issuer, out var error))
+				return error;
+			block = new IntermediateLicenseBlock(issuer.str);
+			read = 5 + issuer.read;
+			break;
+
+		case 2:
+			if (!Enum.IsDefined(typeof(ServerLicenseType), data[42]))
+				return $"Unknown license type {data[42]}";
+			if (!ReadNullString(data[47..]).Get(out issuer, out error))
+				return error;
+			block = new ServerLicenseBlock(issuer.str, (ServerLicenseType)data[42]);
+			read = 6 + issuer.read;
+			break;
+
+		case 8:
+			if (!Enum.IsDefined(typeof(ServerLicenseType), data[42]))
+				return $"Unknown license type {data[42]}";
+
+			List<byte[]> properties = [];
+			int propertyCount = data[43];
+			int pos = 44;
+			for (int i = 0; i < propertyCount; i++) {
+				int propertyLength = data[pos];
+				pos += 1;
+				properties.Add(data.Slice(pos, propertyLength).ToArray());
+				pos += propertyLength;
+			}
+
+			block = new Ts5ServerLicenseBlock((ServerLicenseType)data[42], properties);
+			read = pos - 42;
+			break;
+
+		case 32:
+			block = new EphemeralLicenseBlock();
+			read = 0;
+			break;
+
+		default:
+			return $"Invalid license block type {data[33]}";
+		}
+
+		block.NotValidBefore = Tools.UnixTimeStart.AddSeconds(BinaryPrimitives.ReadUInt32BigEndian(data[34..]) + 0x50e22700uL);
+		block.NotValidAfter = Tools.UnixTimeStart.AddSeconds(BinaryPrimitives.ReadUInt32BigEndian(data[38..]) + 0x50e22700uL);
+		if (block.NotValidAfter < block.NotValidBefore)
+			return "License times are invalid";
+
+		block.Key = data.Slice(1, 32).ToArray();
+
+		var allLen = MinBlockLen + read;
+		Span<byte> hash = stackalloc byte[SHA512.HashSizeInBytes];
+		TsCrypt.Hash512It(data[1..allLen], hash);
+		block.Hash = hash[..32].ToArray();
+
+		return (block, allLen);
+	}
+
+	private static R<(string str, int read), string> ReadNullString(ReadOnlySpan<byte> data)
+	{
+		var termIndex = data.IndexOf((byte)0);
+		if (termIndex >= 0)
+			return (data[..termIndex].NewUtf8String(), termIndex);
+		return "Non-null-terminated issuer string";
+	}
+
+	/// <summary>
+	/// Calculates a new public key by processing an existing one with this license bock.
+	/// The key is calculated as following: <code>new_pub_key = pub_key * hash + parent</code>.
+	/// Where <code>pub_key</code> and <code>parent</code> are public keys, and <code>hash</code> a private key.
+	/// </summary>
+	/// <param name="parent">The preceding key (from the previous block or root key).</param>
+	/// <returns>The new public key after processing it with this block.</returns>
+	public byte[] DeriveKey(ReadOnlySpan<byte> parent)
+	{
+		ScalarOperations.sc_clamp(Hash);
+		GroupOperations.ge_frombytes_negate_vartime(out var pubkey, Key);
+		GroupOperations.ge_frombytes_negate_vartime(out var parkey, parent);
+
+		GroupOperations.ge_scalarmult_vartime(out GroupElementP1P1 res, Hash, pubkey);
+		GroupOperations.ge_p3_to_cached(out var pargrp, parkey);
+
+		GroupOperations.ge_p1p1_to_p3(out var r, res);
+		GroupOperations.ge_add(out var a, r, pargrp);
+		GroupOperations.ge_p1p1_to_p3(out var r2, a);
+		var final = new byte[32];
+		GroupOperations.ge_p3_tobytes(final, r2);
+		final[31] ^= 0x80;
+
+		return final;
+	}
+}
+
+#region BlockTypes
+
+public class IntermediateLicenseBlock : LicenseBlock
+{
+	public override ChainBlockType Type => ChainBlockType.Intermediate;
+	public string Issuer { get; }
+
+	public IntermediateLicenseBlock(string issuer)
+	{
+		Issuer = issuer;
+	}
+}
+
+public class WebsiteLicenseBlock : LicenseBlock
+{
+	public override ChainBlockType Type => ChainBlockType.Website;
+	public string Issuer { get; }
+
+	public WebsiteLicenseBlock(string issuer)
+	{
+		Issuer = issuer;
+	}
+}
+
+public class CodeLicenseBlock : LicenseBlock
+{
+	public override ChainBlockType Type => ChainBlockType.Code;
+	public string Issuer { get; }
+
+	public CodeLicenseBlock(string issuer)
+	{
+		Issuer = issuer;
+	}
+}
+
+public class ServerLicenseBlock : LicenseBlock
+{
+	public override ChainBlockType Type => ChainBlockType.Server;
+	public string Issuer { get; }
+	public ServerLicenseType LicenseType { get; }
+
+	public ServerLicenseBlock(string issuer, ServerLicenseType licenseType)
+	{
+		Issuer = issuer;
+		LicenseType = licenseType;
+	}
+}
+
+public class Ts5ServerLicenseBlock : LicenseBlock
+{
+	public override ChainBlockType Type => ChainBlockType.Ts5Server;
+	public ServerLicenseType LicenseType { get; }
+	public List<byte[]> Properties { get; }
+
+	public Ts5ServerLicenseBlock(ServerLicenseType licenseType, List<byte[]> properties)
+	{
+		LicenseType = licenseType;
+		Properties = properties;
+	}
+}
+
+public class EphemeralLicenseBlock : LicenseBlock
+{
+	public override ChainBlockType Type => ChainBlockType.Ephemeral;
+}
+
+public enum ChainBlockType : byte
+{
+	Intermediate = 0,
+	Website = 1,
+	Server = 2,
+	Code = 3,
+	// (Not used in license parser)
+	//Token = 4,
+	//LicenseSign = 5,
+	//MyTsIdSign = 6,
+	Ts5Server = 8,
+	Ephemeral = 32,
+}
+
+#endregion
+
+public enum ServerLicenseType : byte
+{
+	None = 0,
+	Offline,
+	Sdk,
+	SdkOffline,
+	Npl,
+	Athp,
+	Aal,
+	Default,
+	Gamer,
+	Sponsorship,
+	Commercial,
+}

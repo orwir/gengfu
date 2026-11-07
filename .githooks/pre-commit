@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Commit stage: quick checks on staged files only. The full gate runs on push (scripts/check.sh).
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+. scripts/dotnet.sh
+
+staged="$(git diff --cached --name-only --diff-filter=ACM)"
+[ -n "$staged" ] || exit 0
+
+# Large-file guard: nothing over 1 MB enters history.
+while IFS= read -r file; do
+    if [ -f "$file" ] && [ "$(wc -c <"$file")" -gt 1048576 ]; then
+        echo "pre-commit: $file is over 1 MB" >&2
+        exit 1
+    fi
+done <<<"$staged"
+
+# Whitespace and layout of staged C# files (vendored lib/ excluded).
+cs="$(grep -E '\.cs$' <<<"$staged" | grep -v '^lib/' || true)"
+if [ -n "$cs" ]; then
+    # shellcheck disable=SC2086
+    "$DOTNET" format whitespace Gengfu.slnx --verify-no-changes --include $cs
+fi
+
+# Secret scan when gitleaks is installed; CI always runs it.
+if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks protect --staged --redact --no-banner
+fi
