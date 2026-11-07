@@ -1,7 +1,8 @@
 version: 2
 updates:
+  # Vendored lib/ is re-synced by hand (lib/README.md), so only our own projects are watched.
   - package-ecosystem: nuget
-    directory: "/"
+    directories: ["/src/*", "/tests/*"]
     schedule:
       interval: weekly
     groups:
