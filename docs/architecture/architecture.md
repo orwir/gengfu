@@ -20,7 +20,8 @@ v0.2) plugs in without touching it.
 ## Data flow (planned)
 
 1. The clock reads the game time from a monotonic time source.
-2. The call schedule marks a call due when the clock crosses its game time (spawn plus lead time).
+2. The call schedule marks a call due once the clock reaches its game time (spawn plus lead time)
+   while the spawn is still ahead; the App asks it for due calls on every tick.
 3. The App renders each call once, before the match: text through Windows TTS, or an audio file,
    to 48 kHz stereo PCM, then to 20 ms Opus frames.
 4. TeamSpeak sends the frames in real time as a whisper to the configured targets — a server group
@@ -31,7 +32,13 @@ v0.2) plugs in without touching it.
 The clock keeps one anchor: "at local instant *t* the game showed *r*", so game time now is
 *r* − (now − *t*). Start, the arrows and typed values only move the anchor, and every future call
 moves with it. The display rounds up: 35:00 holds for the first second and 00:00 shows only at the
-end. Typed seconds land on the nearest minute and are timed from the first keystroke.
+end. Typed seconds land on the nearest minute and are timed from the first keystroke. The clock
+stops at 00:00 and takes corrections only while it runs; Stop returns it to 35:00.
+
+A call fires once while the clock is between its game time and its spawn, and shows as calling
+for 3 s: on time as the clock counts down, or late when a correction lands the clock in that
+window, since a late call still helps. After the spawn it never fires — the mob is already farmed.
+A correction back above its game time re-arms it.
 
 ## Threading (planned)
 
