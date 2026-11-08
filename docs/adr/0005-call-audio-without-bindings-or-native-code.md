@@ -21,7 +21,7 @@ play on a guildmate's PC, not only on the one it was built on.
 - Speech goes through Windows.Media.SpeechSynthesis and audio files through Media Foundation's
   Source Reader, both called through their documented interfaces' method tables: no projection.
 - Gengfu resamples speech itself, so voice calls don't need Media Foundation, which Windows N
-  editions and Windows Server lack.
+  editions lack until the Media Feature Pack is added.
 - Calls are encoded by [Concentus](https://github.com/lostromb/concentus), a C# port of Opus under
   its BSD-3-Clause license; `lib/opus` is removed.
 - A call that can't be spoken or read plays a gong made in code, and says why.
@@ -32,7 +32,7 @@ play on a guildmate's PC, not only on the one it was built on.
   nothing.
 - The interop is about 500 lines of function-pointer calls, and a wrong slot fails at once. The
   tests hold the voice list to the voices Windows registers, speak with each one and decode real
-  files wherever Windows has them; where it doesn't, as on CI's Windows Server, they check the
+  files wherever Windows has them, CI's Windows Server included; where it doesn't, they check the
   fallback instead.
 - TSLib's own Opus classes stay unused: they would need a native libopus.
 - Release builds must carry Concentus's license notice.

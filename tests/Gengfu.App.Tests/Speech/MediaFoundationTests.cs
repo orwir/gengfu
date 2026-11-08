@@ -3,8 +3,8 @@ using Gengfu.App.Speech;
 namespace Gengfu.App.Tests.Speech;
 
 /// <summary>
-/// Real files through Windows' media stack. Where it isn't installed, as on Windows Server or N
-/// editions, every read must fail, so the call falls back to the gong.
+/// Real files through Windows' media stack. Where it isn't installed, as on Windows N editions
+/// without the Media Feature Pack, every read must fail, so the call falls back to the gong.
 /// </summary>
 public sealed class MediaFoundationTests : IDisposable
 {

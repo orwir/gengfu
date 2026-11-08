@@ -7,7 +7,7 @@ namespace Gengfu.App.Tests.Speech;
 /// <summary>Test sounds and the measurements the tests make on them.</summary>
 internal static class Sound
 {
-    /// <summary>Whether this machine has Media Foundation: Windows Server and N editions may not.</summary>
+    /// <summary>Whether this machine has Media Foundation: Windows N editions without the Media Feature Pack don't.</summary>
     public static bool MediaFoundationInstalled { get; } = MediaFoundationStarts();
 
     public static float[] Tone(double frequency, double seconds, int rate, double level = 0.5) =>

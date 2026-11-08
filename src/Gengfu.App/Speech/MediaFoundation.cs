@@ -4,8 +4,8 @@ namespace Gengfu.App.Speech;
 
 /// <summary>
 /// Reads audio files through Media Foundation, Windows' media stack: MP3, WAV, AAC, WMA, FLAC and
-/// whatever else Windows plays. Windows N editions lack it until the Media Feature Pack is added,
-/// and Windows Server until its feature is. Call it off the UI thread.
+/// whatever else Windows plays. Windows N editions lack it until the Media Feature Pack is added.
+/// Call it off the UI thread.
 /// </summary>
 internal static unsafe class MediaFoundation
 {
