@@ -258,8 +258,8 @@ on:
   push:
     branches: [develop]
   workflow_call:     # lets deploy.yml reuse this
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+concurrency:         # push and PR runs apart: a release PR must not cancel its push's run
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 ```
 
