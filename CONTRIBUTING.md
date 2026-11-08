@@ -63,10 +63,9 @@ A task is read twice before it lands: once by a reviewer with no author
 context, then by the maintainer. The first read is the round in
 `docs/guides/task_review.md` — the developer session renders a hand-off packet,
 launches a reviewer agent with it, acts on the return packet and renders the
-hand-back brief, in both flows. The packets pass between the two agents and, on
-a feature branch, reach the PR at completion as its body and a comment; the
-maintainer reads the brief alone and answers its pending rows. The rest is
-already checked.
+hand-back brief, in both flows. The packets pass between the two agents and
+stay there: nothing of the round is posted to GitHub. The maintainer reads the
+brief alone and answers its pending rows. The rest is already checked.
 
 ## Design
 
