@@ -37,7 +37,9 @@ v0.2) plugs in without touching it.
 
 - `Program.Main` runs Velopack before WPF starts: when Setup or the updater starts Gengfu to finish
   their work, it does so and exits there, and an update downloaded earlier applies before the
-  window opens.
+  window opens. Only one Gengfu runs per Windows session, held by `SingleInstance`: Velopack's
+  updater closes every running copy, so a second start applies nothing and brings the first one's
+  window forward.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status

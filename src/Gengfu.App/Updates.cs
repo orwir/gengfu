@@ -59,10 +59,7 @@ internal sealed class Updates
     /// <summary>Read on every tick. A later look keeps the last answer shown until it has its own.</summary>
     public UpdateState State => _state;
 
-    /// <summary>
-    /// Velopack's manager, when Setup installed this copy. A test build follows test builds, so an
-    /// installed release candidate moves on to the release, and a release never sees a test build.
-    /// </summary>
+    /// <summary>Velopack's manager, when Setup installed this copy.</summary>
     public static UpdateManager? Installed()
     {
         // VelopackApp, run first in Program.Main, finds the install; a host that skips it has none.
@@ -70,9 +67,15 @@ internal sealed class Updates
         {
             return null;
         }
-        var manager = new UpdateManager(new GithubSource(Repository, null, AppVersion.IsPrerelease(AppVersion.Current)));
+        var manager = new UpdateManager(Source(AppVersion.Current));
         return manager.IsInstalled ? manager : null;
     }
+
+    /// <summary>
+    /// GitHub's releases as a copy of <paramref name="version"/> sees them. A test build follows test
+    /// builds, so an installed release candidate moves on to the release; a release never sees one.
+    /// </summary>
+    internal static GithubSource Source(string version) => new(Repository, null, AppVersion.IsPrerelease(version));
 
     /// <summary>Starts a look once one is due; the window calls it on every tick. The task ends with the look.</summary>
     public Task Tick()

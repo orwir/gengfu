@@ -1,6 +1,6 @@
 # Releasing Gengfu
 
-How a release is built, published and checked, for whoever cuts one. The checklist to follow is
+How a release is built, published, checked and rolled back, for whoever cuts one. The checklist is
 [CONTRIBUTING.md § Releasing](../../CONTRIBUTING.md#releasing); this guide is the machinery behind
 it. Why it works this way: [ADR-0006](../adr/0006-self-contained-installer-and-updates.md).
 
@@ -40,8 +40,18 @@ CHANGELOG section. Its files:
 
 ## Velopack
 
-The Velopack package in `Gengfu.App.csproj` and the vpk version in `release.yml` move together: a
-package built with one and packed with another may not update. Bump both in one change.
+The release job installs vpk at the version of the Velopack package in `Gengfu.App.csproj`, since a
+build packed by another version may not update. Bumping the package, Dependabot's way or by hand,
+moves both.
+
+## Rolling back
+
+An installed Gengfu never moves to a lower version, so a bad release is undone by a better one:
+
+1. Mark it a pre-release: `gh release edit v<X.Y.Z> --prerelease`. Installed releases that haven't
+   taken it skip it from then on, and the Releases page offers the last good Setup again.
+2. Revert the bad change on `develop` and release the next patch version as usual. Every installed
+   copy, the bad one included, updates to it.
 
 ## .NET patches
 

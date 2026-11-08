@@ -35,7 +35,10 @@ publish it, and an installed Gengfu should keep itself current without ever rest
   the clock is stopped. Nothing restarts on its own.
 - A test build takes test builds and then the release; a release never takes a test build.
 - v0.1 is unsigned.
-- The Velopack library and the vpk tool are pinned together, at 1.2.161.
+- The Velopack package is pinned at 1.2.161, and the release job installs the vpk tool at the
+  same version.
+- Gengfu runs once per Windows session. Velopack's updater closes every running copy to apply an
+  update, so a second start applies none: it brings the running window forward.
 
 ## Consequences
 

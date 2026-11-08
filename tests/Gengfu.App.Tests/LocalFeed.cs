@@ -18,6 +18,7 @@ internal sealed class LocalFeed : IUpdateSource, IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
     private readonly SimpleFileSource _files;
+    private int _looks;
 
     public LocalFeed()
     {
@@ -36,6 +37,9 @@ internal sealed class LocalFeed : IUpdateSource, IDisposable
     public TaskCompletionSource? HoldDownload { get; set; }
 
     public bool Fails { get; set; }
+
+    /// <summary>How many looks reached the feed.</summary>
+    public int Looks => _looks;
 
     private string Folder => Path.Combine(_root, "feed");
 
@@ -58,6 +62,7 @@ internal sealed class LocalFeed : IUpdateSource, IDisposable
 
     public async Task<VelopackAssetFeed> GetReleaseFeed(IVelopackLogger logger, string? appId, string channel, Guid? stagingId = null, VelopackAsset? latestLocalRelease = null)
     {
+        Interlocked.Increment(ref _looks);
         if (Hold is { } hold)
         {
             await hold.Task;

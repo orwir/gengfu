@@ -20,7 +20,8 @@ internal sealed record Login(string Server, string Nickname, string Password)
 
 /// <summary>
 /// One running Gengfu: what Settings holds, kept in the settings file, the match clock and its calls,
-/// the calls' sound, and the seat on TeamSpeak. The window drives it from its tick, on the UI thread.
+/// the calls' sound, the seat on TeamSpeak, and its updates. The window drives it from its tick, on
+/// the UI thread.
 /// </summary>
 internal sealed class Session : IAsyncDisposable
 {

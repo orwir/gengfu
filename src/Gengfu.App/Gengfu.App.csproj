@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <PackageReference Include="Concentus" Version="2.2.2" />
-    <!-- Pinned with the vpk tool in release.yml: the two must match. -->
+    <!-- release.yml installs the vpk tool at this version, as the two must match. -->
     <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 

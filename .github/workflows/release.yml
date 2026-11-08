@@ -59,9 +59,13 @@ jobs:
       - name: Build, self-contained
         run: dotnet publish src/Gengfu.App/Gengfu.App.csproj -c Release -r win-x64 --self-contained -o publish
 
-      # The same version as the Velopack package in Gengfu.App.csproj: the two must match.
+      # At the Velopack package's own version, so bumping the package moves both: a build packed by
+      # another vpk version may not update.
       - name: Install vpk
-        run: dotnet tool install --global vpk --version 1.2.161
+        shell: bash
+        run: |
+          velopack="$(sed -n 's/.*Include="Velopack" Version="\([^"]*\)".*/\1/p' src/Gengfu.App/Gengfu.App.csproj)"
+          dotnet tool install --global vpk --version "$velopack"
 
       - name: Fetch the last release, to pack the delta from
         shell: bash

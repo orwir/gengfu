@@ -109,6 +109,31 @@ public sealed class UpdatesTests : IDisposable
     }
 
     [Fact]
+    public async Task A_look_under_way_is_never_joined_by_another()
+    {
+        _feed.Publish("0.1.0");
+        _feed.Hold = Held();
+        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+
+        var look = updates.Tick();
+        _time.Advance(TimeSpan.FromHours(5));
+        Assert.Same(Task.CompletedTask, updates.Tick());
+        Assert.Same(Task.CompletedTask, updates.Tick());
+
+        _feed.Hold.SetResult();
+        await look;
+        Assert.Equal(1, _feed.Looks);
+    }
+
+    [Fact]
+    public void A_test_build_looks_at_test_builds_too_and_a_release_only_at_releases()
+    {
+        Assert.True(Updates.Source("0.1.0-rc.1").Prerelease);
+        Assert.False(Updates.Source("0.1.0").Prerelease);
+        Assert.Equal("https://github.com/orwir/gengfu", Updates.Source("0.1.0").RepoUri.ToString().TrimEnd('/'));
+    }
+
+    [Fact]
     public async Task Restart_has_nothing_to_hand_over_until_a_version_is_ready()
     {
         _feed.Publish("0.1.0");

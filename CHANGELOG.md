@@ -44,3 +44,4 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Once the match clock is stopped, the main window says an update is ready and offers Restart (#8)
 - Settings › General says whether Gengfu is up to date, or checking or downloading a new version (#8)
 - Gengfu has its own icon on the taskbar, in Start and on the desktop (#8)
+- Starting Gengfu while it runs brings its window to the front (#8)

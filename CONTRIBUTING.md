@@ -106,18 +106,18 @@ and one `area/…` when one fits — create the area label first if it's new.
 ## Releasing
 
 [SemVer](https://semver.org). Each `MAJOR.MINOR` maps to a milestone; patches
-reuse it. A test build, `X.Y.Z-rc.N`, takes the same steps and publishes as a
-pre-release, which only installed test builds update to. How the release is
-built and published: [release.md](docs/guides/release.md). The checklist is
-literal — execute it in order, no shortcuts:
+reuse it. How the release is built, published and rolled back:
+[release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`, publishes as
+a pre-release, which only installed test builds update to; it skips steps 1
+and 8, keeps its CHANGELOG entries under `[Unreleased]`, and puts that section
+in the PR body. The checklist is literal — execute it in order, no shortcuts:
 
 1. **Confirm the milestone is clean.** `gh issue list --milestone v<X.Y>
    --state open` returns nothing (close or move out the rest).
 2. **Bump the version** in `Directory.Build.props` (`<Version>`) — the single
    source of truth.
 3. **Update `CHANGELOG.md`**: date the new section, group entries under
-   Added / Changed / Fixed / Removed, reference issues (`#N`). A test build
-   leaves them under `[Unreleased]`.
+   Added / Changed / Fixed / Removed, reference issues (`#N`).
 4. **Open the release PR** `develop` → `master`, titled `Release v<X.Y.Z>`,
    body = the new CHANGELOG section.
 5. **— Checkpoint —** If an AI assistant is driving, it stops here and waits

@@ -10,8 +10,8 @@ using Gengfu.Core;
 namespace Gengfu.App.Views;
 
 /// <summary>
-/// The main view: the status line, the clock with the next call under it, the calls list, and Start/Stop,
-/// Test call and Settings. It shows the session as it is on each tick.
+/// The main view: the status line, the clock with the next call under it, the calls list, the update
+/// notice, and Start/Stop, Test call and Settings. It shows the session as it is on each tick.
 /// </summary>
 internal partial class MainView : UserControl
 {

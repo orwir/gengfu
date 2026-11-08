@@ -39,8 +39,9 @@ unsigned apps with no way around it, so it blocks Gengfu until Gengfu is signed.
 
 **Updates** download by themselves while Gengfu runs, and apply the next time it starts. Once the
 match clock is stopped, the main window says an update is ready and offers **Restart**; Settings ›
-General shows the version and whether it is up to date. If Gengfu won't start after an update, run
-Setup again: it repairs the install and keeps your settings.
+General shows the version and whether it is up to date. Starting Gengfu while it runs only brings
+its window to the front. If Gengfu won't start after an update, run Setup again: it repairs the
+install and keeps your settings.
 
 **Uninstall** Gengfu in Windows Settings › Apps › Installed apps. Your settings stay in
 `%AppData%\Gengfu`; delete that folder to remove them too.
