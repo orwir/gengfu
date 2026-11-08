@@ -132,8 +132,9 @@ The generative phase — define the system the product grows into.
   accessibility floor, and the stack it must build in. *Open:* everything aesthetic — palette,
   type, mood, shape, surface treatment. Name both explicitly so exploration doesn't trip a real
   constraint.
-- **Feed the handoff, if used.** This is where a design-tool pass (`design_workflow.md` §
-  *Handoff*) lands: brief → generate → reconcile. Treat its output as a strong draft.
+- **Draw it, where the project has a design canvas.** The north-star is a design round
+  (`design_workflow.md` § *Round*): prepared, drawn and reviewed in the session, then
+  reconciled. Treat the drawing as a strong draft.
 - **Output: a north-star** the rest of the pass systematizes toward — a target look plus the
   principles behind it. Present 2–3 distinct directions when the solution space is wide and the
   maintainer should choose; commit to one with a written rationale otherwise.
@@ -201,7 +202,7 @@ breached.
   component inventory, the state contract, the canonical pattern per job, and the responsive
   rules. Update the theme/config file to match.
 - **Self-enforcing rules, one assertion each:** a lint banning raw values outside the token file
-  `[web]`; a snapshot of the token set; the component-reuse rule in `AGENTS.md`; and, where the project keeps a design file per screen, the screen-to-file pairing (`design_workflow.md` § *Handoff*). A doc is
+  `[web]`; a snapshot of the token set; the component-reuse rule in `AGENTS.md`; and, where the project keeps a design file per screen, the screen-to-file pairing (`design_workflow.md` § *Round*). A doc is
   advisory; a lint holds the line — add it now that the system is worth enforcing.
 - **Update the agent contract** (`AGENTS.md` / `CLAUDE.md`) so every future UI edit, including
   AI-driven ones, conforms.

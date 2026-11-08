@@ -72,8 +72,9 @@ brief alone and answers its pending rows. The rest is already checked.
 New screens and visual changes are designed before they are built:
 [docs/guides/design_workflow.md](docs/guides/design_workflow.md) is the how,
 [docs/guides/design_language.md](docs/guides/design_language.md) the resolved
-tokens, components and patterns. Design happens in Claude Design and is
-approved by the maintainer before code.
+tokens, components and patterns. Each design round runs on a Claude Design
+canvas in the same session as the code, and the maintainer approves the drawing
+before code.
 
 ## Vendored code
 
