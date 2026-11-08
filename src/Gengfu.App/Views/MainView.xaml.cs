@@ -15,12 +15,15 @@ namespace Gengfu.App.Views;
 /// </summary>
 internal partial class MainView : UserControl
 {
+    private const double RowHeight = 36;
+
     private readonly Session _session;
     private readonly Action _openSettings;
     private readonly ClockDigits _digits;
     private readonly CallRow[] _rows;
     private readonly Style _startStyle;
     private StatusTone? _tone;
+    private int _followed = -1;
 
     public MainView(Session session, Action openSettings)
     {
@@ -45,8 +48,19 @@ internal partial class MainView : UserControl
         ShowStatus();
         ShowNext();
         ShowCalls();
+        FollowCalls();
         TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
         TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
+    }
+
+    /// <summary>The call the list keeps in view: the one calling, else the next, else the last once all are behind.</summary>
+    internal static int InFocus(IReadOnlyList<CallState> states)
+    {
+        var all = states.ToList();
+        return all.IndexOf(CallState.Calling) is >= 0 and var calling ? calling
+            : all.IndexOf(CallState.Next) is >= 0 and var next ? next
+            : all.Any(state => state is CallState.Called or CallState.NotSent) ? all.Count - 1
+            : 0;
     }
 
     /// <summary>The brush a tone paints its dot with, and the words too unless they stay plain.</summary>
@@ -111,14 +125,14 @@ internal partial class MainView : UserControl
         {
             ShowNext(Strings.MatchOver, "");
         }
-        else if (schedule.Calls.Any(call => schedule.StateOf(call) == CallState.Calling))
+        else if (schedule.Calls.FirstOrDefault(call => schedule.StateOf(call) == CallState.Calling) is { } calling)
         {
-            ShowNext(Strings.CallingNow, _session.Heard);
+            ShowNext(Strings.CallingNow, _session.HeardFor(calling.Event));
         }
         else if (schedule.Calls.FirstOrDefault(call => schedule.StateOf(call) == CallState.Next) is { } next)
         {
             ShowNext(
-                Copy.Format(Strings.NextAt, Strings.Jungle, MatchClock.Format(next.At)),
+                Copy.Format(Strings.NextAt, Copy.EventName(next.Event), MatchClock.Format(next.At)),
                 Copy.Format(Strings.In, Copy.Span(_session.Clock.GameTime - next.At)));
         }
         else
@@ -142,6 +156,20 @@ internal partial class MainView : UserControl
         {
             _rows[call.Index].Show(call, schedule.StateOf(call), gameTime);
         }
+    }
+
+    // When the calls don't fit, the list keeps the call in focus second from the top, the one before
+    // it still in view. It moves only when that call changes, so a scroll by hand stays meanwhile.
+    private void FollowCalls()
+    {
+        var schedule = _session.Schedule;
+        var focus = InFocus([.. schedule.Calls.Select(schedule.StateOf)]);
+        if (focus == _followed || !CallsScroller.IsLoaded)
+        {
+            return;
+        }
+        _followed = focus;
+        CallsScroller.ScrollToVerticalOffset(Math.Max(0, focus - 1) * RowHeight);
     }
 
     private void OnStartStop(object sender, RoutedEventArgs e)
@@ -196,7 +224,7 @@ internal partial class MainView : UserControl
             columns.Children.Add(status);
             _name.Margin = new Thickness(12, 0, 0, 0);
             columns.Children.Add(_name);
-            var row = new Grid { Height = 36 };
+            var row = new Grid { Height = RowHeight };
             row.Children.Add(_tint);
             row.Children.Add(columns);
             host.Children.Add(row);
@@ -205,7 +233,7 @@ internal partial class MainView : UserControl
         public void Show(Call call, CallState state, TimeSpan gameTime)
         {
             _time.Text = MatchClock.Format(call.At);
-            _event.Text = Strings.Jungle;
+            _event.Text = Copy.EventName(call.Event);
             _spawn.Text = " · " + Copy.Format(Strings.Spawns, MatchClock.Format(call.Spawn));
             _status.Text = state switch
             {

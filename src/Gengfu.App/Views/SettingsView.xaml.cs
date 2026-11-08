@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,7 +16,7 @@ namespace Gengfu.App.Views;
 
 /// <summary>
 /// Settings: the TeamSpeak server, who hears the calls, what a call plays, and the language. Every
-/// change applies at once; the server password stays out of the settings.
+/// change applies at once and goes into the settings file; the server password stays out of it.
 /// </summary>
 internal partial class SettingsView : UserControl
 {
@@ -78,12 +79,20 @@ internal partial class SettingsView : UserControl
     public void Refresh()
     {
         _showing = true;
+        ShowFileError();
         ShowConnection();
         ShowListeners();
         ShowSound();
         TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
         TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
         _showing = false;
+    }
+
+    private void ShowFileError()
+    {
+        var error = _session.FileError;
+        FileBar.Visibility = error is null ? Visibility.Collapsed : Visibility.Visible;
+        FileErrorText.Text = error is null ? "" : Copy.FileError(error);
     }
 
     private void ShowConnection()
@@ -392,6 +401,20 @@ internal partial class SettingsView : UserControl
     }
 
     private async void OnTest(object sender, RoutedEventArgs e) => await _session.Caller.TestAsync();
+
+    // In the app Windows opens .json files with, or in Notepad when there is none.
+    private void OnOpenSettingsFile(object sender, RoutedEventArgs e)
+    {
+        _session.SaveNow();
+        try
+        {
+            Process.Start(new ProcessStartInfo(_session.SettingsFile) { UseShellExecute = true });
+        }
+        catch (Win32Exception)
+        {
+            Process.Start(new ProcessStartInfo("notepad.exe") { ArgumentList = { _session.SettingsFile } });
+        }
+    }
 
     private void OnOpenLanguageRegion(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("ms-settings:regionlanguage") { UseShellExecute = true });

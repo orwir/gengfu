@@ -8,7 +8,7 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 
 | Project | Role | References |
 | --- | --- | --- |
-| `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model; `AppVersion` | — |
+| `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model and file; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
 | `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; hotkeys and updates (*planned*) | Core, TeamSpeak, Concentus |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
@@ -22,26 +22,28 @@ v0.2) plugs in without touching it.
 ## Data flow
 
 1. The clock reads the game time from a monotonic time source.
-2. The call schedule marks a call due once the clock reaches its game time (spawn plus lead time)
-   while the spawn is still ahead; the App asks it for due calls on every tick.
-3. The App renders the call when Gengfu starts and whenever its sound changes, and keeps it: text
-   through a Windows voice or an audio file, to 48 kHz stereo, then to 20 ms Opus frames
-   ([Call audio](#call-audio)). Each call asks for it again, and gets the kept one unless a voice
-   was added to Windows meanwhile.
+2. The call schedule makes a call for every spawn of every event, and marks it due once the clock
+   reaches its game time (spawn plus lead time) while the spawn is still ahead; the App asks it
+   for due calls on every tick.
+3. The App renders the calls' sound when Gengfu starts and whenever it changes, and keeps it: the
+   sound Settings sets, and each event's own text. Text goes through a Windows voice, or an audio
+   file is read, to 48 kHz stereo, then to 20 ms Opus frames ([Call audio](#call-audio)). Each call
+   asks for its sound again, and gets the kept one unless a voice was added to Windows meanwhile.
 4. TeamSpeak sends the frames in real time as a whisper to the chosen listeners — a server group
    or chosen channels — then an empty frame to end the talk. A call that can't go out, with Gengfu
    off the server or nobody chosen, is marked not sent at once, so the list never shows it calling.
 
 ## The App
 
-- `Session` is one running Gengfu: the settings, the clock and its schedule, the call's sound, and
-  the TeamSpeak connection. `Caller` makes its calls and test calls, and `StatusLine` puts the
-  connection into the status line's words.
+- `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
+  calls' sound, and the TeamSpeak connection, which it starts when a server is saved. `Caller`
+  makes its calls and test calls, and `StatusLine` puts the connection into the status line's
+  words.
 - `MainWindow` draws its own title bar: Settings' way back sits in it, and maximize is left out.
   Its surface is flat, with no Mica backdrop: under a Mica frame Windows draws its own caption
   buttons too. Windows 11 rounds the corners on request.
-- `MainView` and `SettingsView` read their strings when they are made, so a new language makes
-  them again; Settings keeps its place and focus.
+- `MainView` and `SettingsView` read their strings and settings when they are made, so a new
+  language, or an edit of the settings file, makes them again; Settings keeps its place.
 
 ## Clock model
 
@@ -89,6 +91,8 @@ The window drives the session from a 50 ms dispatcher timer on the UI thread: it
 due, then redraws the view on show; the digits change only on whole game seconds. It reads the
 connection's state on each tick rather than handling its events. Calls render on the thread pool,
 one at a time, so the window never waits on Windows' speech or a file; so does the voice list.
+The settings file's watcher only marks the file touched; the tick reads it once it has been
+still for 250 ms, and writes the settings once they have stood still for 500 ms.
 TSLib runs the connection on its own scheduler thread: the connection's events fire there, and its
 data book is read only there. Voice frames go out from the voice sender's own thread, each up to
 60 ms before it plays, so Windows' coarse sleep still keeps listeners fed; calls play one at a
@@ -97,8 +101,25 @@ for the connection to leave the server.
 
 ## Configuration
 
-Settings are held in memory, in `AppSettings` (Core); the server password stays beside them, out
-of it. Each applies as soon as it changes:
+Settings live in `AppSettings` (Core) and in one file, `%AppData%\Gengfu\settings.json`, that
+`SettingsStore` reads and writes. It is JSON a person can edit, comments and trailing commas
+allowed. Every value is checked on reading, and an unknown setting is an error too, so a typo
+never passes unseen; the error names the line and the setting as the file spells it. A version
+that renames or drops a setting therefore still reads the old name, or every file written before
+it opens as an error.
+
+Each setting applies as soon as it changes, and Gengfu writes the file whole once the changes
+stop for half a second. It writes only after a change in the app, so the comments in a hand-edited
+file last until then, and never over a file it couldn't read, where the edit would be lost. It
+watches the file: an edit saved there applies at once, events and language too, and calls already
+made stay made. A file with an error changes nothing, and Settings shows where the error is until
+it is fixed.
+
+The server password and the bot's identity stay out of the file, so it can be shared. `Secrets`
+(App) keeps them beside it in `secrets.bin`, encrypted with Windows' data protection for this
+Windows user; one another user or PC wrote reads as empty, and Gengfu makes a new identity. One
+Windows won't let Gengfu read, perhaps held by another program, is never written over: the
+identity in it is the bot's, so that run makes do with a new one and saves no secrets.
 
 | Setting | Default |
 | --- | --- |
@@ -109,10 +130,7 @@ of it. Each applies as soon as it changes:
 | Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen |
 | Sound file | none: the text is spoken |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
-
-*Planned:* one human-readable settings file under `%AppData%\Gengfu`, whose events part doubles as
-a shareable preset. The server password and the bot identity stay out of that file. The format and
-the secret storage are decided in the settings issue.
+| Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00. Each event has its spawns, and may have a name and a text of its own; without them it is the jungle and says the text above. Set in the file only |
 
 ## TeamSpeak specifics
 
@@ -130,4 +148,4 @@ the secret storage are decided in the settings issue.
   book's keys, because TSLib leaves the group's own `Id` at 0.
 - The bot's identity is created once and kept, so a server group can be assigned to it; its
   security level is raised when a server asks. The connection hands it out in the official
-  client's export format and says when it changes; the App stores it (*planned*).
+  client's export format, and the App keeps it with the server password.

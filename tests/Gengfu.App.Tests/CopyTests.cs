@@ -60,6 +60,32 @@ public sealed class CopyTests
     }
 
     [Fact]
+    public void An_event_goes_by_its_own_name_or_as_the_jungle_in_the_app_s_language()
+    {
+        using (new UiCulture("en-US"))
+        {
+            Assert.Equal("Jungle", Copy.EventName(MatchEvent.Jungle));
+        }
+        using (new UiCulture("ru-RU"))
+        {
+            Assert.Equal("Лес", Copy.EventName(MatchEvent.Jungle));
+        }
+        Assert.Equal("Boss", Copy.EventName(new MatchEvent { Name = "Boss", Spawns = [] }));
+    }
+
+    [Fact]
+    public void The_settings_file_bar_names_the_line_and_the_setting_where_it_has_them()
+    {
+        using var english = new UiCulture("en-US");
+
+        Assert.Equal(
+            "settings.json has an error on line 23 (events[1].spawns). Until it’s fixed, Gengfu works with the settings shown here and saves nothing.",
+            Copy.FileError(new SettingsError(23, "events[1].spawns")));
+        Assert.StartsWith("settings.json has an error on line 3. Until", Copy.FileError(new SettingsError(3, null)), StringComparison.Ordinal);
+        Assert.StartsWith("Gengfu can’t read settings.json.", Copy.FileError(new SettingsError(null, null)), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Time_left_rounds_up_like_the_clock_and_stops_at_zero()
     {
         Assert.Equal("2:13", Copy.Span(TimeSpan.FromSeconds(132.1)));

@@ -1,3 +1,5 @@
+using Gengfu.Core.Settings;
+
 namespace Gengfu.Core.Tests;
 
 public class CallScheduleTests
@@ -11,7 +13,7 @@ public class CallScheduleTests
     public CallScheduleTests()
     {
         _clock = new MatchClock(_time);
-        _schedule = new CallSchedule(_clock, CallSchedule.GvgSpawns, CallSchedule.DefaultLead);
+        _schedule = new CallSchedule(_clock, [MatchEvent.Jungle], CallSchedule.DefaultLead);
     }
 
     private Call First => _schedule.Calls[0];
@@ -199,7 +201,7 @@ public class CallScheduleTests
     public void Nothing_fires_while_the_clock_is_idle()
     {
         // A call timed above 35:00 is already reached by the idle clock's 35:00.
-        var schedule = new CallSchedule(_clock, [TimeSpan.FromMinutes(34, 50)], CallSchedule.DefaultLead);
+        var schedule = new CallSchedule(_clock, [new MatchEvent { Spawns = [TimeSpan.FromMinutes(34, 50)] }], CallSchedule.DefaultLead);
 
         Assert.Empty(schedule.TakeDue());
 
@@ -208,16 +210,72 @@ public class CallScheduleTests
     }
 
     [Fact]
-    public void The_next_call_is_the_soonest_whatever_the_list_order()
+    public void Every_spawn_of_every_event_gets_a_call_soonest_first_whatever_the_order_written()
     {
-        var schedule = new CallSchedule(_clock, CallSchedule.GvgSpawns.Reverse(), CallSchedule.DefaultLead);
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(18), TimeSpan.FromMinutes(28)], Text = "Boss in thirty seconds" };
+        var supply = new MatchEvent { Name = "Supply", Spawns = [TimeSpan.FromMinutes(20)] };
+        var schedule = new CallSchedule(_clock, [new MatchEvent { Spawns = [.. CallSchedule.GvgSpawns.Reverse()] }, boss, supply], CallSchedule.DefaultLead);
+
+        Assert.Equal(
+            new[] { "28:00 Boss", "25:00 ", "20:00 ", "20:00 Supply", "18:00 Boss", "15:00 ", "10:00 ", "05:00 " },
+            schedule.Calls.Select(call => MatchClock.Format(call.Spawn) + " " + call.Event.Name));
+        Assert.Equal(Enumerable.Range(0, 8), schedule.Calls.Select(call => call.Index));
+        Assert.All(schedule.Calls, call => Assert.Equal(call.Spawn + CallSchedule.DefaultLead, call.At));
 
         _clock.Start();
         schedule.TakeDue();
+        Assert.Equal(boss, Assert.Single(schedule.Calls, call => schedule.StateOf(call) == CallState.Next).Event);
+    }
 
-        var next = Assert.Single(schedule.Calls, call => schedule.StateOf(call) == CallState.Next);
-        Assert.Equal(TimeSpan.FromMinutes(25), next.Spawn);
-        Assert.Equal(schedule.Calls.Count - 1, next.Index);
+    [Fact]
+    public void New_events_mid_match_keep_the_calls_already_made_or_not_sent()
+    {
+        _clock.Start();
+        RunTo(First.At);
+        Assert.Single(_schedule.TakeDue());
+        RunTo(_schedule.Calls[1].At);
+        _schedule.MarkNotSent(Assert.Single(_schedule.TakeDue()));
+        RunTo(TimeSpan.FromMinutes(19));
+
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(22), TimeSpan.FromMinutes(12)] };
+        _schedule.ChangeEvents([MatchEvent.Jungle, boss]);
+
+        Assert.Equal(
+            new[] { CallState.Called, CallState.NotSent, CallState.NotSent, CallState.Next, CallState.Later, CallState.Later, CallState.Later },
+            States());
+        Assert.Equal(new[] { null, "Boss", null, null, "Boss", null, null }, _schedule.Calls.Select(call => call.Event.Name));
+        Assert.Empty(_schedule.TakeDue());
+    }
+
+    [Fact]
+    public void A_call_that_fails_after_the_events_change_is_marked_where_it_now_stands()
+    {
+        _clock.Start();
+        RunTo(First.At);
+        var sending = Assert.Single(_schedule.TakeDue());
+
+        // An event added ahead of it moves the jungle call down the list while it goes out.
+        _schedule.ChangeEvents([new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25.25)] }, MatchEvent.Jungle]);
+        _schedule.MarkNotSent(sending);
+        Assert.Equal(new[] { CallState.Next, CallState.NotSent }, States().Take(2));
+
+        // A call whose event is gone marks nothing.
+        _schedule.ChangeEvents([new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25.25)] }]);
+        _schedule.MarkNotSent(sending);
+        Assert.Equal(CallState.Next, _schedule.StateOf(Assert.Single(_schedule.Calls)));
+    }
+
+    [Fact]
+    public void A_renamed_event_s_calls_are_new_ones()
+    {
+        _clock.Start();
+        RunTo(First.At);
+        Assert.Single(_schedule.TakeDue());
+
+        _schedule.ChangeEvents([MatchEvent.Jungle with { Name = "Forest" }]);
+
+        Assert.Equal("Forest", First.Event.Name);
+        Assert.Equal(new[] { First }, _schedule.TakeDue());
     }
 
     [Fact]

@@ -17,6 +17,8 @@ to the in-game timer. This page is for players and guild officers; contributors 
   chosen channels, on TeamSpeak 3 and 6 servers.
 - **Your language.** The app comes in English and Russian, and calls speak in a Windows voice for
   your language. If Windows has none, they strike a gong until you add one.
+- **Your own calls.** Add calls for other spawns in the settings file, and share them with your
+  guild as a preset.
 - **Keeps itself current.** New versions install in the background and apply on the next start.
 
 ## Install
@@ -27,7 +29,7 @@ server must allow it to whisper.
 
 ## Set up
 
-Open Settings with the gear at the bottom right. Every change applies at once.
+Open Settings with the gear at the bottom right. Every change applies at once and is saved.
 
 - **TeamSpeak.** Enter the server address as your TeamSpeak client takes it, the server password
   if it has one, and a nickname for the bot, then press **Connect**. Gengfu stays connected by
@@ -41,14 +43,41 @@ Open Settings with the gear at the bottom right. Every change applies at once.
   use a sound file instead. **Test call** whispers the call once, now.
 - **Language.** English, Russian, or the same as Windows.
 
-Gengfu doesn't save its settings yet: after a restart, enter them again.
+## Your settings
+
+Gengfu keeps its settings in `%AppData%\Gengfu\settings.json`, saves each change there, and
+connects by itself at start when a server is saved. **Open settings file** in Settings › General
+opens the file in the app Windows uses for .json files, or in Notepad. An edit you save there
+applies at once. If the file has an error, Settings says on which line, and Gengfu works with the
+settings it had, saving nothing, until you fix it.
+
+The server password and the bot's identity are not in that file. They sit beside it in
+`secrets.bin`, encrypted by Windows for your Windows user, so the settings file is safe to share.
+
+### Events and presets
+
+The file's `events` say which spawns get a call. Out of the box there is one, the GvG jungle at
+25:00, 20:00, 15:00, 10:00 and 05:00. Each event lists its `spawns` as the game shows them, and may
+have a `name` for the calls list and a `text`, spoken in the chosen voice in place of the call's
+text from Settings. An event without a name is the jungle.
+
+```json
+"events": [
+  { "name": null, "spawns": ["25:00", "20:00", "15:00", "10:00", "05:00"], "text": null },
+  { "name": "Boss", "spawns": ["28:00", "18:00"], "text": "Boss in thirty seconds" }
+]
+```
+
+To share a preset, send the `events` part; the file holds no password or identity anyway. Whoever
+gets it pastes it over the `events` in their own file through **Open settings file**.
 
 ## The calls
 
 Under the clock, Gengfu shows the next call and the time left until it. The list below has every
 call of the match: a check once it went out, and ✕ *Not sent* when nobody heard it: Gengfu was
 off the server, nobody was chosen to hear the calls, the whisper failed, or the clock was moved
-past the spawn first.
+past the spawn first. When there are more calls than fit, the list scrolls to keep the next one in
+view.
 
 ## Match the clock
 

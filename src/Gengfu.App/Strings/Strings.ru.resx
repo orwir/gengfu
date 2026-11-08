@@ -285,4 +285,16 @@
   <data name="SameAsWindows" xml:space="preserve">
     <value>Как в Windows</value>
   </data>
+  <data name="OpenSettingsFile" xml:space="preserve">
+    <value>Открыть файл настроек</value>
+  </data>
+  <data name="SettingsFileError" xml:space="preserve">
+    <value>В settings.json ошибка в строке {0} ({1}). Пока её не исправят, Gengfu работает с показанными здесь настройками и ничего не сохраняет.</value>
+  </data>
+  <data name="SettingsFileErrorOnLine" xml:space="preserve">
+    <value>В settings.json ошибка в строке {0}. Пока её не исправят, Gengfu работает с показанными здесь настройками и ничего не сохраняет.</value>
+  </data>
+  <data name="SettingsFileUnreadable" xml:space="preserve">
+    <value>Gengfu не может прочитать settings.json. Пока не сможет, он работает с показанными здесь настройками и ничего не сохраняет.</value>
+  </data>
 </root>
