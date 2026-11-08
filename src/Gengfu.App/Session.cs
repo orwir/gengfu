@@ -122,6 +122,8 @@ internal sealed class Session : IAsyncDisposable
         var login = Login.Of(Settings, Password);
         ConnectedWith = login;
         ForgetLists();
+        // The new connection's lists are read even when no tick sees it connecting.
+        _seen = ConnectionStatus.Disconnected;
         return Connection.ConnectAsync(login.Server, login.Nickname, login.Password);
     }
 
@@ -176,6 +178,12 @@ internal sealed class Session : IAsyncDisposable
     public void SoundChanged() => _clip = RenderAsync();
 
     public ValueTask DisposeAsync() => Connection.DisposeAsync();
+
+    /// <summary>The group drop-down's list: the server's groups once they are in, until then the group already chosen.</summary>
+    internal static IReadOnlyList<Named> GroupChoices(bool connected, IReadOnlyList<ServerGroupInfo> groups, Named? chosen) =>
+        connected && groups.Count > 0 ? [.. groups.Select(group => new Named(group.Id, group.Name))]
+        : chosen is not null ? [chosen]
+        : [];
 
     internal static bool OffersConnectFor(ConnectionStatus status, Login? connectedWith, Login fields) =>
         status == ConnectionStatus.Disconnected || connectedWith != fields;

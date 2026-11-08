@@ -127,10 +127,7 @@ internal partial class SettingsView : UserControl
             var channels => Copy.ChannelCount(channels.Count, _session.Language),
         };
 
-        // Until Gengfu is connected, the list holds only the group already chosen.
-        IReadOnlyList<Named> groups = connected
-            ? [.. _session.Groups.Select(group => new Named(group.Id, group.Name))]
-            : settings.Group is { } chosen ? [chosen] : [];
+        var groups = Session.GroupChoices(connected, _session.Groups, settings.Group);
         if (!groups.SequenceEqual(GroupBox.Items.Cast<ComboBoxItem>().Select(item => (Named)item.Tag)))
         {
             GroupBox.ItemsSource = groups.Select(group => new ComboBoxItem { Content = group.Name, Tag = group }).ToList();

@@ -81,7 +81,7 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   from the server's list, or chosen channels, ticked in a flyout in the server's tree order
   that stays open while ticking (Esc, Enter or a click outside closes it). Until Gengfu is
   connected the drop-downs are off; the server's lists are read once it is, and again whenever
-  a list opens.
+  a list opens, and until they are in the group drop-down holds the group already chosen.
 - **Sound file:** in place of Say and Voice, the file's name with a note icon and Change;
   "Use text instead" goes back to the text.
 - **Hints:** an info bar with an accent "i" (the no-voice hint), or a caution bar with a

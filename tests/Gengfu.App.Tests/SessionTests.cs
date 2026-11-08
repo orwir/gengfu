@@ -104,6 +104,19 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public void The_group_list_keeps_the_chosen_group_until_the_server_s_groups_are_in()
+    {
+        var chosen = new Named(1625, "ГВГ");
+        IReadOnlyList<ServerGroupInfo> none = [];
+        IReadOnlyList<ServerGroupInfo> server = [new(6, "Normal"), new(1625, "ГВГ")];
+
+        Assert.Equal(new[] { chosen }, Session.GroupChoices(connected: false, server, chosen));
+        Assert.Equal(new[] { chosen }, Session.GroupChoices(connected: true, none, chosen));
+        Assert.Equal(new[] { new Named(6, "Normal"), chosen }, Session.GroupChoices(connected: true, server, chosen));
+        Assert.Empty(Session.GroupChoices(connected: true, none, null));
+    }
+
+    [Fact]
     public void Connect_is_offered_again_once_a_field_changes()
     {
         var login = new Login("ts.example.com", "Gengfu", "");
