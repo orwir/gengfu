@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Start" xml:space="preserve">
+    <value>Start</value>
+    <comment>Button: starts the match clock at 35:00.</comment>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Stop</value>
+    <comment>Button: stops the match clock; no more calls.</comment>
+  </data>
+  <data name="Clock" xml:space="preserve">
+    <value>Clock</value>
+    <comment>Screen-reader name of the minutes and seconds together; focus rests there after Enter or Esc.</comment>
+  </data>
+  <data name="Minutes" xml:space="preserve">
+    <value>Minutes</value>
+    <comment>Screen-reader name of the clock's minutes field.</comment>
+  </data>
+  <data name="Seconds" xml:space="preserve">
+    <value>Seconds</value>
+    <comment>Screen-reader name of the clock's seconds field.</comment>
+  </data>
+  <data name="MinuteMore" xml:space="preserve">
+    <value>One minute more</value>
+    <comment>Screen-reader name of the arrow above the minutes.</comment>
+  </data>
+  <data name="MinuteLess" xml:space="preserve">
+    <value>One minute less</value>
+    <comment>Screen-reader name of the arrow below the minutes.</comment>
+  </data>
+  <data name="SecondMore" xml:space="preserve">
+    <value>One second more</value>
+    <comment>Screen-reader name of the arrow above the seconds.</comment>
+  </data>
+  <data name="SecondLess" xml:space="preserve">
+    <value>One second less</value>
+    <comment>Screen-reader name of the arrow below the seconds.</comment>
+  </data>
+</root>

@@ -1,0 +1,137 @@
+<UserControl x:Class="Gengfu.App.Controls.ClockDigits"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="clr-namespace:Gengfu.App"
+             Focusable="True" IsTabStop="False" FocusVisualStyle="{x:Null}"
+             AutomationProperties.Name="{x:Static app:Strings.Clock}">
+    <UserControl.Resources>
+        <!-- Not focusable: a click keeps the field's edit going, and ↑ ↓ in the field do the same from the keyboard. -->
+        <Style x:Key="Step" TargetType="Button">
+            <Setter Property="Width" Value="84" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Chevron" TargetType="Path">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Stroke" Value="{Binding (TextElement.Foreground), RelativeSource={RelativeSource Self}}" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+        </Style>
+
+        <!-- Plain digits until hovered; a field while it has focus. -->
+        <Style x:Key="Digits" TargetType="TextBox">
+            <Setter Property="Width" Value="84" />
+            <Setter Property="Height" Value="72" />
+            <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
+            <Setter Property="FontSize" Value="64" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+            <Setter Property="TextBlock.LineHeight" Value="72" />
+            <Setter Property="TextBlock.LineStackingStrategy" Value="BlockLineHeight" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="MaxLength" Value="2" />
+            <Setter Property="IsUndoEnabled" Value="False" />
+            <Setter Property="AllowDrop" Value="False" />
+            <Setter Property="ContextMenu" Value="{x:Null}" />
+            <Setter Property="InputMethod.IsInputMethodEnabled" Value="False" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource TextControlSelectionHighlightColor}" />
+            <Setter Property="SelectionTextBrush" Value="{DynamicResource TextOnAccentFillColorSelectedTextBrush}" />
+            <Setter Property="SelectionOpacity" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Field" Background="Transparent" CornerRadius="6" ClipToBounds="True">
+                            <Grid>
+                                <!-- The caret is an adorner sized to the font, taller than the field: give it a layer under the field's clip. -->
+                                <AdornerDecorator>
+                                    <Decorator x:Name="PART_ContentHost" VerticalAlignment="Center" />
+                                </AdornerDecorator>
+                                <Border x:Name="Underline" CornerRadius="6" BorderThickness="0,0,0,2" BorderBrush="Transparent" IsHitTestVisible="False" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsEnabled" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Field" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </MultiTrigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Field" Property="Background" Value="{DynamicResource ControlFillColorInputActiveBrush}" />
+                                <Setter TargetName="Underline" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <StackPanel>
+            <Button x:Name="MinuteMore" Style="{StaticResource Step}" AutomationProperties.Name="{x:Static app:Strings.MinuteMore}">
+                <Path Style="{StaticResource Chevron}" Data="M3,7.5 L6,4.5 L9,7.5" />
+            </Button>
+            <TextBox x:Name="MinutesBox" Style="{StaticResource Digits}" AutomationProperties.Name="{x:Static app:Strings.Minutes}" />
+            <Button x:Name="MinuteLess" Style="{StaticResource Step}" AutomationProperties.Name="{x:Static app:Strings.MinuteLess}">
+                <Path Style="{StaticResource Chevron}" Data="M3,4.5 L6,7.5 L9,4.5" />
+            </Button>
+        </StackPanel>
+        <TextBlock Text=":" Margin="0,0,0,6" VerticalAlignment="Center"
+                   FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="64" FontWeight="SemiBold"
+                   LineHeight="72" LineStackingStrategy="BlockLineHeight">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <Style.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <StackPanel>
+            <Button x:Name="SecondMore" Style="{StaticResource Step}" AutomationProperties.Name="{x:Static app:Strings.SecondMore}">
+                <Path Style="{StaticResource Chevron}" Data="M3,7.5 L6,4.5 L9,7.5" />
+            </Button>
+            <TextBox x:Name="SecondsBox" Style="{StaticResource Digits}" AutomationProperties.Name="{x:Static app:Strings.Seconds}" />
+            <Button x:Name="SecondLess" Style="{StaticResource Step}" AutomationProperties.Name="{x:Static app:Strings.SecondLess}">
+                <Path Style="{StaticResource Chevron}" Data="M3,4.5 L6,7.5 L9,4.5" />
+            </Button>
+        </StackPanel>
+    </StackPanel>
+</UserControl>
