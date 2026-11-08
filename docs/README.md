@@ -22,3 +22,4 @@ in the root [README](../README.md); how to work in the repo is in [CONTRIBUTING]
 | [ADR-0003](adr/0003-own-address-resolver.md) | Gengfu resolves server addresses itself |
 | [ADR-0004](adr/0004-licensing.md) | MIT for Gengfu; vendored code keeps its licenses |
 | [ADR-0005](adr/0005-call-audio-without-bindings-or-native-code.md) | Call audio without Windows bindings or native code |
+| [ADR-0006](adr/0006-self-contained-installer-and-updates.md) | A self-contained installer that updates itself from GitHub Releases |

@@ -445,13 +445,30 @@ public sealed class SessionTests : IAsyncLifetime
         Assert.Equal("127.0.0.1:9", _session.ConnectedWith?.Server);
     }
 
+    [Fact]
+    public async Task An_installed_Gengfu_looks_for_updates_as_it_ticks()
+    {
+        using var feed = new LocalFeed();
+        feed.Publish("0.1.0", "0.1.1");
+        await RestartAsync(install: feed.Manager("0.1.0"));
+
+        for (var tries = 0; tries < 200 && _session.Updates.State is not UpdateState.Ready; tries++)
+        {
+            _session.Tick();
+            await Task.Delay(25);
+        }
+
+        Assert.Equal(new UpdateState.Ready("0.1.1"), _session.Updates.State);
+    }
+
     // No voices and no files: every call plays the gong, so nothing here depends on the machine.
-    private Session NewSession() =>
+    private Session NewSession(Velopack.UpdateManager? install = null) =>
         new(
             English,
             _time,
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            _folder);
+            _folder,
+            install);
 
     // Lets whatever changed stand still long enough to be written.
     private void Settle()
@@ -462,10 +479,10 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     // Closes Gengfu, does what happens while it is closed, and starts it again on the same folder.
-    private async Task RestartAsync(Action? meanwhile = null)
+    private async Task RestartAsync(Action? meanwhile = null, Velopack.UpdateManager? install = null)
     {
         await _session.DisposeAsync();
         meanwhile?.Invoke();
-        _session = NewSession();
+        _session = NewSession(install);
     }
 }

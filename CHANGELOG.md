@@ -39,3 +39,5 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Events in the settings file add calls for other spawns, each with its own name and words (#7)
 - The settings file's events can be shared as a preset (#7)
 - The calls list scrolls and keeps the next call in view when the calls don't fit (#7)
+- Gengfu installs from one setup file, for your Windows user, with no admin rights (#8)
+- New versions download in the background and apply the next time Gengfu starts (#8)

@@ -19,13 +19,31 @@ to the in-game timer. This page is for players and guild officers; contributors 
   your language. If Windows has none, they strike a gong until you add one.
 - **Your own calls.** Add calls for other spawns in the settings file, and share them with your
   guild as a preset.
-- **Keeps itself current.** New versions install in the background and apply on the next start.
+- **Keeps itself current.** New versions download in the background and apply the next time
+  Gengfu starts — never in the middle of a match.
 
 ## Install
 
-Not released yet. Releases will appear on the [Releases](https://github.com/orwir/gengfu/releases)
-page. Gengfu needs Windows 10 or 11 and a TeamSpeak server it may join — no admin rights, but the
-server must allow it to whisper.
+Gengfu needs Windows 11, 64-bit, and a TeamSpeak server it may join; the server must allow it to
+whisper. It needs no admin rights.
+
+1. Download `Gengfu-win-Setup.exe` from the latest release on the
+   [Releases](https://github.com/orwir/gengfu/releases) page.
+2. Run it. Gengfu isn't signed yet, so Windows may say **Windows protected your PC**: choose
+   **More info**, then **Run anyway**. Your browser may also warn that the file isn't commonly
+   downloaded; keep it.
+3. Setup installs Gengfu for your Windows user, adds it to Start and the desktop, and opens it.
+
+Where Smart App Control is on (Windows Security › App & browser control), Windows blocks
+unsigned apps with no way around it, so it blocks Gengfu until Gengfu is signed.
+
+**Updates** download by themselves while Gengfu runs, and apply the next time it starts. Once the
+match clock is stopped, the main window says an update is ready and offers **Restart**; Settings ›
+General shows the version and whether it is up to date. If Gengfu won't start after an update, run
+Setup again: it repairs the install and keeps your settings.
+
+**Uninstall** Gengfu in Windows Settings › Apps › Installed apps. Your settings stay in
+`%AppData%\Gengfu`; delete that folder to remove them too.
 
 ## Set up
 
