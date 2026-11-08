@@ -1,10 +1,15 @@
 using System.Buffers.Binary;
+using System.Runtime.InteropServices;
+using Gengfu.App.Speech;
 
 namespace Gengfu.App.Tests.Speech;
 
 /// <summary>Test sounds and the measurements the tests make on them.</summary>
 internal static class Sound
 {
+    /// <summary>Whether this machine has Media Foundation: Windows Server and N editions may not.</summary>
+    public static bool MediaFoundationInstalled { get; } = MediaFoundationStarts();
+
     public static float[] Tone(double frequency, double seconds, int rate, double level = 0.5) =>
         [.. Enumerable.Range(0, (int)(seconds * rate)).Select(i => (float)(level * Math.Sin(2 * Math.PI * frequency * i / rate)))];
 
@@ -62,6 +67,23 @@ internal static class Sound
     public static double Rms(float[] samples) => Math.Sqrt(samples.Average(sample => (double)sample * sample));
 
     public static float Peak(float[] samples) => samples.Max(Math.Abs);
+
+    private static bool MediaFoundationStarts()
+    {
+        try
+        {
+            if (Interop.MFStartup(0x00020070, 1) < 0)
+            {
+                return false;
+            }
+            _ = Interop.MFShutdown();
+            return true;
+        }
+        catch (Exception exception) when (exception is DllNotFoundException or EntryPointNotFoundException or SEHException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>The frames, decoded back to interleaved 48 kHz stereo, as listeners hear them.</summary>
     public static short[] Decode(IReadOnlyList<byte[]> frames)

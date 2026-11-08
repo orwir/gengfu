@@ -10,23 +10,23 @@ namespace Gengfu.App.Speech;
 /// </summary>
 internal static unsafe partial class Interop
 {
-    private const uint CoinitMultithreaded = 0;
-
     public static IntPtr Slot(IntPtr instance, int slot) => (*(IntPtr**)instance)[slot];
 
     public static void Check(int result, string what)
     {
         if (result < 0)
         {
-            throw new COMException(what, result);
+            throw new COMException($"Couldn't {what}: {Describe(result)}", result);
         }
     }
 
-    /// <summary>
-    /// Joins the calling thread to COM's multithreaded apartment, which WinRT and Media Foundation
-    /// need: in a WPF app no thread is in it by default. A thread already in an apartment stays put.
-    /// </summary>
-    public static void EnterMultithreadedApartment() => _ = CoInitializeEx(IntPtr.Zero, CoinitMultithreaded);
+    /// <summary>Windows' own words for an error, with its code: a missing file and a locked one read alike otherwise.</summary>
+    public static string Describe(int result)
+    {
+        var code = $"0x{result:X8}";
+        var message = Marshal.GetExceptionForHR(result)?.Message ?? code;
+        return message.Contains(code, StringComparison.OrdinalIgnoreCase) ? message : $"{message} ({code})";
+    }
 
     public static IntPtr QueryInterface(IntPtr instance, Guid iid)
     {
@@ -41,9 +41,6 @@ internal static unsafe partial class Interop
             Marshal.Release(instance);
         }
     }
-
-    [LibraryImport("ole32.dll")]
-    private static partial int CoInitializeEx(IntPtr reserved, uint coInit);
 
     [LibraryImport("combase.dll", StringMarshalling = StringMarshalling.Utf16)]
     public static partial int WindowsCreateString(string source, int length, out IntPtr hstring);

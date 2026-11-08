@@ -30,9 +30,10 @@ play on a guildmate's PC, not only on the one it was built on.
 
 - Nothing ships for speech, files or encoding beyond one 0.4 MB managed DLL, and players install
   nothing.
-- The interop is about 500 lines of function-pointer calls. A wrong slot fails at once, and the
-  tests run every installed voice and decode real files wherever Windows has them; where it
-  doesn't, as on CI's Windows Server, they check the fallback instead.
+- The interop is about 500 lines of function-pointer calls, and a wrong slot fails at once. The
+  tests hold the voice list to the voices Windows registers, speak with each one and decode real
+  files wherever Windows has them; where it doesn't, as on CI's Windows Server, they check the
+  fallback instead.
 - TSLib's own Opus classes stay unused: they would need a native libopus.
 - Release builds must carry Concentus's license notice.
 - Supersedes [ADR-0002](0002-tslib-vendored.md)'s use of TS3AudioBot's libopus build.

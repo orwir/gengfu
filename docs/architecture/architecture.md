@@ -56,9 +56,10 @@ and the clip says why, for Settings to show.
   Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
   text is the user's to match. The voice list is read afresh each time, so a voice added in
   Windows' speech settings counts without a restart.
-- **Shape.** Silence is trimmed; a call stops at 10 s, fading out, so a wrong file can't hold the
-  whisper; its loudest 400 ms sit at −16 LUFS with peaks 1 dB under full scale; 100 ms of silence
-  lead it, so its start is never clipped.
+- **Shape.** Silence is trimmed; a call stops after 10 s of sound, counted from where its sound
+  starts, and fades out, so a wrong file can't hold the whisper; its loudest 400 ms sit at
+  −16 LUFS with peaks 1 dB under full scale; 100 ms of silence lead it, so its start is never
+  clipped.
 - **Encoding.** 20 ms Opus frames at 48 kbps, in managed code. A rendered call is kept until its
   text, its voice or its file changes.
 - **Windows parts.** Speech uses Windows.Media.SpeechSynthesis (Windows 10 and later) and is
@@ -69,8 +70,8 @@ and the clip says why, for Settings to show.
 ## Threading
 
 The window redraws the clock on the UI thread from a 50 ms dispatcher timer; the digits change only
-on whole game seconds. Calls render on the thread pool, one at a time, in COM's multithreaded
-apartment, which Windows' speech and Media Foundation need. TSLib runs the connection on its own scheduler thread: the connection's
+on whole game seconds. Calls render on the thread pool, one at a time, so the window never waits
+on Windows' speech or a file. TSLib runs the connection on its own scheduler thread: the connection's
 events fire there, and its data book is read only there. Voice frames go out from the voice
 sender's own thread, each up to 60 ms before it plays, so Windows' coarse sleep still keeps
 listeners fed; calls play one at a time. The UI thread never blocks on the network.

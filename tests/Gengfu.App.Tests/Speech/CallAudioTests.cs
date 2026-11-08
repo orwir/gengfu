@@ -17,8 +17,8 @@ public sealed class CallAudioTests : IDisposable
     private readonly string _folder = Directory.CreateTempSubdirectory("gengfu-").FullName;
     private readonly CallAudio _audio;
     private Func<string, string, byte[]> _speak = (_, _) => Sound.Wav(Sound.Tone(300, 0.5, 16000), 16000);
-    private Func<string, float[]> _readFile = path =>
-        File.Exists(path) ? Sound.Stereo(Sound.Tone(500, 0.5, 48000)) : throw new FileNotFoundException("No such file.", path);
+    private Func<string, (float[] Samples, bool Cut)> _readFile = path =>
+        File.Exists(path) ? (Sound.Stereo(Sound.Tone(500, 0.5, 48000)), false) : throw new FileNotFoundException("No such file.", path);
 
     // Windows is faked here, so each case is the same on every machine; the last test uses the real one.
     public CallAudioTests() =>
@@ -54,6 +54,15 @@ public sealed class CallAudioTests : IDisposable
         await _audio.RenderAsync(new CallSound.Speech("Jungle in thirty seconds", "david"), Russian);
 
         Assert.Equal(new[] { ("Jungle in thirty seconds", "david") }, _spoken);
+    }
+
+    [Fact]
+    public async Task One_text_in_another_voice_is_spoken_again()
+    {
+        await _audio.RenderAsync(new CallSound.Speech("Jungle", "david"), English);
+        await _audio.RenderAsync(new CallSound.Speech("Jungle", "irina"), English);
+
+        Assert.Equal(new[] { ("Jungle", "david"), ("Jungle", "irina") }, _spoken);
     }
 
     [Fact]
@@ -143,9 +152,39 @@ public sealed class CallAudioTests : IDisposable
     }
 
     [Fact]
+    public async Task A_file_that_goes_on_past_the_read_fades_out()
+    {
+        _readFile = _ => (Sound.Stereo(Sound.Tone(500, 3, 48000)), true);
+
+        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Touch("song.mp3")), English);
+
+        // The 3 s of sound sit 100 ms in; Opus delays them by a few milliseconds more.
+        var heard = Sound.Left(Sound.Decode(clip.Frames));
+        var start = Sound.Rms(heard[9600..19200]);
+        var end = Sound.Rms(heard[(4800 + 144000 - 1200)..(4800 + 144000 - 240)]);
+        Assert.True(end < start / 10, $"the end is {end / start:P0} of the start");
+    }
+
+    [Fact]
+    public async Task A_missing_file_says_why_in_Windows_own_words()
+    {
+        var clip = await new CallAudio().RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "missing.mp3")), English);
+
+        Assert.Equal(CallProblem.FileUnreadable, clip.Problem);
+        if (Sound.MediaFoundationInstalled)
+        {
+            Assert.Contains("0x80070002", clip.Detail);
+        }
+        else
+        {
+            Assert.False(string.IsNullOrWhiteSpace(clip.Detail));
+        }
+    }
+
+    [Fact]
     public async Task A_silent_file_plays_the_gong()
     {
-        _readFile = _ => Sound.Silence(1, 48000);
+        _readFile = _ => (Sound.Silence(1, 48000), false);
 
         var clip = await _audio.RenderAsync(new CallSound.AudioFile(Touch("silence.wav")), English);
 

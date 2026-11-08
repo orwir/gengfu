@@ -1,18 +1,19 @@
 using System.Buffers.Binary;
 using System.IO;
+using Gengfu.TeamSpeak;
 
 namespace Gengfu.App.Speech;
 
 /// <summary>
 /// Turns decoded audio into a call: 48 kHz stereo, silence trimmed, at most <see cref="MaxLength"/>,
-/// at one shared loudness, in whole 20 ms frames.
+/// at one shared loudness, in whole frames of <see cref="VoiceSender.FrameLength"/>.
 /// </summary>
 internal static class Pcm
 {
     public const int Rate = 48000;
 
-    /// <summary>One 20 ms frame per channel, the length of the frames <c>VoiceSender</c> sends.</summary>
-    public const int FrameSamples = 960;
+    /// <summary>Samples per channel in a frame: as long as the frames <see cref="VoiceSender"/> paces.</summary>
+    public static int FrameSamples { get; } = (int)(Rate * VoiceSender.FrameLength.TotalSeconds);
 
     // Every call is set to this loudness of its loudest 400 ms (ITU-R BS.1770), about as loud as
     // Windows' own voices speak, with its peaks kept 1 dB under full scale.
@@ -128,9 +129,10 @@ internal static class Pcm
 
     /// <summary>
     /// 48 kHz audio, mono or interleaved stereo, shaped into a call of interleaved 16-bit stereo;
-    /// null when nothing in it is audible.
+    /// null when nothing in it is audible. <paramref name="cut"/> says the audio was cut off before
+    /// its end, so it fades out however short it is.
     /// </summary>
-    public static short[]? Shape(float[] samples, int channels)
+    public static short[]? Shape(float[] samples, int channels, bool cut = false)
     {
         var stereo = channels == 1 ? Stereo(samples) : samples;
         var peak = Peak(stereo);
@@ -142,7 +144,7 @@ internal static class Pcm
         var last = LastLoud(stereo, peak * TrimLevel);
         var frames = Math.Min(last - first + 1, (int)(MaxLength.TotalSeconds * Rate));
         var call = stereo.AsSpan(first * 2, frames * 2).ToArray();
-        if (last - first + 1 > frames)
+        if (cut || last - first + 1 > frames)
         {
             FadeOut(call);
         }

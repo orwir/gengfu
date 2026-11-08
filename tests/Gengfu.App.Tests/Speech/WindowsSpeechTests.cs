@@ -19,6 +19,17 @@ public sealed class WindowsSpeechTests
     }
 
     [Fact]
+    public void Windows_default_voice_comes_first_and_the_rest_keep_their_order()
+    {
+        var david = new Voice("david", "Microsoft David", "en-US");
+        var zira = new Voice("zira", "Microsoft Zira", "en-US");
+        var mark = new Voice("mark", "Microsoft Mark", "en-US");
+
+        Assert.Equal(new[] { mark, david, zira }, WindowsSpeech.DefaultFirst([david, zira, mark], "mark"));
+        Assert.Equal(new[] { david, zira, mark }, WindowsSpeech.DefaultFirst([david, zira, mark], null));
+    }
+
+    [Fact]
     public void A_voice_that_is_not_installed_is_refused()
     {
         if (Voices.Installed().Count == 0)

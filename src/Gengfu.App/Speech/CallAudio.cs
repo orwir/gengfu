@@ -61,7 +61,7 @@ public sealed class CallAudio
 
     private readonly Func<IReadOnlyList<Voice>> _voices;
     private readonly Func<string, string, byte[]> _speak;
-    private readonly Func<string, TimeSpan, float[]> _read;
+    private readonly Func<string, TimeSpan, (float[] Samples, bool Cut)> _read;
     private readonly SemaphoreSlim _rendering = new(1, 1);
     private readonly Dictionary<object, IReadOnlyList<byte[]>> _clips = [];
 
@@ -70,7 +70,7 @@ public sealed class CallAudio
     {
     }
 
-    internal CallAudio(Func<IReadOnlyList<Voice>> voices, Func<string, string, byte[]> speak, Func<string, TimeSpan, float[]> read)
+    internal CallAudio(Func<IReadOnlyList<Voice>> voices, Func<string, string, byte[]> speak, Func<string, TimeSpan, (float[] Samples, bool Cut)> read)
     {
         _voices = voices;
         _speak = speak;
@@ -98,7 +98,7 @@ public sealed class CallAudio
         OpusCodecFactory.AttemptToUseNativeLibrary = false;
         using var encoder = OpusCodecFactory.CreateEncoder(Pcm.Rate, 2, OpusApplication.OPUS_APPLICATION_AUDIO);
         encoder.Bitrate = Bitrate;
-        const int frame = Pcm.FrameSamples * 2;
+        var frame = Pcm.FrameSamples * 2;
         var frames = new List<byte[]>(pcm.Length / frame);
         var packet = new byte[1275];
         for (var offset = 0; offset + frame <= pcm.Length; offset += frame)
@@ -152,7 +152,10 @@ public sealed class CallAudio
             // A file edited in place renders afresh.
             var file = new FileInfo(path);
             return new CallClip(Keep(("file", file.FullName, file.LastWriteTimeUtc, file.Exists ? file.Length : -1), () =>
-                Pcm.Shape(_read(file.FullName, Pcm.MaxLength), 2) ?? throw new InvalidDataException("The file is silent.")));
+            {
+                var (samples, cut) = _read(file.FullName, Pcm.MaxLength);
+                return Pcm.Shape(samples, 2, cut) ?? throw new InvalidDataException("The file is silent.");
+            }));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {

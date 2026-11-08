@@ -108,6 +108,20 @@ public sealed class PcmTests
         Assert.True(end < start / 20, $"the last 20 ms are {end / start:P0} of the start");
     }
 
+    [Fact]
+    public void A_sound_cut_off_before_its_end_fades_out_though_it_is_under_10_s()
+    {
+        var tone = Sound.Tone(440, 5, 48000);
+
+        var cut = Sound.Left(Pcm.Shape(tone, 1, cut: true)!);
+        var whole = Sound.Left(Pcm.Shape(tone, 1)!);
+
+        // The sound sits from 100 ms in; compare its first and last 20 ms.
+        var start = Sound.Rms(cut[4800..5760]);
+        Assert.True(Sound.Rms(cut[(4800 + 240000 - 960)..(4800 + 240000)]) < start / 20);
+        Assert.Equal(start, Sound.Rms(whole[(4800 + 240000 - 960)..(4800 + 240000)]), 0.01);
+    }
+
     [Theory]
     [InlineData(0.05)]
     [InlineData(0.8)]

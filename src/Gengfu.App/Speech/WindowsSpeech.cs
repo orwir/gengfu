@@ -37,7 +37,6 @@ internal static unsafe class WindowsSpeech
     /// <summary>The installed voices, Windows' default first. Throws when Windows has no speech.</summary>
     public static IReadOnlyList<Voice> Voices()
     {
-        Interop.EnterMultithreadedApartment();
         var statics = Factory(InstalledVoicesStatic);
         try
         {
@@ -48,7 +47,7 @@ internal static unsafe class WindowsSpeech
                 voices.Add(new Voice(Text(voice, 7), Text(voice, 6), Text(voice, 8)));
                 return false;
             });
-            return [.. voices.OrderBy(voice => voice.Id == defaultId ? 0 : 1)];
+            return DefaultFirst(voices, defaultId);
         }
         finally
         {
@@ -56,10 +55,13 @@ internal static unsafe class WindowsSpeech
         }
     }
 
+    /// <summary>The voices with Windows' default moved first; the rest keep Windows' order.</summary>
+    internal static IReadOnlyList<Voice> DefaultFirst(IReadOnlyList<Voice> voices, string? defaultId) =>
+        [.. voices.OrderBy(voice => voice.Id == defaultId ? 0 : 1)];
+
     /// <summary>Speaks the text in the voice with this id, into a WAV of 16-bit PCM at the voice's own rate.</summary>
     public static byte[] Speak(string text, string voiceId)
     {
-        Interop.EnterMultithreadedApartment();
         var voice = FindVoice(voiceId);
         var synthesizer = IntPtr.Zero;
         try
@@ -205,7 +207,7 @@ internal static unsafe class WindowsSpeech
                 {
                     int error;
                     _ = ((delegate* unmanaged[Stdcall]<IntPtr, int*, int>)Interop.Slot(info, 8))(info, &error);
-                    throw new COMException($"Windows could not speak the line (status {status}).", error);
+                    throw new COMException($"Couldn't speak the line: {Interop.Describe(error)}", error);
                 }
                 if (waited.Elapsed > Patience)
                 {

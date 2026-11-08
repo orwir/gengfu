@@ -16,13 +16,17 @@ internal static unsafe class MediaFoundation
     private const uint ReadFailed = 0x1;
     private const uint EndOfStream = 0x2;
 
+    // Samples under -80 dBFS before the sound starts are silence, skipped for up to a minute, so the
+    // limit counts from where the sound starts. Sound that only starts later is no call.
+    private const float Silent = 0.0001f;
+    private static readonly int MaxLeadIn = 60 * Pcm.Rate * 2;
+
     /// <summary>
-    /// The file as 48 kHz stereo, interleaved, decoded up to a little past <paramref name="limit"/>.
-    /// Throws when Windows can't read it.
+    /// The file as 48 kHz stereo, interleaved, from where its sound starts to a little past
+    /// <paramref name="limit"/>, and whether the file goes on past that. Throws when Windows can't read it.
     /// </summary>
-    public static float[] Read(string path, TimeSpan limit)
+    public static (float[] Samples, bool Cut) Read(string path, TimeSpan limit)
     {
-        Interop.EnterMultithreadedApartment();
         Interop.Check(Interop.MFStartup(Version, FilesOnly), "start Media Foundation");
         try
         {
@@ -71,10 +75,11 @@ internal static unsafe class MediaFoundation
     }
 
     // IMFSourceReader: 9 ReadSample. IMFSample: 41 ConvertToContiguousBuffer. IMFMediaBuffer: 3 Lock, 4 Unlock.
-    private static float[] ReadSamples(IntPtr reader, int most)
+    private static (float[] Samples, bool Cut) ReadSamples(IntPtr reader, int most)
     {
         var samples = new List<float>();
-        while (samples.Count < most)
+        var skipped = 0;
+        while (true)
         {
             uint stream, flags;
             long time;
@@ -85,7 +90,7 @@ internal static unsafe class MediaFoundation
             {
                 try
                 {
-                    Append(sample, samples);
+                    skipped += Append(sample, samples);
                 }
                 finally
                 {
@@ -98,13 +103,21 @@ internal static unsafe class MediaFoundation
             }
             if ((flags & EndOfStream) != 0)
             {
-                break;
+                return ([.. samples], false);
+            }
+            if (samples.Count >= most)
+            {
+                return ([.. samples], true);
+            }
+            if (samples.Count == 0 && skipped >= MaxLeadIn)
+            {
+                return ([], false);
             }
         }
-        return [.. samples];
     }
 
-    private static void Append(IntPtr sample, List<float> samples)
+    // Adds the sample's audio, but none of the silence before the sound starts; returns how much it skipped.
+    private static int Append(IntPtr sample, List<float> samples)
     {
         IntPtr buffer;
         Interop.Check(((delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, int>)Interop.Slot(sample, 41))(sample, &buffer), "join the audio");
@@ -115,7 +128,16 @@ internal static unsafe class MediaFoundation
             Interop.Check(((delegate* unmanaged[Stdcall]<IntPtr, byte**, int*, int*, int>)Interop.Slot(buffer, 3))(buffer, &data, &capacity, &length), "lock the audio");
             try
             {
-                samples.AddRange(new ReadOnlySpan<float>(data, length / sizeof(float)));
+                var audio = new ReadOnlySpan<float>(data, length / sizeof(float));
+                var start = 0;
+                if (samples.Count == 0)
+                {
+                    // From the start of the stereo frame the sound starts in.
+                    start = audio.IndexOfAnyExceptInRange(-Silent, Silent);
+                    start = start < 0 ? audio.Length : start - (start % 2);
+                }
+                samples.AddRange(audio[start..]);
+                return start;
             }
             finally
             {

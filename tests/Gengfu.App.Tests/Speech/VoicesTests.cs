@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gengfu.App.Speech;
+using Microsoft.Win32;
 
 namespace Gengfu.App.Tests.Speech;
 
@@ -41,6 +42,24 @@ public sealed class VoicesTests
     {
         Assert.Null(Voices.Pick([David, Hazel], null, Russian));
         Assert.Null(Voices.Pick([], null, English));
+    }
+
+    // Windows registers each voice it speaks with under this key, by the id its speech API reports,
+    // and keeps the user's default beside it: a check that doesn't go through Gengfu's own code.
+    [Fact]
+    public void Every_voice_Windows_registers_is_installed_with_the_default_first()
+    {
+        using var tokens = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens");
+        HashSet<string> registered = [.. tokens?.GetSubKeyNames().Select(name => $@"{tokens.Name}\{name}") ?? []];
+        using var settings = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Speech_OneCore\Voices");
+
+        var installed = Voices.Installed().Select(voice => voice.Id).ToList();
+
+        Assert.Subset(installed.ToHashSet(), registered);
+        if (settings?.GetValue("DefaultTokenId") is string chosen && registered.Contains(chosen))
+        {
+            Assert.Equal(chosen, installed[0]);
+        }
     }
 
     [Fact]
