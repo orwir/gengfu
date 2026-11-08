@@ -50,8 +50,9 @@ An installed Gengfu never moves to a lower version, so a bad release is undone b
 
 1. Mark it a pre-release: `gh release edit v<X.Y.Z> --prerelease`. Installed releases that haven't
    taken it skip it from then on, and the Releases page offers the last good Setup again.
-2. Revert the bad change on `develop` and release the next patch version as usual. Every installed
-   copy, the bad one included, updates to it.
+2. Revert the bad change as a hotfix ([CONTRIBUTING.md § Hotfixes](../../CONTRIBUTING.md#hotfixes)),
+   so the next patch version holds only the revert. Every installed copy, the bad one included,
+   updates to it.
 
 ## .NET patches
 

@@ -56,3 +56,6 @@ publish it, and an installed Gengfu should keep itself current without ever rest
 - Velopack reads GitHub's 10 newest releases, so more than 10 test builds in a row would hide the
   latest release from installed releases.
 - Each build is installed and started on the CI machine before it is published.
+- Each release ships `THIRD-PARTY-NOTICES.txt` beside `Gengfu.exe`, OSL-3.0's text for TSLib
+  included. Setup asks for no assent; the notice is the reasonable effort OSL-3.0 asks of whoever
+  distributes TSLib.

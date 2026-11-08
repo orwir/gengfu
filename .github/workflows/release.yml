@@ -65,6 +65,10 @@ jobs:
         shell: bash
         run: |
           velopack="$(sed -n 's/.*Include="Velopack" Version="\([^"]*\)".*/\1/p' src/Gengfu.App/Gengfu.App.csproj)"
+          if [ -z "$velopack" ]; then
+            echo "::error::No Velopack version found in src/Gengfu.App/Gengfu.App.csproj, so vpk can't be matched to it."
+            exit 1
+          fi
           dotnet tool install --global vpk --version "$velopack"
 
       - name: Fetch the last release, to pack the delta from
