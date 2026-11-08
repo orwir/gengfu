@@ -155,9 +155,9 @@
                                 <Border x:Name="FileBox" Height="32" Padding="10,0" CornerRadius="4" BorderThickness="1"
                                         Background="{DynamicResource ControlFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                                     <DockPanel>
-                                        <Path DockPanel.Dock="Left" Style="{StaticResource Icon}" Margin="0,0,8,0"
+                                        <Path DockPanel.Dock="Left" Style="{StaticResource Icon}"
                                               Data="M6,12 L6,3.5 L13,2 L13,10.5 M2.5,12 A1.75,1.75 0 1 0 6,12 A1.75,1.75 0 1 0 2.5,12 M9.5,10.5 A1.75,1.75 0 1 0 13,10.5 A1.75,1.75 0 1 0 9.5,10.5" />
-                                        <TextBlock x:Name="FileName" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock x:Name="FileName" Style="{StaticResource IconLabel}" TextTrimming="CharacterEllipsis" />
                                     </DockPanel>
                                 </Border>
                             </DockPanel>
@@ -181,7 +181,7 @@
                                     AutomationProperties.Name="{Binding Text, ElementName=TestText}">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Style="{StaticResource Icon}" Data="M2.5,6 L5,6 L8.5,3 L8.5,13 L5,10 L2.5,10 Z M11,5.5 A3.5,3.5 0 0 1 11,10.5" />
-                                    <TextBlock x:Name="TestText" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="TestText" Style="{StaticResource IconLabel}" />
                                 </StackPanel>
                             </Button>
                             <Button x:Name="SoundSwitch" Style="{StaticResource LinkButton}" Height="32" HorizontalAlignment="Right" Click="OnSoundSwitch" />

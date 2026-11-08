@@ -191,5 +191,13 @@
             <Setter Property="StrokeEndLineCap" Value="Round" />
             <Setter Property="StrokeLineJoin" Value="Round" />
         </Style>
+
+        <!-- A one-line label after a 16 px icon. A line keeps room for descenders under the baseline,
+             so a label centred by its line reads about 1 px low; the room under it lifts the capitals
+             onto the icon's centre, and both onto the centre of what holds them. -->
+        <Style x:Key="IconLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="8,0,0,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </Application.Resources>
 </Application>
