@@ -10,7 +10,7 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model and file; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
-| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; hotkeys and updates (*planned*) | Core, TeamSpeak, Concentus |
+| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; hotkeys (*planned*). Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
@@ -35,10 +35,15 @@ v0.2) plugs in without touching it.
 
 ## The App
 
+- `Program.Main` runs Velopack before WPF starts: when Setup or the updater starts Gengfu to finish
+  their work, it does so and exits there, and an update downloaded earlier applies before the
+  window opens. Only one Gengfu runs per Windows session, held by `SingleInstance`: Velopack's
+  updater closes every running copy, so a second start applies nothing and brings the first one's
+  window forward.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
-  calls' sound, and the TeamSpeak connection, which it starts when a server is saved. `Caller`
-  makes its calls and test calls, and `StatusLine` puts the connection into the status line's
-  words.
+  calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
+  `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
+  line's words.
 - `MainWindow` draws its own title bar: Settings' way back sits in it, and maximize is left out.
   Its surface is flat, with no Mica backdrop: under a Mica frame Windows draws its own caption
   buttons too. Windows 11 rounds the corners on request.
@@ -85,12 +90,29 @@ and the clip says why, for Settings to show.
   Feature Pack is added. Both are called directly, with nothing extra shipped
   ([ADR-0005](../adr/0005-call-audio-without-bindings-or-native-code.md)).
 
+## Installing and updating
+
+Gengfu ships as a Velopack installer of a self-contained build, published to GitHub Releases by
+`release.yml` ([ADR-0006](../adr/0006-self-contained-installer-and-updates.md),
+[release.md](../guides/release.md)). Setup installs it in `%LocalAppData%\Gengfu`: the app in
+`current`, Velopack's `Update.exe` beside it, and the last package in `packages`, which the next
+update is built against. The settings stay in `%AppData%\Gengfu`, out of the install's reach.
+
+- `Updates` looks at GitHub's releases at start and every 4 hours, and downloads a new version: a
+  delta when it can, else the whole package. It never looks in a copy Setup didn't install.
+- A test build, its version suffixed, also takes test builds; a release takes releases only.
+- A downloaded version applies the next time Gengfu starts. Restart instead hands it to Velopack's
+  updater, which waits for Gengfu to close normally, applies it and starts Gengfu again.
+- The main view offers Restart only while the clock is stopped; Settings › General says where
+  `Updates` stands. Both read it on each tick.
+
 ## Threading
 
 The window drives the session from a 50 ms dispatcher timer on the UI thread: it makes the calls
 due, then redraws the view on show; the digits change only on whole game seconds. It reads the
 connection's state on each tick rather than handling its events. Calls render on the thread pool,
-one at a time, so the window never waits on Windows' speech or a file; so does the voice list.
+one at a time, so the window never waits on Windows' speech or a file; so does the voice list. A
+look for updates runs there too, and the tick reads where it stands.
 The settings file's watcher only marks the file touched; the tick reads it once it has been
 still for 250 ms, and writes the settings once they have stood still for 500 ms.
 TSLib runs the connection on its own scheduler thread: the connection's events fire there, and its

@@ -21,7 +21,7 @@ then any guild, since the app and repo are public. Discord guilds come after v0.
 
 ## What Gengfu is
 
-A Windows app that joins TeamSpeak as a bot and whispers jungle calls to every squad, on a clock
+A Windows 11 app that joins TeamSpeak as a bot and whispers jungle calls to every squad, on a clock
 that mirrors the in-game timer and can be matched to it at any moment.
 
 ## Principles
@@ -51,7 +51,8 @@ and in a real GvG every squad hears all five jungle calls 30 s (±1 s) before ea
 
 **Out:** Discord (planned for v0.2) · text, poke or chat notifications · ServerQuery · reading the
 timer off the screen · remote control from TeamSpeak chat · headless or VPS hosting · an in-app
-event editor · code signing · an overlay · languages beyond English and Russian · macOS and Linux.
+event editor · code signing · an overlay · languages beyond English and Russian · Windows 10 ·
+macOS and Linux.
 
 **Constraints:** no budget and no deadline; v0.1 within about three weeks of evenings.
 
@@ -61,9 +62,9 @@ The initial set, taken from the approved design; refined at the first UX review.
 
 | CUJ | Journey | Done when |
 | --- | --- | --- |
-| 1. First setup | Download, open Settings, enter the server and a nickname, pick who hears the calls, press Test call | The squad hears the test call |
+| 1. First setup | Download and run Setup, open Settings, enter the server and a nickname, pick who hears the calls, press Test call | The squad hears the test call |
 | 2. Match night | The match starts; press Start (clock at 35:00); match the game with the arrows or by typing | Calls go out 30 s before each spawn |
 | 3. Mid-match fix | Notice the clock is off; click the seconds, type what the game shows, press Enter | Every later call moves with the clock |
 | 4. Early end | The match ends early; press Stop | No more calls |
-| 5. Update | A new version installs in the background; a notice says it applies on next start | Settings › General shows the new version after a restart |
+| 5. Update | A new version installs in the background; once the clock is stopped, a notice says it applies on next start | Settings › General shows the new version after a restart |
 | 6. Share a preset | An officer sends the settings file's events; a guildmate opens Settings › Open settings file, pastes them in and saves | The guildmate's calls list shows the shared events |

@@ -20,7 +20,8 @@ internal sealed record Login(string Server, string Nickname, string Password)
 
 /// <summary>
 /// One running Gengfu: what Settings holds, kept in the settings file, the match clock and its calls,
-/// the calls' sound, and the seat on TeamSpeak. The window drives it from its tick, on the UI thread.
+/// the calls' sound, the seat on TeamSpeak, and its updates. The window drives it from its tick, on
+/// the UI thread.
 /// </summary>
 internal sealed class Session : IAsyncDisposable
 {
@@ -60,13 +61,15 @@ internal sealed class Session : IAsyncDisposable
 
     /// <param name="windows">Windows' display language, for "Same as Windows".</param>
     public Session(CultureInfo windows)
-        : this(windows, new SystemTimeSource(), new CallAudio(), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Gengfu"))
+        : this(windows, new SystemTimeSource(), new CallAudio(), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Gengfu"), Updates.Installed())
     {
     }
 
     /// <param name="folder">Where the settings file and the secrets live.</param>
-    internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, string folder)
+    /// <param name="install">Velopack's manager when Setup installed this copy; null for any other.</param>
+    internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, string folder, Velopack.UpdateManager? install = null)
     {
+        Updates = new Updates(time, install);
         _windows = windows;
         _audio = audio;
         _store = new SettingsStore(Path.Combine(folder, "settings.json"));
@@ -129,6 +132,8 @@ internal sealed class Session : IAsyncDisposable
 
     public TeamSpeakConnection Connection { get; }
 
+    public Updates Updates { get; }
+
     /// <summary>What the current connection was started with; null after Disconnect or before any Connect.</summary>
     public Login? ConnectedWith { get; private set; }
 
@@ -163,12 +168,13 @@ internal sealed class Session : IAsyncDisposable
     public string CallText => TextOf(Settings, Language);
 
     /// <summary>
-    /// Makes the calls due now, keeps the server's lists fresh, and keeps the settings file in step
-    /// both ways; the window calls it on every tick.
+    /// Makes the calls due now, keeps the server's lists fresh, keeps the settings file in step both
+    /// ways, and looks for updates when one is due; the window calls it on every tick.
     /// </summary>
     public void Tick()
     {
         Caller.Tick();
+        _ = Updates.Tick();
         var status = Connection.State.Status;
         if (status == ConnectionStatus.Connected && _seen != ConnectionStatus.Connected)
         {

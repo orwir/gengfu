@@ -85,6 +85,9 @@ internal partial class SettingsView : UserControl
         ShowSound();
         TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
         TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
+        var updateLine = Copy.UpdateLine(_session.Updates.State);
+        UpdateText.Text = updateLine ?? "";
+        UpdateText.Visibility = updateLine is null ? Visibility.Collapsed : Visibility.Visible;
         _showing = false;
     }
 

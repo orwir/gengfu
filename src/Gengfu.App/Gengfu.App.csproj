@@ -15,15 +15,37 @@
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <!-- Speech and audio files call Windows through its method tables (ADR-0005). -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Gengfu.exe: the name Task Manager, the install folder and Windows' prompts show. -->
+    <AssemblyName>Gengfu</AssemblyName>
+    <!-- The taskbar, Start and the desktop show it; scripts/make-icon.cs draws it. -->
+    <ApplicationIcon>Gengfu.ico</ApplicationIcon>
+    <!-- Velopack's install and update hooks run before WPF starts, from Program.Main (ADR-0006). -->
+    <StartupObject>Gengfu.App.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Concentus" Version="2.2.2" />
+    <!-- release.yml installs the vpk tool at this version, as the two must match. -->
+    <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Gengfu.App.Tests" />
   </ItemGroup>
+
+  <!-- The licenses of what Gengfu ships go beside Gengfu.exe. A self-contained build ships .NET as
+       well, so it takes .NET's license and notices from the runtime pack it was built with. -->
+  <ItemGroup>
+    <None Include="..\..\THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="PublishDotNetNotices" AfterTargets="Publish" Condition="'$(SelfContained)' == 'true'">
+    <ItemGroup>
+      <DotNetNotices Include="%(ResolvedRuntimePack.PackageDirectory)\LICENSE.TXT;%(ResolvedRuntimePack.PackageDirectory)\THIRD-PARTY-NOTICES.TXT" Condition="'%(ResolvedRuntimePack.FrameworkName)' == 'Microsoft.NETCore.App'" />
+    </ItemGroup>
+    <Error Condition="'@(DotNetNotices->Count())' != '2'" Text="The .NET runtime pack's license and notices weren't found." />
+    <Copy SourceFiles="@(DotNetNotices)" DestinationFolder="$(PublishDir)dotnet" />
+  </Target>
 
   <!-- XAML reads the strings through {x:Static}, which sees only public members. -->
   <ItemGroup>

@@ -17,6 +17,8 @@ echo "== format"
 # real server.
 for project in tests/*/*.Tests.csproj; do
     covered="$(basename "$project" .Tests.csproj)"
+    # Coverage is counted by assembly, and Gengfu.App builds Gengfu.exe.
+    assembly="$("$DOTNET" msbuild "src/$covered/$covered.csproj" -getProperty:AssemblyName | tr -d '\r')"
     floor=""
     if [ "$covered" = Gengfu.Core ]; then
         floor="-p:Threshold=80 -p:ThresholdType=line"
@@ -24,5 +26,5 @@ for project in tests/*/*.Tests.csproj; do
     echo "== test $covered${floor:+ (coverage floor: 80% of its lines)}"
     # shellcheck disable=SC2086
     "$DOTNET" test "$project" -c Release --no-build \
-        -p:CollectCoverage=true -p:Include="[$covered]*" $floor
+        -p:CollectCoverage=true -p:Include="[$assembly]*" $floor
 done

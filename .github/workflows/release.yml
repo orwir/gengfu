@@ -1,0 +1,95 @@
+name: Release
+
+# A merge to master releases the version in Directory.Build.props: the CI gate, a self-contained
+# build that Velopack packs into Setup.exe, a full package and a delta from the last release, a
+# test install, then the GitHub Release and its tag. Why: ADR-0006. How: docs/guides/release.md.
+on:
+  push:
+    branches: [master]
+
+# One release at a time: a second merge waits for the first rather than racing it.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: gate
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Read the version
+        id: version
+        shell: bash
+        run: |
+          version="$(dotnet msbuild src/Gengfu.App/Gengfu.App.csproj -getProperty:Version | tr -d '\r')"
+          if [[ "$version" == *-dev* ]]; then
+            echo "::error::$version is a development version: set the release's <Version> in Directory.Build.props."
+            exit 1
+          fi
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "::error::v$version is released already: bump <Version> in Directory.Build.props."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # A test build, such as 0.1.0-rc.1, is a pre-release: only installed test builds take it.
+          if [[ "$version" == *-* ]]; then
+            echo "pre=--pre" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write the release notes
+        shell: bash
+        run: bash scripts/release-notes.sh "${{ steps.version.outputs.version }}" > release-notes.md
+
+      - name: Build, self-contained
+        run: dotnet publish src/Gengfu.App/Gengfu.App.csproj -c Release -r win-x64 --self-contained -o publish
+
+      # At the Velopack package's own version, so bumping the package moves both: a build packed by
+      # another vpk version may not update.
+      - name: Install vpk
+        shell: bash
+        run: |
+          velopack="$(sed -n 's/.*Include="Velopack" Version="\([^"]*\)".*/\1/p' src/Gengfu.App/Gengfu.App.csproj)"
+          if [ -z "$velopack" ]; then
+            echo "::error::No Velopack version found in src/Gengfu.App/Gengfu.App.csproj, so vpk can't be matched to it."
+            exit 1
+          fi
+          dotnet tool install --global vpk --version "$velopack"
+
+      - name: Fetch the last release, to pack the delta from
+        shell: bash
+        run: vpk download github --repoUrl "$REPO_URL" --token "$GH_TOKEN" ${{ steps.version.outputs.pre }} -o releases
+
+      - name: Pack
+        shell: bash
+        run: >-
+          vpk pack --packId Gengfu --packVersion "${{ steps.version.outputs.version }}"
+          --packTitle Gengfu --packAuthors orwir --packDir publish --mainExe Gengfu.exe
+          --icon src/Gengfu.App/Gengfu.ico --releaseNotes release-notes.md
+          --runtime win-x64 --noPortable -o releases
+
+      - name: Install and start it, as a player would
+        shell: pwsh
+        run: scripts/smoke-install.ps1 -Releases releases
+
+      - name: Publish
+        shell: bash
+        run: >-
+          vpk upload github --repoUrl "$REPO_URL" --token "$GH_TOKEN" -o releases --publish
+          --tag "v${{ steps.version.outputs.version }}" --targetCommitish "$GITHUB_SHA"
+          --releaseName "Gengfu ${{ steps.version.outputs.version }}" ${{ steps.version.outputs.pre }}

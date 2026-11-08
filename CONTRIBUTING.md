@@ -8,7 +8,7 @@ rationale that don't fit there. Reusable cross-project patterns live in
 ## Local setup
 
 1. Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-   and clone the repo. Windows 10 or 11 is needed to build and run the app.
+   and clone the repo. Windows 11 is needed to build and run the app.
 2. Install the git hooks: `powershell -File scripts/setup.ps1`. It also checks
    that a .NET 10 SDK is reachable. Non-negotiable — the pre-push stage is the
    local CI gate.
@@ -106,7 +106,11 @@ and one `area/…` when one fits — create the area label first if it's new.
 ## Releasing
 
 [SemVer](https://semver.org). Each `MAJOR.MINOR` maps to a milestone; patches
-reuse it. The checklist is literal — execute it in order, no shortcuts:
+reuse it. How the release is built, published and rolled back:
+[release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`, publishes as
+a pre-release, which only installed test builds update to; it skips steps 1
+and 8, keeps its CHANGELOG entries under `[Unreleased]`, and puts that section
+in the PR body. The checklist is literal — execute it in order, no shortcuts:
 
 1. **Confirm the milestone is clean.** `gh issue list --milestone v<X.Y>
    --state open` returns nothing (close or move out the rest).
@@ -117,14 +121,13 @@ reuse it. The checklist is literal — execute it in order, no shortcuts:
 4. **Open the release PR** `develop` → `master`, titled `Release v<X.Y.Z>`,
    body = the new CHANGELOG section.
 5. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
-   for explicit approval. Steps 6–7 are irreversible and ship to users;
-   a prior "do the release" does not extend past this line.
-6. **Merge after CI is green.** The merge to `master` triggers the release
-   workflow, which builds the app and publishes it to GitHub Releases (added in
-   v0.1).
-7. **Tag** `v<X.Y.Z>` on the merge commit and push the tag.
-8. **Create the GitHub Release** from the tag, body = the CHANGELOG section.
-9. **Fast-forward `develop`** onto the release merge commit so the branches
+   for explicit approval. Step 6 is irreversible and ships to users; a prior
+   "do the release" does not extend past this line.
+6. **Merge after CI is green.** The merge to `master` runs the release
+   workflow: it builds the app, installs it on the CI machine, and publishes
+   the GitHub Release with its tag `v<X.Y.Z>` and the CHANGELOG section as its
+   notes. Follow it to the end with `gh run watch`.
+7. **Fast-forward `develop`** onto the release merge commit so the branches
    don't diverge:
 
    ```bash
@@ -134,10 +137,10 @@ reuse it. The checklist is literal — execute it in order, no shortcuts:
 
    If `develop` moved during the release, use a regular merge instead of
    `--ff-only`.
-10. **Close the milestone.**
-11. **Verify the release**: install the published build (or let an installed
-    one update) and check that Settings › General shows the new version. A
-    release isn't done until this passes.
+8. **Close the milestone.**
+9. **Verify the release**: run the published Setup on a Windows 11 PC (or let
+   an installed Gengfu update itself) and check that Settings › General shows
+   the new version. A release isn't done until this passes.
 
 ## Hotfixes
 
@@ -146,11 +149,11 @@ For urgent fixes to a released version:
 1. Branch `fix/…` from `master`.
 2. Fix, with a test that fails before and passes after.
 3. Bump the patch version, add the CHANGELOG entry.
-4. PR back to `master`; merge after CI (publishes the release).
-5. Tag, create the GitHub Release.
-6. Forward-merge `master` → `develop` so the next regular release doesn't lose
+4. PR back to `master`; merge after CI. The merge publishes the release with
+   its tag, as in step 6 above.
+5. Forward-merge `master` → `develop` so the next regular release doesn't lose
    the patch.
-7. Delete the hotfix branch — remote and local.
+6. Delete the hotfix branch — remote and local.
 
 ## Documentation
 

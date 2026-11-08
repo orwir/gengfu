@@ -15,4 +15,7 @@ public static class AppVersion
         var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         return informational is null ? "0.0.0" : informational.Split('+')[0];
     }
+
+    /// <summary>A test build, such as 0.1.0-rc.1: it takes test builds as updates, which a release never does.</summary>
+    public static bool IsPrerelease(string version) => version.Contains('-');
 }

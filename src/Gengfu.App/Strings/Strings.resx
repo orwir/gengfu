@@ -392,4 +392,32 @@
     <value>Gengfu can’t read settings.json. Until it can, Gengfu works with the settings shown here and saves nothing.</value>
     <comment>Bar at the top of Settings, when Windows won't let Gengfu read the file.</comment>
   </data>
+  <data name="UpdateReady" xml:space="preserve">
+    <value>Update installed — it applies the next time Gengfu starts.</value>
+    <comment>The main window's notice once a new version has downloaded; it shows only while the clock is stopped.</comment>
+  </data>
+  <data name="Restart" xml:space="preserve">
+    <value>Restart</value>
+    <comment>The update notice's button: closes Gengfu, applies the update and opens Gengfu again.</comment>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Checking for updates…</value>
+    <comment>Settings › General, under the version: the first look for a new version since Gengfu started.</comment>
+  </data>
+  <data name="UpToDate" xml:space="preserve">
+    <value>Up to date · updates install on their own</value>
+    <comment>Settings › General, under the version.</comment>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Downloading version {0}…</value>
+    <comment>Settings › General, under the version. {0} is the new version, such as "0.1.1".</comment>
+  </data>
+  <data name="UpdateInstalled" xml:space="preserve">
+    <value>Version {0} installed · applies the next time Gengfu starts</value>
+    <comment>Settings › General, under the version. {0} is the new version, such as "0.1.1".</comment>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Couldn’t check for updates — trying again later</value>
+    <comment>Settings › General, under the version: the last look failed, offline perhaps; the next comes on schedule.</comment>
+  </data>
 </root>

@@ -201,6 +201,8 @@
                                     Content="{x:Static app:Strings.OpenSettingsFile}" Click="OnOpenSettingsFile" />
                             <TextBlock x:Name="VersionText" LineHeight="20" VerticalAlignment="Center" />
                         </DockPanel>
+                        <!-- Across the card, under the version, so the Russian line isn't squeezed beside the link. -->
+                        <TextBlock x:Name="UpdateText" Style="{StaticResource Caption}" Margin="0,-4,0,0" Visibility="Collapsed" />
                     </StackPanel>
                 </Border>
             </StackPanel>
