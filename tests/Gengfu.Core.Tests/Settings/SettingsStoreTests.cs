@@ -93,7 +93,8 @@ public sealed class SettingsStoreTests : IDisposable
               ]
             }
             """,
-            SettingsStore.Serialize(settings).ReplaceLineEndings("\n"));
+            SettingsStore.Serialize(settings),
+            ignoreLineEndingDifferences: true);
     }
 
     [Fact]
