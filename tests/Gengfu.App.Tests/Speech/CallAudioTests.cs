@@ -20,7 +20,8 @@ public sealed class CallAudioTests : IDisposable
     private Func<string, (float[] Samples, bool Cut)> _readFile = path =>
         File.Exists(path) ? (Sound.Stereo(Sound.Tone(500, 0.5, 48000)), false) : throw new FileNotFoundException("No such file.", path);
 
-    // Windows is faked here, so each case is the same on every machine; the last test uses the real one.
+    // Windows is faked here, so each case is the same on every machine; the two tests that make a
+    // plain CallAudio use the real one.
     public CallAudioTests() =>
         _audio = new CallAudio(
             () => [.. _voices],

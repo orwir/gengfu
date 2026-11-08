@@ -130,7 +130,7 @@ internal static class Pcm
     /// <summary>
     /// 48 kHz audio, mono or interleaved stereo, shaped into a call of interleaved 16-bit stereo;
     /// null when nothing in it is audible. <paramref name="cut"/> says the audio was cut off before
-    /// its end, so it fades out however short it is.
+    /// its end: a sound still going there fades out, however short it is.
     /// </summary>
     public static short[]? Shape(float[] samples, int channels, bool cut = false)
     {
@@ -144,7 +144,9 @@ internal static class Pcm
         var last = LastLoud(stereo, peak * TrimLevel);
         var frames = Math.Min(last - first + 1, (int)(MaxLength.TotalSeconds * Rate));
         var call = stereo.AsSpan(first * 2, frames * 2).ToArray();
-        if (cut || last - first + 1 > frames)
+        // A sound that ended before the cut keeps its own ending; one cut while going fades out.
+        var stillGoing = cut && (stereo.Length / 2) - 1 - last < FrameSamples;
+        if (stillGoing || last - first + 1 > frames)
         {
             FadeOut(call);
         }

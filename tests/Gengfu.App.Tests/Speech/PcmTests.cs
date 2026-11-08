@@ -122,6 +122,17 @@ public sealed class PcmTests
         Assert.Equal(start, Sound.Rms(whole[(4800 + 240000 - 960)..(4800 + 240000)]), 0.01);
     }
 
+    [Fact]
+    public void A_sound_that_ended_before_the_cut_keeps_its_own_ending()
+    {
+        float[] sound = [.. Sound.Tone(440, 3, 48000), .. Sound.Silence(8, 48000)];
+
+        var left = Sound.Left(Pcm.Shape(sound, 1, cut: true)!);
+
+        var start = Sound.Rms(left[4800..5760]);
+        Assert.Equal(start, Sound.Rms(left[(4800 + 144000 - 960)..(4800 + 144000)]), 0.01);
+    }
+
     [Theory]
     [InlineData(0.05)]
     [InlineData(0.8)]
