@@ -4,11 +4,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 . scripts/dotnet.sh
 
-echo "== format"
-"$DOTNET" format Gengfu.slnx --verify-no-changes --exclude lib
-
 echo "== build"
 "$DOTNET" build Gengfu.slnx -c Release
+
+# Format reads the code with its types, and TSLib's generated ones exist only once its source
+# generator is built: in a fresh clone, as on CI, that takes the build above.
+echo "== format"
+"$DOTNET" format Gengfu.slnx --verify-no-changes --exclude lib
 
 # Every test project runs, each measuring the project it mirrors. Only Gengfu.Core's lines have a
 # floor; elsewhere coverage is shown, since the TeamSpeak connection's live half is checked on a
