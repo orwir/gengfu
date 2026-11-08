@@ -297,4 +297,25 @@
   <data name="SettingsFileUnreadable" xml:space="preserve">
     <value>Gengfu не может прочитать settings.json. Пока не сможет, он работает с показанными здесь настройками и ничего не сохраняет.</value>
   </data>
+  <data name="UpdateReady" xml:space="preserve">
+    <value>Обновление установлено — применится после перезапуска.</value>
+  </data>
+  <data name="Restart" xml:space="preserve">
+    <value>Перезапустить</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Проверяю обновления…</value>
+  </data>
+  <data name="UpToDate" xml:space="preserve">
+    <value>Последняя версия · обновления ставятся сами</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Загружаю версию {0}…</value>
+  </data>
+  <data name="UpdateInstalled" xml:space="preserve">
+    <value>Версия {0} установлена · применится после перезапуска</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Не удалось проверить обновления — попробую позже</value>
+  </data>
 </root>

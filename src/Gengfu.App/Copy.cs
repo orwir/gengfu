@@ -31,6 +31,17 @@ internal static class Copy
         _ => Format(Strings.SettingsFileError, error.Line, error.Setting),
     };
 
+    /// <summary>The line under the version in Settings › General; none for a copy Setup didn't install.</summary>
+    public static string? UpdateLine(UpdateState state) => state switch
+    {
+        UpdateState.Checking => Strings.UpdateChecking,
+        UpdateState.UpToDate => Strings.UpToDate,
+        UpdateState.Downloading downloading => Format(Strings.UpdateDownloading, downloading.Version),
+        UpdateState.Ready ready => Format(Strings.UpdateInstalled, ready.Version),
+        UpdateState.Failed => Strings.UpdateCheckFailed,
+        _ => null,
+    };
+
     /// <summary>A lead as Settings offers it, such as "30 seconds".</summary>
     public static string Lead(TimeSpan lead) => Format(Strings.SecondsCount, lead.TotalSeconds);
 

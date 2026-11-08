@@ -86,6 +86,29 @@ public sealed class CopyTests
     }
 
     [Fact]
+    public void The_line_under_the_version_says_where_updates_stand_in_both_languages()
+    {
+        using (new UiCulture("en-US"))
+        {
+            Assert.Null(Copy.UpdateLine(new UpdateState.Off()));
+            Assert.Equal("Checking for updates…", Copy.UpdateLine(new UpdateState.Checking()));
+            Assert.Equal("Up to date · updates install on their own", Copy.UpdateLine(new UpdateState.UpToDate()));
+            Assert.Equal("Downloading version 0.1.1…", Copy.UpdateLine(new UpdateState.Downloading("0.1.1")));
+            Assert.Equal("Version 0.1.1 installed · applies the next time Gengfu starts", Copy.UpdateLine(new UpdateState.Ready("0.1.1")));
+            Assert.Equal("Couldn’t check for updates — trying again later", Copy.UpdateLine(new UpdateState.Failed()));
+        }
+        using (new UiCulture("ru-RU"))
+        {
+            Assert.Null(Copy.UpdateLine(new UpdateState.Off()));
+            Assert.Equal("Проверяю обновления…", Copy.UpdateLine(new UpdateState.Checking()));
+            Assert.Equal("Последняя версия · обновления ставятся сами", Copy.UpdateLine(new UpdateState.UpToDate()));
+            Assert.Equal("Загружаю версию 0.1.1…", Copy.UpdateLine(new UpdateState.Downloading("0.1.1")));
+            Assert.Equal("Версия 0.1.1 установлена · применится после перезапуска", Copy.UpdateLine(new UpdateState.Ready("0.1.1")));
+            Assert.Equal("Не удалось проверить обновления — попробую позже", Copy.UpdateLine(new UpdateState.Failed()));
+        }
+    }
+
+    [Fact]
     public void Time_left_rounds_up_like_the_clock_and_stops_at_zero()
     {
         Assert.Equal("2:13", Copy.Span(TimeSpan.FromSeconds(132.1)));

@@ -75,7 +75,14 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   connected with nobody chosen (caution); not connected, saying why (critical). A Settings
   link follows only when the user has to act. Every state's copy is in the strings and on
   the canvas's Foundations.
-- **Update notice:** info bar above the footer — applies on next start, optional Restart.
+- **Update notice:** a bar above the footer, in the card's colours with an accent "i", once a
+  downloaded version is ready: it applies on next start, and Restart applies it now. It shows only
+  while the clock is stopped, so a match is never interrupted. Restart closes Gengfu the usual way,
+  off the server and saved, and Velopack opens it again.
+- **App icon:** the title bar's gong mark in Windows blue, #0078D4, a fixed colour that reads on
+  light and dark taskbars, since an icon can't follow the accent. Up to 32 px it has a simpler
+  drawing of its own. `scripts/make-icon.cs` draws `Gengfu.ico`, 16–256 px; the title bar keeps
+  the mark in the accent colour.
 - **Settings:** grouped cards; short controls (drop-downs, toggles) on the right in a fixed
   column, text fields stacked. The column is 152 px beside the radios and 168 elsewhere:
   the Fluent drop-down keeps about 50 px for its chevron. Empty fields and drop-downs show a
@@ -87,7 +94,9 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   a list opens, and until they are in the group drop-down holds the group already chosen.
   Connecting to another server clears the choice, and the status line asks who hears the calls.
   General ends with the version and an Open settings file link, which opens the file in the app
-  Windows uses for .json files, or in Notepad.
+  Windows uses for .json files, or in Notepad. Under the version, across the card, a caption says
+  where updates stand: checking, up to date, downloading, installed, or couldn't check; a copy
+  Setup didn't install shows none.
 - **Sound file:** in place of Say and Voice, the file's name with a note icon and Change;
   "Use text instead" goes back to the text.
 - **Hints:** an info bar with an accent "i" (the no-voice hint), or a caution bar with a
@@ -128,5 +137,6 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
+| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
+| App icon    | AppIcon.dc.html | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |

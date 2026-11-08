@@ -51,7 +51,11 @@ internal partial class MainView : UserControl
         FollowCalls();
         TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
         TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
+        UpdateNotice.Visibility = ShowsUpdate(_session.Updates.State, _session.Clock.State) ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    /// <summary>Whether the update notice shows: a version is ready, and the clock is stopped, so a match is never interrupted.</summary>
+    internal static bool ShowsUpdate(UpdateState update, ClockState clock) => update is UpdateState.Ready && clock != ClockState.Running;
 
     /// <summary>The call the list keeps in view: the one calling, else the next, else the last once all are behind.</summary>
     internal static int InFocus(IReadOnlyList<CallState> states)
@@ -186,6 +190,15 @@ internal partial class MainView : UserControl
     }
 
     private async void OnTest(object sender, RoutedEventArgs e) => await _session.Caller.TestAsync();
+
+    // Velopack's updater takes over once Gengfu has closed the usual way, off the server and saved.
+    private void OnRestart(object sender, RoutedEventArgs e)
+    {
+        if (_session.Updates.ApplyOnClose())
+        {
+            Window.GetWindow(this)?.Close();
+        }
+    }
 
     private void OnSettings(object sender, RoutedEventArgs e) => _openSettings();
 

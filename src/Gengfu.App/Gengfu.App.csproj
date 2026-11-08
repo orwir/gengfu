@@ -17,6 +17,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Gengfu.exe: the name Task Manager, the install folder and Windows' prompts show. -->
     <AssemblyName>Gengfu</AssemblyName>
+    <!-- The taskbar, Start and the desktop show it; scripts/make-icon.cs draws it. -->
+    <ApplicationIcon>Gengfu.ico</ApplicationIcon>
     <!-- Velopack's install and update hooks run before WPF starts, from Program.Main (ADR-0006). -->
     <StartupObject>Gengfu.App.Program</StartupObject>
   </PropertyGroup>

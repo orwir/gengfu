@@ -41,3 +41,6 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - The calls list scrolls and keeps the next call in view when the calls don't fit (#7)
 - Gengfu installs from one setup file, for your Windows user, with no admin rights (#8)
 - New versions download in the background and apply the next time Gengfu starts (#8)
+- Once the match clock is stopped, the main window says an update is ready and offers Restart (#8)
+- Settings › General says whether Gengfu is up to date, or checking or downloading a new version (#8)
+- Gengfu has its own icon on the taskbar, in Start and on the desktop (#8)

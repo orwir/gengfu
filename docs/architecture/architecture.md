@@ -101,6 +101,8 @@ update is built against. The settings stay in `%AppData%\Gengfu`, out of the ins
 - A test build, its version suffixed, also takes test builds; a release takes releases only.
 - A downloaded version applies the next time Gengfu starts. Restart instead hands it to Velopack's
   updater, which waits for Gengfu to close normally, applies it and starts Gengfu again.
+- The main view offers Restart only while the clock is stopped; Settings › General says where
+  `Updates` stands. Both read it on each tick.
 
 ## Threading
 
