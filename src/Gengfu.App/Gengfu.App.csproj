@@ -11,6 +11,33 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- The Fluent theme API is still experimental; accepted in ADR-0001. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
+
+  <!-- XAML reads the strings through {x:Static}, which sees only public members. -->
+  <ItemGroup>
+    <EmbeddedResource Update="Strings\Strings.resx">
+      <Generator>MSBuild:Compile</Generator>
+      <StronglyTypedFileName>$(IntermediateOutputPath)Strings.Designer.cs</StronglyTypedFileName>
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedNamespace>Gengfu.App</StronglyTypedNamespace>
+      <StronglyTypedManifestPrefix>Gengfu.App.Strings</StronglyTypedManifestPrefix>
+      <StronglyTypedClassName>Strings</StronglyTypedClassName>
+      <PublicClass>true</PublicClass>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Draw text selection inside each text box, under its clip and with its own text colour; the
+       default adorner paints over the clock's digits and past the edges of their field. The Fluent
+       styles don't set SelectionTextBrush or SelectionOpacity, so every text box sets both, as the
+       digits do. -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering" Value="false" />
+  </ItemGroup>
+
+  <!-- The markup compiler first builds a temporary assembly from the code alone, before resources,
+       so the strings class has to exist by then. In the real build this target finds it done. -->
+  <Target Name="GenerateStringsBeforeCompile" BeforeTargets="CoreCompile" DependsOnTargets="PrepareResourceNames;ResGen" />
 
 </Project>

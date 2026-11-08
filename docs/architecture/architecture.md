@@ -10,7 +10,7 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection, whisper targets, voice frames (*planned*) | Core, `lib/TSLib` |
-| `src/Gengfu.App` | WPF shell: windows, input, speech, hotkeys, updates; wires Core to TeamSpeak (*planned*) | Core, TeamSpeak |
+| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window's clock and Start/Stop; speech, hotkeys, updates and the TeamSpeak wiring (*planned*) | Core, TeamSpeak |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
 
@@ -32,18 +32,24 @@ v0.2) plugs in without touching it.
 The clock keeps one anchor: "at local instant *t* the game showed *r*", so game time now is
 *r* − (now − *t*). Start, the arrows and typed values only move the anchor, and every future call
 moves with it. The display rounds up: 35:00 holds for the first second and 00:00 shows only at the
-end. Typed seconds land on the nearest minute and are timed from the first keystroke. The clock
-stops at 00:00 and takes corrections only while it runs; Stop returns it to 35:00.
+end. The clock stops at 00:00 and takes corrections only while it runs; Stop returns it to 35:00.
+
+Typed values go through `SyncInput`. Typed minutes keep the running seconds. Typed seconds land on
+the nearest minute that makes a time the game can show, and are timed from the first keystroke, or
+from Enter after a pause, for typing ahead. Its lag constants assume the game rounds its timer up,
+as the display does.
 
 A call fires once while the clock is between its game time and its spawn, and shows as calling
 for 3 s: on time as the clock counts down, or late when a correction lands the clock in that
 window, since a late call still helps. After the spawn it never fires — the mob is already farmed.
 A correction back above its game time re-arms it.
 
-## Threading (planned)
+## Threading
 
-TSLib runs its connection on its own scheduler thread, and its data book is read only there. Voice
-frames go out from a timed audio thread, 20 ms apart. The UI thread never blocks on the network.
+The window redraws the clock on the UI thread from a 50 ms dispatcher timer; the digits change only
+on whole game seconds. *Planned:* TSLib runs its connection on its own scheduler thread, and its
+data book is read only there. Voice frames go out from a timed audio thread, 20 ms apart. The UI
+thread never blocks on the network.
 
 ## Configuration (planned)
 

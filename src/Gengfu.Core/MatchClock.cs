@@ -66,24 +66,32 @@ public sealed class MatchClock(ITimeSource time)
     /// </summary>
     public static string Format(TimeSpan gameTime)
     {
-        var seconds = (gameTime.Ticks + TimeSpan.TicksPerSecond - 1) / TimeSpan.TicksPerSecond;
-        return string.Create(CultureInfo.InvariantCulture, $"{seconds / 60:00}:{seconds % 60:00}");
+        var (minutes, seconds) = Shown(gameTime);
+        return string.Create(CultureInfo.InvariantCulture, $"{minutes:00}:{seconds:00}");
+    }
+
+    /// <summary>The minutes and seconds the game shows for a game time; see <see cref="Format"/>.</summary>
+    public static (int Minutes, int Seconds) Shown(TimeSpan gameTime)
+    {
+        var seconds = (int)((gameTime.Ticks + TimeSpan.TicksPerSecond - 1) / TimeSpan.TicksPerSecond);
+        return (seconds / 60, seconds % 60);
+    }
+
+    /// <summary>The game time at <paramref name="instant"/>, read from the current anchor; 35:00 while idle.</summary>
+    public TimeSpan GameTimeAt(TimeSpan instant)
+    {
+        if (!_started)
+        {
+            return MatchLength;
+        }
+        var left = _anchorGameTime - (instant - _anchorInstant);
+        return left > TimeSpan.Zero ? left : TimeSpan.Zero;
     }
 
     private ClockState StateAt(TimeSpan now) =>
         !_started ? ClockState.Idle
         : GameTimeAt(now) > TimeSpan.Zero ? ClockState.Running
         : ClockState.Over;
-
-    private TimeSpan GameTimeAt(TimeSpan now)
-    {
-        if (!_started)
-        {
-            return MatchLength;
-        }
-        var left = _anchorGameTime - (now - _anchorInstant);
-        return left > TimeSpan.Zero ? left : TimeSpan.Zero;
-    }
 
     // The game timer never reads above 35:00 or below 00:00, so a correction past either end stops there.
     private void SetAnchor(TimeSpan instant, TimeSpan gameTime)

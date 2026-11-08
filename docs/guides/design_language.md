@@ -43,10 +43,14 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Window:** 380 px wide; title bar = icon, name, minimize, close (no maximize).
   Settings replaces the main view in the same window, with a back arrow, and scrolls.
 - **Buttons:** accent (Start), standard (Stop), subtle (Test call, the Settings icon);
-  Fluent rest / hover / pressed / disabled.
+  Fluent rest / hover / pressed / disabled. Start and Stop are one button that flips, so
+  keyboard focus stays on it.
 - **Clock digits:** minutes and seconds are fields that look like plain digits. Hover →
-  subtle fill; editing → field fill, 2 px accent underline, whole value selected. Arrows
-  above and below each nudge ±1 min / ±1 s. Disabled until Start.
+  subtle fill; focus → field fill, 2 px accent underline, whole value selected (accent fill,
+  text on accent), the running clock shown until the first keystroke. Arrows above and
+  below each nudge ±1 min / ±1 s; Tab skips them, since ↑ ↓ in a field do the same. Enter
+  and Esc hand focus to the clock as a whole, so the digits read as plain text again.
+  Disabled until Start.
 - **Calls list:** one row per call — called (secondary, check), calling (accent, speaker,
   tinted), next (accent, "in m:ss", tinted), later (primary).
 - **Status line:** dot + text — connected (success), connecting (hollow dot), not
@@ -60,8 +64,9 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Sync:** Start sets 35:00. Correct with the arrows or by typing; every future call
   moves with the clock. Typed minutes keep the running seconds; typed seconds land on the
   nearest minute and are timed from the first keystroke (from Enter after a pause, for
-  typing ahead). Enter applies, Esc cancels, ↑ ↓ nudge. Verify the rounding against the
-  real game timer — the sync offsets depend on it.
+  typing ahead). Enter applies, and so does leaving the field (timed from leaving after a
+  pause of over 3 s); Esc cancels, ↑ ↓ nudge. Verify the rounding against the real game
+  timer — the sync offsets depend on it.
 - **No sync claims:** Gengfu can't see the game timer, so it shows no sync status and never
   says it is "in sync" — the clock itself is the feedback. Out-of-range typed values are
   ignored. No dialogs, no toasts.
@@ -70,7 +75,7 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 ## Screens
 
-| Screen      | Design file (canvas)                          | Source |
-| ----------- | --------------------------------------------- | ------ |
-| Main window | Main.dc.html (views: MainDark.dc.html)        | —      |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html)  | —      |
+| Screen      | Design file (canvas)                          | Source                                                                                                              |
+| ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Main window | Main.dc.html (views: MainDark.dc.html)        | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html)  | —                                                                                                                   |

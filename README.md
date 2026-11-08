@@ -24,6 +24,23 @@ Not released yet. Releases will appear on the [Releases](https://github.com/orwi
 page. Gengfu needs Windows 10 or 11 and a TeamSpeak server it may join — no admin rights, but the
 server must allow it to whisper.
 
+## Match the clock
+
+Press **Start** as the match begins: the clock starts at 35:00 and counts down with the game. When
+it drifts from the game's timer, match it while the match runs:
+
+- **Arrows** above and below the minutes and seconds add or take away a minute or a second. In a
+  field, ↑ and ↓ do the same.
+- **Type** what the game shows: click the minutes or seconds, or press Tab, then type and press
+  Enter. Leaving the field — Tab, a click elsewhere, switching to the game — applies too; Esc
+  cancels. Typed minutes keep the running seconds. Typed seconds count from your first keystroke
+  and land on the nearest minute, so 58 typed while the clock shows 22:02 gives 21:58.
+- **Type ahead** for the closest match: type the seconds the game will reach a few seconds from
+  now, wait, and press Enter the moment it reaches them. Without a pause of more than a second
+  before Enter, Gengfu counts from your first keystroke instead.
+
+Values the game can't show, such as 75 seconds, are ignored. **Stop** ends the match.
+
 ## Build from source
 
 Needs the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
