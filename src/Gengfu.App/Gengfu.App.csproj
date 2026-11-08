@@ -13,7 +13,17 @@
     <UseWPF>true</UseWPF>
     <!-- The Fluent theme API is still experimental; accepted in ADR-0001. -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
+    <!-- Speech and audio files call Windows through its method tables (ADR-0005). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Concentus" Version="2.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gengfu.App.Tests" />
+  </ItemGroup>
 
   <!-- XAML reads the strings through {x:Static}, which sees only public members. -->
   <ItemGroup>

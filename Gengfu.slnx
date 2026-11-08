@@ -8,6 +8,7 @@
     <Project Path="src/Gengfu.TeamSpeak/Gengfu.TeamSpeak.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Gengfu.App.Tests/Gengfu.App.Tests.csproj" />
     <Project Path="tests/Gengfu.Core.Tests/Gengfu.Core.Tests.csproj" />
     <Project Path="tests/Gengfu.TeamSpeak.Tests/Gengfu.TeamSpeak.Tests.csproj" />
   </Folder>
