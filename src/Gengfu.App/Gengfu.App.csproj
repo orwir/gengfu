@@ -39,11 +39,17 @@
   </ItemGroup>
 
   <!-- Draw text selection inside each text box, under its clip and with its own text colour; the
-       default adorner paints over the clock's digits and past the edges of their field. The Fluent
-       styles don't set SelectionTextBrush or SelectionOpacity, so every text box sets both, as the
-       digits do. -->
+       default adorner paints over the clock's digits and past the edges of their field. The digits
+       set their selection colours; Settings' text boxes keep the theme's, which read well in light
+       and dark. -->
   <ItemGroup>
     <RuntimeHostConfigurationOption Include="Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering" Value="false" />
+  </ItemGroup>
+
+  <!-- The window draws its own title bar on the flat surface colour. The Fluent theme's Mica backdrop
+       would extend Windows' frame under it, and Windows would draw its caption buttons there too. -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Switch.System.Windows.Appearance.DisableFluentThemeWindowBackdrop" Value="true" />
   </ItemGroup>
 
   <!-- The markup compiler first builds a temporary assembly from the code alone, before resources,

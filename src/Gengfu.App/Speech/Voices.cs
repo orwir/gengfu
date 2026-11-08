@@ -33,6 +33,10 @@ public static class Voices
     public static Voice? Pick(IReadOnlyList<Voice> installed, string? chosenId, CultureInfo language) =>
         installed.FirstOrDefault(voice => voice.Id == chosenId) ?? installed.FirstOrDefault(voice => Speaks(voice, language));
 
+    /// <summary>The voices as the list shows them: those in the app's language first, each group in Windows' order.</summary>
+    public static IReadOnlyList<Voice> ForList(IReadOnlyList<Voice> installed, CultureInfo language) =>
+        [.. installed.OrderBy(voice => Speaks(voice, language) ? 0 : 1)];
+
     private static bool Speaks(Voice voice, CultureInfo language) =>
         string.Equals(voice.Language.Split('-')[0], language.TwoLetterISOLanguageName, StringComparison.OrdinalIgnoreCase);
 }

@@ -39,4 +39,250 @@
   <data name="SecondLess" xml:space="preserve">
     <value>Минус секунда</value>
   </data>
+  <data name="Minimize" xml:space="preserve">
+    <value>Свернуть</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Назад</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="TestCall" xml:space="preserve">
+    <value>Проверить</value>
+  </data>
+  <data name="TestCalling" xml:space="preserve">
+    <value>Объявляю…</value>
+  </data>
+  <data name="StatusGroup" xml:space="preserve">
+    <value>Подключено · шёпот группе {0}</value>
+  </data>
+  <data name="StatusChannel" xml:space="preserve">
+    <value>Подключено · шёпот в канал «{0}»</value>
+  </data>
+  <data name="StatusChannels" xml:space="preserve">
+    <value>Подключено · шёпот в {0}</value>
+  </data>
+  <data name="StatusNoListeners" xml:space="preserve">
+    <value>Подключено · выберите, кто слышит</value>
+  </data>
+  <data name="StatusConnecting" xml:space="preserve">
+    <value>Подключение к {0}…</value>
+  </data>
+  <data name="StatusNoAnswer" xml:space="preserve">
+    <value>{0} не отвечает — пробую снова</value>
+  </data>
+  <data name="StatusAddressNotFound" xml:space="preserve">
+    <value>Не нахожу {0} — пробую снова</value>
+  </data>
+  <data name="StatusServerShutdown" xml:space="preserve">
+    <value>Сервер выключился — пробую снова</value>
+  </data>
+  <data name="StatusServerFull" xml:space="preserve">
+    <value>Сервер заполнен — пробую снова</value>
+  </data>
+  <data name="StatusRefused" xml:space="preserve">
+    <value>Сервер отказал: {0} — пробую снова</value>
+  </data>
+  <data name="StatusNotConnected" xml:space="preserve">
+    <value>Не подключено</value>
+  </data>
+  <data name="StatusWrongPassword" xml:space="preserve">
+    <value>Не подключено — неверный пароль сервера</value>
+  </data>
+  <data name="StatusKicked" xml:space="preserve">
+    <value>Не подключено — бота выгнали с сервера</value>
+  </data>
+  <data name="StatusBanned" xml:space="preserve">
+    <value>Не подключено — бот забанен на сервере</value>
+  </data>
+  <data name="StatusNotSetUp" xml:space="preserve">
+    <value>TeamSpeak не настроен</value>
+  </data>
+  <data name="NextIdle" xml:space="preserve">
+    <value>Нажмите «Старт», когда начнётся матч</value>
+  </data>
+  <data name="NextAt" xml:space="preserve">
+    <value>{0} — объявление в {1} ·</value>
+  </data>
+  <data name="In" xml:space="preserve">
+    <value>через {0}</value>
+  </data>
+  <data name="CallingNow" xml:space="preserve">
+    <value>Объявляю:</value>
+  </data>
+  <data name="Gong" xml:space="preserve">
+    <value>гонг</value>
+  </data>
+  <data name="NoMoreCalls" xml:space="preserve">
+    <value>В этом матче объявлений больше нет</value>
+  </data>
+  <data name="MatchOver" xml:space="preserve">
+    <value>Матч окончен</value>
+  </data>
+  <data name="Calls" xml:space="preserve">
+    <value>Объявления</value>
+  </data>
+  <data name="CallsAhead" xml:space="preserve">
+    <value>за {0} с до появления</value>
+  </data>
+  <data name="Jungle" xml:space="preserve">
+    <value>Лес</value>
+  </data>
+  <data name="Spawns" xml:space="preserve">
+    <value>появление {0}</value>
+  </data>
+  <data name="Called" xml:space="preserve">
+    <value>Объявлено</value>
+  </data>
+  <data name="Calling" xml:space="preserve">
+    <value>Объявляю</value>
+  </data>
+  <data name="NotSent" xml:space="preserve">
+    <value>Не отправлено</value>
+  </data>
+  <data name="ServerAddress" xml:space="preserve">
+    <value>Адрес сервера</value>
+  </data>
+  <data name="ServerPassword" xml:space="preserve">
+    <value>Пароль сервера</value>
+  </data>
+  <data name="Optional" xml:space="preserve">
+    <value>Необязательно</value>
+  </data>
+  <data name="BotNickname" xml:space="preserve">
+    <value>Имя бота</value>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Подключиться</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Отключиться</value>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Подключено</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Подключение…</value>
+  </data>
+  <data name="WrongPassword" xml:space="preserve">
+    <value>Неверный пароль сервера</value>
+  </data>
+  <data name="Kicked" xml:space="preserve">
+    <value>Бота выгнали с сервера</value>
+  </data>
+  <data name="Banned" xml:space="preserve">
+    <value>Бот забанен на сервере</value>
+  </data>
+  <data name="WhoHears" xml:space="preserve">
+    <value>Кто слышит объявления</value>
+  </data>
+  <data name="AServerGroup" xml:space="preserve">
+    <value>Группа сервера</value>
+  </data>
+  <data name="ChosenChannels" xml:space="preserve">
+    <value>Выбранные каналы</value>
+  </data>
+  <data name="ConnectFirst" xml:space="preserve">
+    <value>Подключитесь</value>
+  </data>
+  <data name="ChooseGroup" xml:space="preserve">
+    <value>Выберите группу</value>
+  </data>
+  <data name="PickChannels" xml:space="preserve">
+    <value>Выбрать каналы</value>
+  </data>
+  <data name="ChannelCountOne" xml:space="preserve">
+    <value>{0} канал</value>
+  </data>
+  <data name="ChannelCountFew" xml:space="preserve">
+    <value>{0} канала</value>
+  </data>
+  <data name="ChannelCountMany" xml:space="preserve">
+    <value>{0} каналов</value>
+  </data>
+  <data name="WhoNoteGroup" xml:space="preserve">
+    <value>Gengfu говорит шёпотом — его слышат все в группе, в каком бы канале они ни были. Сервер должен разрешать боту шёпот.</value>
+  </data>
+  <data name="WhoNoteChannels" xml:space="preserve">
+    <value>Gengfu говорит шёпотом — его слышат все в выбранных каналах. Сервер должен разрешать боту шёпот.</value>
+  </data>
+  <data name="CallAhead" xml:space="preserve">
+    <value>Объявлять за</value>
+  </data>
+  <data name="SecondsCount" xml:space="preserve">
+    <value>{0} секунд</value>
+  </data>
+  <data name="Say" xml:space="preserve">
+    <value>Текст</value>
+  </data>
+  <data name="CallText15" xml:space="preserve">
+    <value>Лес через пятнадцать секунд</value>
+  </data>
+  <data name="CallText20" xml:space="preserve">
+    <value>Лес через двадцать секунд</value>
+  </data>
+  <data name="CallText30" xml:space="preserve">
+    <value>Лес через тридцать секунд</value>
+  </data>
+  <data name="CallText45" xml:space="preserve">
+    <value>Лес через сорок пять секунд</value>
+  </data>
+  <data name="CallText60" xml:space="preserve">
+    <value>Лес через минуту</value>
+  </data>
+  <data name="Voice" xml:space="preserve">
+    <value>Голос</value>
+  </data>
+  <data name="GongNoVoice" xml:space="preserve">
+    <value>Гонг (без голоса)</value>
+  </data>
+  <data name="NoVoice" xml:space="preserve">
+    <value>В Windows нет русского голоса, поэтому звучит гонг. Добавьте его: «Язык и регион» › Русский › Языковые параметры — или выберите голос другого языка и напишите текст на нём.</value>
+  </data>
+  <data name="OpenLanguageRegion" xml:space="preserve">
+    <value>Открыть «Язык и регион»</value>
+  </data>
+  <data name="NoText" xml:space="preserve">
+    <value>Текста нет, поэтому звучит гонг.</value>
+  </data>
+  <data name="SpeechFailed" xml:space="preserve">
+    <value>Windows не удалось произнести текст, поэтому звучит гонг.</value>
+  </data>
+  <data name="SoundFile" xml:space="preserve">
+    <value>Звуковой файл</value>
+  </data>
+  <data name="Change" xml:space="preserve">
+    <value>Сменить</value>
+  </data>
+  <data name="FileUnreadable" xml:space="preserve">
+    <value>Windows не может воспроизвести этот файл, поэтому звучит гонг. Выберите другой, например MP3 или WAV.</value>
+  </data>
+  <data name="UseSoundFile" xml:space="preserve">
+    <value>Свой звуковой файл</value>
+  </data>
+  <data name="UseText" xml:space="preserve">
+    <value>Озвучивать текст</value>
+  </data>
+  <data name="ChooseSoundFile" xml:space="preserve">
+    <value>Выберите звуковой файл</value>
+  </data>
+  <data name="SoundFiles" xml:space="preserve">
+    <value>Звуковые файлы</value>
+  </data>
+  <data name="AllFiles" xml:space="preserve">
+    <value>Все файлы</value>
+  </data>
+  <data name="General" xml:space="preserve">
+    <value>Общие</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Язык</value>
+  </data>
+  <data name="SameAsWindows" xml:space="preserve">
+    <value>Как в Windows</value>
+  </data>
 </root>

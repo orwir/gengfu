@@ -1,55 +1,135 @@
+using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Threading;
-using Gengfu.App.Controls;
-using Gengfu.Core;
+using Gengfu.App.Views;
 
 namespace Gengfu.App;
 
+/// <summary>
+/// Gengfu's one window: the main view, or Settings in its place with the way back in the title bar.
+/// It drives the session from a 50 ms tick and redraws whichever view shows.
+/// </summary>
 public partial class MainWindow : Window
 {
-    private readonly MatchClock _clock = new(new SystemTimeSource());
-    private readonly ClockDigits _digits;
-    private readonly Style _startStyle;
+    private const int DwmWindowCornerPreference = 33;
+    private const int DwmRound = 2;
+
+    private readonly Session _session = new(CultureInfo.CurrentUICulture);
+    private MainView _main;
+    private SettingsView? _settings;
 
     public MainWindow()
     {
         InitializeComponent();
-        _digits = new ClockDigits(_clock);
-        ClockHost.Child = _digits;
-        _startStyle = (Style)FindResource("AccentButtonStyle");
-        Refresh();
+        AppLanguage.Apply(_session.Language);
+        _main = new MainView(_session, ShowSettings);
+        ShowMain();
         // The digits change on whole game seconds; a short tick shows each change within 50 ms.
-        _ = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Normal, (_, _) => Refresh(), Dispatcher);
+        _ = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Normal, (_, _) => Tick(), Dispatcher);
+        // A voice added in Windows' settings meanwhile is picked up when the user comes back.
+        Activated += (_, _) => _session.SoundChanged();
     }
 
-    private void Refresh()
+    protected override void OnSourceInitialized(EventArgs e)
     {
-        _digits.Refresh();
-        var running = _clock.State == ClockState.Running;
-        if (running)
+        base.OnSourceInitialized(e);
+        // Windows 11 rounds and outlines a window that draws its own title bar only when asked;
+        // Windows 10 knows no such attribute and keeps square corners.
+        var round = DwmRound;
+        _ = DwmSetWindowAttribute(new WindowInteropHelper(this).Handle, DwmWindowCornerPreference, ref round, sizeof(int));
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        // Esc leaves Settings, unless a list or a field inside took it first.
+        if (e.Key == Key.Escape && Page.Content is SettingsView)
         {
-            StartStop.ClearValue(StyleProperty);
+            e.Handled = true;
+            ShowMain();
+        }
+        base.OnKeyDown(e);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        // Leaving the server takes up to 2 s; until the connection is gone, its thread keeps the process alive.
+        Task.Run(() => _session.DisposeAsync().AsTask()).Wait(TimeSpan.FromSeconds(3));
+    }
+
+    private void Tick()
+    {
+        _session.Tick();
+        if (Page.Content is SettingsView settings)
+        {
+            settings.Refresh();
         }
         else
         {
-            StartStop.Style = _startStyle;
+            _main.Refresh();
         }
-        StartStop.Padding = running ? new Thickness(12, 0, 12, 0) : new Thickness(12, 0, 16, 0);
-        StartIcon.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
-        StopIcon.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
-        StartStopText.Text = running ? Strings.Stop : Strings.Start;
     }
 
-    private void OnStartStop(object sender, RoutedEventArgs e)
+    private void ShowMain()
     {
-        if (_clock.State == ClockState.Running)
+        var fromSettings = Page.Content is SettingsView;
+        Page.Content = _main;
+        _main.Refresh();
+        ShowTitleBar();
+        if (fromSettings)
         {
-            _clock.Stop();
+            // The view takes focus once it is back in the window, after layout.
+            _ = Dispatcher.InvokeAsync(_main.FocusSettings, DispatcherPriority.Loaded);
         }
-        else
-        {
-            _clock.Start();
-        }
-        Refresh();
     }
+
+    private void ShowSettings()
+    {
+        _settings ??= new SettingsView(_session, RemakeViews);
+        Page.Content = _settings;
+        ShowTitleBar();
+        BackButton.Focus();
+    }
+
+    // The strings are read when a view is made, so a new language takes new views; Settings stays
+    // where it was, with focus back on Language.
+    private void RemakeViews()
+    {
+        var offset = _settings?.ScrollOffset ?? 0;
+        _main = new MainView(_session, ShowSettings);
+        _settings = new SettingsView(_session, RemakeViews);
+        Page.Content = _settings;
+        ShowTitleBar();
+        _ = Dispatcher.InvokeAsync(() =>
+        {
+            _settings.ScrollOffset = offset;
+            _settings.FocusLanguage();
+        }, DispatcherPriority.Loaded);
+    }
+
+    private void ShowTitleBar()
+    {
+        var inSettings = Page.Content is SettingsView;
+        BackButton.Visibility = inSettings ? Visibility.Visible : Visibility.Collapsed;
+        AppIcon.Visibility = inSettings ? Visibility.Collapsed : Visibility.Visible;
+        Caption.Text = inSettings ? Strings.Settings : "Gengfu";
+        AutomationProperties.SetName(BackButton, Strings.Back);
+        AutomationProperties.SetName(MinimizeButton, Strings.Minimize);
+        AutomationProperties.SetName(CloseButton, Strings.Close);
+        MinimizeButton.ToolTip = Strings.Minimize;
+        CloseButton.ToolTip = Strings.Close;
+    }
+
+    private void OnBack(object sender, RoutedEventArgs e) => ShowMain();
+
+    private void OnMinimize(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void OnClose(object sender, RoutedEventArgs e) => Close();
+
+    [LibraryImport("dwmapi.dll")]
+    private static partial int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 }
