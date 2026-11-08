@@ -10,10 +10,11 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
-| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window's clock and Start/Stop; speech, hotkeys, updates and the TeamSpeak wiring (*planned*) | Core, TeamSpeak |
+| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window's clock and Start/Stop; call audio; hotkeys, updates and the TeamSpeak wiring (*planned*) | Core, TeamSpeak, Concentus |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
+| `tests/Gengfu.App.Tests` | Tests mirroring `Gengfu.App`, against this machine's own voices and media stack | App |
 
 `Gengfu.Core` never references WPF, Windows-only APIs or TSLib, so a second transport (Discord in
 v0.2) plugs in without touching it.
@@ -23,8 +24,8 @@ v0.2) plugs in without touching it.
 1. The clock reads the game time from a monotonic time source.
 2. The call schedule marks a call due once the clock reaches its game time (spawn plus lead time)
    while the spawn is still ahead; the App asks it for due calls on every tick.
-3. The App renders each call once, before the match: text through Windows TTS, or an audio file,
-   to 48 kHz stereo PCM, then to 20 ms Opus frames.
+3. The App renders each call once, before the match, and keeps it: text through a Windows voice or
+   an audio file, to 48 kHz stereo, then to 20 ms Opus frames ([Call audio](#call-audio)).
 4. TeamSpeak sends the frames in real time as a whisper to the configured targets — a server group
    or chosen channels — then an empty frame to end the talk.
 
@@ -45,10 +46,33 @@ for 3 s: on time as the clock counts down, or late when a correction lands the c
 window, since a late call still helps. After the spawn it never fires — the mob is already farmed.
 A correction back above its game time re-arms it.
 
+## Call audio
+
+A call plays text in a Windows voice, an audio file, or the gong: a small gong struck twice, made in
+code. It is never silent: text that can't be spoken and a file that can't be read play the gong,
+and the clip says why, for Settings to show.
+
+- **Voice.** The chosen voice while it is installed, else the first in the app's language with
+  Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
+  text is the user's to match. The voice list is read afresh each time, so a voice added in
+  Windows counts without a restart. Windows adds a language's voices from that language's options
+  under Language & region; Speech › Add voices can fail silently.
+- **Shape.** Silence is trimmed; a call stops after 10 s of sound, counted from where its sound
+  starts, and fades out, so a wrong file can't hold the whisper; its loudest 400 ms sit at
+  −16 LUFS with peaks 1 dB under full scale; 100 ms of silence lead it, so its start is never
+  clipped.
+- **Encoding.** 20 ms Opus frames at 48 kbps, in managed code. A rendered call is kept until its
+  text, its voice or its file changes.
+- **Windows parts.** Speech uses Windows.Media.SpeechSynthesis (Windows 10 and later) and is
+  resampled by Gengfu; files use Media Foundation, which Windows N editions lack until the Media
+  Feature Pack is added. Both are called directly, with nothing extra shipped
+  ([ADR-0005](../adr/0005-call-audio-without-bindings-or-native-code.md)).
+
 ## Threading
 
 The window redraws the clock on the UI thread from a 50 ms dispatcher timer; the digits change only
-on whole game seconds. TSLib runs the connection on its own scheduler thread: the connection's
+on whole game seconds. Calls render on the thread pool, one at a time, so the window never waits
+on Windows' speech or a file. TSLib runs the connection on its own scheduler thread: the connection's
 events fire there, and its data book is read only there. Voice frames go out from the voice
 sender's own thread, each up to 60 ms before it plays, so Windows' coarse sleep still keeps
 listeners fed; calls play one at a time. The UI thread never blocks on the network.

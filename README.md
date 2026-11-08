@@ -15,7 +15,8 @@ to the in-game timer. This page is for players and guild officers; contributors 
   seconds and type what the game shows.
 - **Every squad hears the call.** Gengfu whispers to a server group (say, everyone in GvG) or to
   chosen channels, on TeamSpeak 3 and 6 servers.
-- **Your language.** The app and its calls come in English and Russian.
+- **Your language.** The app comes in English and Russian, and calls speak in a Windows voice for
+  your language. If Windows has none, they strike a gong until you add one.
 - **Keeps itself current.** New versions install in the background and apply on the next start.
 
 ## Install

@@ -58,6 +58,12 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Update notice:** info bar above the footer — applies on next start, optional Restart.
 - **Settings:** grouped cards; short controls (drop-downs, toggles) on the right, text
   fields stacked; radios for who hears the calls (server group or chosen channels).
+- **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
+  (the language in its own tongue), the app language's first. Any voice may be picked.
+- **No-voice hint:** when no voice speaks the app's language, Voice shows the gong and an
+  info bar under it says so: accent info icon, caption text naming the way in (Language &
+  region › the language › Language options), and a link that opens Language & region.
+  Not Speech › Add voices, which can fail silently.
 
 ## Patterns
 
@@ -78,4 +84,4 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Main window | Main.dc.html (views: MainDark.dc.html)        | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html)  | —                                                                                                                   |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html) | —                                                                                    |
