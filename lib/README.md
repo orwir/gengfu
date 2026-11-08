@@ -17,6 +17,8 @@ Changes against upstream, each marked `gengfu patch` in the source. Re-apply the
 | File | Change | Why |
 | --- | --- | --- |
 | `TSLib/Full/TsFullClient.cs` | `SendAudioGroupWhisper` sets the `Newprotocol` packet flag | Without it the server drops server-group whispers. Lost on `develop` in commit `2126993e` (2021); `master` still has it. |
+| `TSLib/Full/TsFullClient.cs` | `ChangeState` reads the status before setting it to disconnected | Read after, it is never "connecting", so `Connect()` never returns when an attempt fails: a wrong password, a timeout, a request for a stronger identity. |
+| `TSLib/Full/PacketHandler.cs` | `PacketTimeout` is 10 s, not 30 s | Our server drops a client silent for about 20 s; at 30 s, TSLib shows the dead connection as connected for half a minute more while every whisper is lost. |
 
 ## Re-syncing
 

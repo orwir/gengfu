@@ -9,10 +9,11 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | Project | Role | References |
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model; `AppVersion` | — |
-| `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection, whisper targets, voice frames (*planned*) | Core, `lib/TSLib` |
+| `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
 | `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window's clock and Start/Stop; speech, hotkeys, updates and the TeamSpeak wiring (*planned*) | Core, TeamSpeak |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
+| `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
 
 `Gengfu.Core` never references WPF, Windows-only APIs or TSLib, so a second transport (Discord in
 v0.2) plugs in without touching it.
@@ -47,9 +48,10 @@ A correction back above its game time re-arms it.
 ## Threading
 
 The window redraws the clock on the UI thread from a 50 ms dispatcher timer; the digits change only
-on whole game seconds. *Planned:* TSLib runs its connection on its own scheduler thread, and its
-data book is read only there. Voice frames go out from a timed audio thread, 20 ms apart. The UI
-thread never blocks on the network.
+on whole game seconds. TSLib runs the connection on its own scheduler thread: the connection's
+events fire there, and its data book is read only there. Voice frames go out from the voice
+sender's own thread, each up to 60 ms before it plays, so Windows' coarse sleep still keeps
+listeners fed; calls play one at a time. The UI thread never blocks on the network.
 
 ## Configuration (planned)
 
@@ -60,7 +62,17 @@ storage are decided in the settings issue.
 ## TeamSpeak specifics
 
 - Gengfu resolves server addresses itself — [ADR-0003](../adr/0003-own-address-resolver.md).
+- The connection keeps itself up: a failed attempt is retried after 1 and 2 s, then every 5 s,
+  until the user disconnects, or the server kicks, bans or refuses the password. An attempt the
+  server doesn't answer gives up after 5 s: on our server, an attempt made during an outage never
+  succeeds once the link is back — likely because its opening packet carries the time it was
+  made — so only a fresh one gets through. A server that comes back is reached within about 10 s.
+- A connection silent for 10 s counts as lost: TSLib pings every second, and our server drops a
+  client silent for about 20 s. TSLib's own 30 s is patched down
+  ([lib/README.md](../../lib/README.md)); with it, a dead connection shows as connected for half
+  a minute while every whisper is lost.
 - The server sends its group list a moment after the connection is up; group ids come from the
   book's keys, because TSLib leaves the group's own `Id` at 0.
 - The bot's identity is created once and kept, so a server group can be assigned to it; its
-  security level is raised when a server asks.
+  security level is raised when a server asks. The connection hands it out in the official
+  client's export format and says when it changes; the App stores it (*planned*).

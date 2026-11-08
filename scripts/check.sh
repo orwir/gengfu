@@ -10,6 +10,17 @@ echo "== format"
 echo "== build"
 "$DOTNET" build Gengfu.slnx -c Release
 
-echo "== test (coverage floor: 80% of Gengfu.Core lines)"
-"$DOTNET" test Gengfu.slnx -c Release --no-build \
-    -p:CollectCoverage=true -p:Threshold=80 -p:ThresholdType=line -p:Include='[Gengfu.Core]*'
+# Every test project runs, each measuring the project it mirrors. Only Gengfu.Core's lines have a
+# floor; elsewhere coverage is shown, since the TeamSpeak connection's live half is checked on a
+# real server.
+for project in tests/*/*.Tests.csproj; do
+    covered="$(basename "$project" .Tests.csproj)"
+    floor=""
+    if [ "$covered" = Gengfu.Core ]; then
+        floor="-p:Threshold=80 -p:ThresholdType=line"
+    fi
+    echo "== test $covered${floor:+ (coverage floor: 80% of its lines)}"
+    # shellcheck disable=SC2086
+    "$DOTNET" test "$project" -c Release --no-build \
+        -p:CollectCoverage=true -p:Include="[$covered]*" $floor
+done

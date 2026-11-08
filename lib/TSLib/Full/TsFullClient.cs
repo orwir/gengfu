@@ -186,11 +186,13 @@ public sealed partial class TsFullClient : TsBaseFunctions, IAudioActiveProducer
 		case (TsClientStatus.Connecting, TsClientStatus.Disconnected):
 		case (TsClientStatus.Connected, TsClientStatus.Disconnected):
 		case (TsClientStatus.Disconnecting, TsClientStatus.Disconnected):
+			// gengfu patch: read the status before overwriting it; otherwise a failed connect attempt
+			// never completes Connect().
+			var statusBefore = status;
 			status = TsClientStatus.Disconnected;
 			ctx.PacketHandler.Stop();
 			msgProc.DropQueue();
 
-			var statusBefore = status;
 			context = null;
 			if (statusBefore == TsClientStatus.Connecting)
 				ctx.ConnectEvent.SetResult(error ?? CommandError.ConnectionClosed); // TODO: Set exception maybe ?

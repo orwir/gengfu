@@ -9,5 +9,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Gengfu.Core.Tests/Gengfu.Core.Tests.csproj" />
+    <Project Path="tests/Gengfu.TeamSpeak.Tests/Gengfu.TeamSpeak.Tests.csproj" />
   </Folder>
 </Solution>
