@@ -25,6 +25,29 @@ Not released yet. Releases will appear on the [Releases](https://github.com/orwi
 page. Gengfu needs Windows 10 or 11 and a TeamSpeak server it may join — no admin rights, but the
 server must allow it to whisper.
 
+## Set up
+
+Open Settings with the gear at the bottom right. Every change applies at once.
+
+- **TeamSpeak.** Enter the server address as your TeamSpeak client takes it, the server password
+  if it has one, and a nickname for the bot, then press **Connect**. Gengfu stays connected by
+  itself; the line at the top of the main window says how it stands.
+- **Who hears the calls.** Pick a server group, and everyone in it hears the calls in whatever
+  channel they are, or tick the channels that should. The lists come from the server once Gengfu
+  is connected, and the server has to allow the bot to whisper.
+- **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
+  default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
+  use a sound file instead. **Test call** whispers the call once, now.
+- **Language.** English, Russian, or the same as Windows.
+
+Gengfu doesn't save its settings yet: after a restart, enter them again.
+
+## The calls
+
+Under the clock, Gengfu shows the next call and the time left until it. The list below has every
+call of the match: a check once it went out, and ✕ *Not sent* when nobody heard it, because
+Gengfu was disconnected or the clock was moved past the spawn first.
+
 ## Match the clock
 
 Press **Start** as the match begins: the clock starts at 35:00 and counts down with the game. When

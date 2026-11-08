@@ -117,7 +117,7 @@ public class CallScheduleTests
     }
 
     [Fact]
-    public void A_jump_past_a_spawn_drops_its_call()
+    public void A_jump_past_a_spawn_drops_its_call_and_shows_it_not_sent()
     {
         _clock.Start();
         RunTo(TimeSpan.FromMinutes(25, 35));
@@ -126,7 +126,7 @@ public class CallScheduleTests
         _clock.Move(TimeSpan.FromSeconds(-40));
 
         Assert.Empty(_schedule.TakeDue());
-        Assert.Equal(CallState.Called, _schedule.StateOf(First));
+        Assert.Equal(CallState.NotSent, _schedule.StateOf(First));
     }
 
     [Fact]
@@ -166,8 +166,12 @@ public class CallScheduleTests
         _schedule.TakeDue();
         Assert.Equal(new[] { CallState.Called, CallState.Next, CallState.Later, CallState.Later, CallState.Later }, States());
 
-        _time.Advance(MatchClock.MatchLength);
-        _schedule.TakeDue();
+        // The match runs to its end, each call made on the way.
+        while (_clock.State == ClockState.Running)
+        {
+            _time.Advance(Tick);
+            _schedule.TakeDue();
+        }
         Assert.Equal(ClockState.Over, _clock.State);
         Assert.All(States(), state => Assert.Equal(CallState.Called, state));
     }

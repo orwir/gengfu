@@ -6,7 +6,8 @@ using Gengfu.TeamSpeak;
 
 namespace Gengfu.App.Tests;
 
-public sealed class SessionTests : IAsyncDisposable
+// The connection's TSLib thread keeps the test host alive until the connection is disposed.
+public sealed class SessionTests : IAsyncLifetime
 {
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
 
@@ -21,7 +22,9 @@ public sealed class SessionTests : IAsyncDisposable
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
             new TeamSpeakConnection(null));
 
-    public ValueTask DisposeAsync() => _session.DisposeAsync();
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public Task DisposeAsync() => _session.DisposeAsync().AsTask();
 
     [Fact]
     public void The_call_says_the_default_for_its_lead_until_the_user_types_their_own()

@@ -126,7 +126,7 @@
                     <StackPanel x:Name="FilePanel">
                         <TextBlock Style="{StaticResource Label}" Margin="0,12,0,4" Text="{x:Static app:Strings.SoundFile}" />
                         <DockPanel>
-                            <Button DockPanel.Dock="Right" Height="32" Padding="12,0" Margin="8,0,0,0" Content="{x:Static app:Strings.Change}" Click="OnChooseFile" />
+                            <Button x:Name="ChangeFile" DockPanel.Dock="Right" Height="32" Padding="12,0" Margin="8,0,0,0" Content="{x:Static app:Strings.Change}" Click="OnChooseFile" />
                             <Border x:Name="FileBox" Height="32" Padding="10,0" CornerRadius="4" BorderThickness="1"
                                     Background="{DynamicResource ControlFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
                                 <DockPanel>

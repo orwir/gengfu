@@ -8,7 +8,10 @@ public enum CallState
     Calling,
     Called,
 
-    /// <summary>It came due while Gengfu couldn't whisper; see <see cref="CallSchedule.MarkNotSent"/>.</summary>
+    /// <summary>
+    /// It never went out: it came due while Gengfu couldn't whisper (see <see cref="CallSchedule.MarkNotSent"/>),
+    /// or a correction took the clock past its spawn first.
+    /// </summary>
     NotSent,
 }
 
@@ -21,7 +24,7 @@ public sealed record Call(int Index, TimeSpan Spawn, TimeSpan At);
 /// clock moves every call still ahead. A call fires once while the clock is between its time and its
 /// spawn: late if a correction lands the clock there, since a late call still helps, but never after
 /// the spawn, when the mob is already farmed. A correction back above its time re-arms it. A call
-/// whose spawn passed without it shows with the called ones.
+/// whose spawn passed without it shows as not sent: nobody heard it.
 /// </summary>
 public sealed class CallSchedule
 {
@@ -120,7 +123,8 @@ public sealed class CallSchedule
         var gameTime = _clock.GameTime;
         if (gameTime <= call.At)
         {
-            return CallState.Called;
+            // Past its time and never made: TakeDue makes every call whose time comes before its spawn.
+            return _fired[call.Index] is null ? CallState.NotSent : CallState.Called;
         }
         var behindAnother = Calls.Any(other => other.At < gameTime && other.At > call.At);
         return behindAnother ? CallState.Later : CallState.Next;

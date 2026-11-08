@@ -82,7 +82,8 @@ public partial class MainWindow : Window
         ShowTitleBar();
         if (fromSettings)
         {
-            _main.FocusSettings();
+            // The view takes focus once it is back in the window, after layout.
+            _ = Dispatcher.InvokeAsync(_main.FocusSettings, DispatcherPriority.Loaded);
         }
     }
 

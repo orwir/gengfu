@@ -16,19 +16,23 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 ## Tokens
 
-| Token           | Light   | Dark    | Used for                          |
-| --------------- | ------- | ------- | --------------------------------- |
-| surface.base    | #F3F3F3 | #202020 | window (Mica)                     |
-| surface.card    | #FBFBFB | #2B2B2B | cards                             |
-| stroke.card     | #E5E5E5 | #1D1D1D | card border                       |
-| text.primary    | #1B1B1B | #FFFFFF | text                              |
-| text.secondary  | #5F5F5F | #CFCFCF | captions, past calls              |
-| text.disabled   | #A0A0A0 | #7A7A7A | disabled controls                 |
-| accent.fill     | #005FB8 | #60CDFF | primary button, next call, links  |
-| accent.on       | #FFFFFF | #000000 | text on accent                    |
-| status.success  | #0F7B0F | #6CCB5F | connected                         |
-| status.caution  | #9D5D00 | #FCE100 | warnings                          |
-| status.critical | #C42B1C | #FF99A4 | errors, not connected             |
+| Token           | Light   | Dark    | Used for                          | Fluent brush                          |
+| --------------- | ------- | ------- | --------------------------------- | ------------------------------------- |
+| surface.base    | #F3F3F3 | #202020 | window                            | SolidBackgroundFillColorBaseBrush     |
+| surface.card    | #FBFBFB | #2B2B2B | cards                             | CardBackgroundFillColorDefaultBrush   |
+| stroke.card     | #E5E5E5 | #1D1D1D | card border                       | CardStrokeColorDefaultBrush           |
+| text.primary    | #1B1B1B | #FFFFFF | text                              | TextFillColorPrimaryBrush             |
+| text.secondary  | #5F5F5F | #CFCFCF | captions, past calls              | TextFillColorSecondaryBrush           |
+| text.disabled   | #A0A0A0 | #7A7A7A | disabled controls                 | TextFillColorDisabledBrush            |
+| accent.fill     | #005FB8 | #60CDFF | primary button, next call, links  | AccentFillColorDefaultBrush; text: AccentTextFillColorPrimaryBrush |
+| accent.on       | #FFFFFF | #000000 | text on accent                    | TextOnAccentFillColorPrimaryBrush     |
+| status.success  | #0F7B0F | #6CCB5F | connected                         | SystemFillColorSuccessBrush           |
+| status.caution  | #9D5D00 | #FCE100 | warnings                          | SystemFillColorCautionBrush           |
+| status.critical | #C42B1C | #FF99A4 | errors, not connected             | SystemFillColorCriticalBrush          |
+
+- **In code:** always the Fluent brush, by DynamicResource, so a switch of the Windows theme
+  repaints it; the hex values are the default accent's. Hints use the Fluent InfoBar
+  backgrounds: InfoBarInformationalSeverityBackgroundBrush and InfoBarWarningSeverityBackgroundBrush.
 
 - **Type:** Segoe UI Variable only — Display for the clock, Text for everything else.
   Clock 64/72 Semibold with tabular figures · Subtitle 20/28 Semibold · Body strong
@@ -40,24 +44,46 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 ## Components
 
-- **Window:** 380 px wide; title bar = icon, name, minimize, close (no maximize).
-  Settings replaces the main view in the same window, with a back arrow, and scrolls.
-- **Buttons:** accent (Start), standard (Stop), subtle (Test call, the Settings icon);
-  Fluent rest / hover / pressed / disabled. Start and Stop are one button that flips, so
-  keyboard focus stays on it.
+- **Window:** 380 × 616 px; title bar = icon, name, minimize, close (no maximize).
+  Settings replaces the main view in the same window, with a back arrow in the title bar,
+  and scrolls; Esc goes back too. Gengfu draws the title bar on the flat surface.base, with
+  no Mica: under a Mica frame Windows draws its own caption buttons as well. Minimize and
+  close keep out of the Tab order, as Windows' own do; the back arrow takes focus, its
+  focus ring drawn inside it.
+- **Buttons:** accent (Start), standard (Stop, Connect, Change), subtle (Test call, the
+  Settings icon), link (accent text: the status line's Settings, "Use a sound file
+  instead"); Fluent rest / hover / pressed / disabled. Start and Stop are one button that
+  flips, so keyboard focus stays on it. Test call is off unless Gengfu is connected with
+  someone to hear it, and reads "Calling…" while its call plays.
 - **Clock digits:** minutes and seconds are fields that look like plain digits. Hover →
   subtle fill; focus → field fill, 2 px accent underline, whole value selected (accent fill,
   text on accent), the running clock shown until the first keystroke. Arrows above and
   below each nudge ±1 min / ±1 s; Tab skips them, since ↑ ↓ in a field do the same. Enter
   and Esc hand focus to the clock as a whole, so the digits read as plain text again.
   Disabled until Start.
-- **Calls list:** one row per call — called (secondary, check), calling (accent, speaker,
-  tinted), next (accent, "in m:ss", tinted), later (primary).
-- **Status line:** dot + text — connected (success), connecting (hollow dot), not
-  connected (critical, with a Settings link).
+- **Calls list:** one row per call — called (secondary, check), not sent (secondary,
+  critical ✕ "Not sent"), calling (accent, speaker, tinted), next (accent, "in m:ss",
+  tinted), later (primary). A call is not sent when it comes due with Gengfu off the server
+  or nobody chosen to hear it, or when a correction takes the clock past its spawn first.
+- **Status line:** dot + text, caption size — connected, naming who hears (success);
+  connecting (hollow dot); trying again, saying why (hollow caution dot, caution text);
+  connected with nobody chosen (caution); not connected, saying why (critical). A Settings
+  link follows only when the user has to act. Every state's copy is in the strings and on
+  the canvas's Foundations.
 - **Update notice:** info bar above the footer — applies on next start, optional Restart.
-- **Settings:** grouped cards; short controls (drop-downs, toggles) on the right, text
-  fields stacked; radios for who hears the calls (server group or chosen channels).
+- **Settings:** grouped cards; short controls (drop-downs, toggles) on the right in a fixed
+  column, text fields stacked. The column is 152 px beside the radios and 168 elsewhere:
+  the Fluent drop-down keeps about 50 px for its chevron. Empty fields and drop-downs show a
+  placeholder. One button connects with what the fields hold, or disconnects; it offers
+  Connect again as soon as a field changes. Radios for who hears the calls: a server group,
+  from the server's list, or chosen channels, ticked in a flyout in the server's tree order
+  that stays open while ticking (Esc, Enter or a click outside closes it). Until the server's
+  lists are in, the drop-downs are off.
+- **Sound file:** in place of Say and Voice, the file's name with a note icon and Change;
+  "Use text instead" goes back to the text.
+- **Hints:** an info bar with an accent "i" (the no-voice hint), or a caution bar with a
+  "!" when a call plays the gong for another reason: no text, Windows failed to speak it,
+  or the file can't be played.
 - **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
   (the language in its own tongue), the app language's first. Any voice may be picked.
 - **No-voice hint:** when no voice speaks the app's language, Voice shows the gong and an
@@ -75,7 +101,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   timer — the sync offsets depend on it.
 - **No sync claims:** Gengfu can't see the game timer, so it shows no sync status and never
   says it is "in sync" — the clock itself is the feedback. Out-of-range typed values are
-  ignored. No dialogs, no toasts.
+  ignored. No dialogs, no toasts; Windows' own file picker is the one exception.
+- **Settings apply at once:** no Save or OK. A new language remakes the views; Settings stays
+  where it was, with focus on Language. A call's default text follows the lead and the
+  language until the user edits it.
 - **Copy:** short and plain; units always written ("30 s" / "30 с"); in Russian, decimal
   comma and «» quotes. Event names and call text are user data, not copy.
 
@@ -83,5 +112,5 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Main window | Main.dc.html (views: MainDark.dc.html)        | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html) | —                                                                                    |
+| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
