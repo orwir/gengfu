@@ -33,6 +33,9 @@ public sealed class AppSettings
     /// <summary>The chosen channels, in the server's tree order.</summary>
     public IReadOnlyList<Named> Channels { get; set; } = [];
 
+    /// <summary>The server <see cref="Group"/> and <see cref="Channels"/> were chosen on: their ids mean nothing on another.</summary>
+    public string? ListenersServer { get; set; }
+
     public TimeSpan Lead { get; set; } = CallSchedule.DefaultLead;
 
     /// <summary>What a call says; null says the default for the app's language and the lead.</summary>

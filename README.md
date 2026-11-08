@@ -34,7 +34,8 @@ Open Settings with the gear at the bottom right. Every change applies at once.
   itself; the line at the top of the main window says how it stands.
 - **Who hears the calls.** Pick a server group, and everyone in it hears the calls in whatever
   channel they are, or tick the channels that should. The lists come from the server once Gengfu
-  is connected, and the server has to allow the bot to whisper.
+  is connected, and the server has to allow the bot to whisper. Connecting to another server
+  clears the choice.
 - **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
   default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
   use a sound file instead. **Test call** whispers the call once, now.

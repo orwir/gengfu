@@ -261,7 +261,7 @@ internal partial class SettingsView : UserControl
     {
         if (!_showing && GroupBox.SelectedItem is ComboBoxItem { Tag: Named group })
         {
-            _session.Settings.Group = group;
+            _session.ChooseGroup(group);
         }
     }
 
@@ -295,13 +295,13 @@ internal partial class SettingsView : UserControl
     }
 
     private void OnChannelTicked(object sender, RoutedEventArgs e) =>
-        _session.Settings.Channels =
+        _session.ChooseChannels(
         [
             .. ChannelList.Children.OfType<CheckBox>()
                 .Where(box => box.IsChecked == true)
                 .Select(box => (ChannelInfo)box.Tag)
                 .Select(channel => new Named(channel.Id, channel.Name)),
-        ];
+        ]);
 
     private void OnChannelsKey(object sender, KeyEventArgs e)
     {

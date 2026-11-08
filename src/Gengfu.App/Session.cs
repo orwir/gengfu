@@ -120,6 +120,13 @@ internal sealed class Session : IAsyncDisposable
     public Task ConnectAsync()
     {
         var login = Login.Of(Settings, Password);
+        // Ids belong to one server: on another, the same ids name other groups or nothing.
+        if (Settings.ListenersServer is { } chosenOn && !string.Equals(chosenOn, login.Server, StringComparison.OrdinalIgnoreCase))
+        {
+            Settings.Group = null;
+            Settings.Channels = [];
+            Settings.ListenersServer = null;
+        }
         ConnectedWith = login;
         ForgetLists();
         // The new connection's lists are read even when no tick sees it connecting.
@@ -152,6 +159,20 @@ internal sealed class Session : IAsyncDisposable
             .. Settings.Channels.Select(channel =>
                 Channels.FirstOrDefault(known => known.Id == channel.Id) is { } known ? new Named(known.Id, known.Name) : channel),
         ];
+    }
+
+    /// <summary>Takes a group from the server Gengfu is connected to.</summary>
+    public void ChooseGroup(Named group)
+    {
+        Settings.Group = group;
+        Settings.ListenersServer = ConnectedWith?.Server;
+    }
+
+    /// <summary>Takes the channels ticked on the server Gengfu is connected to, in its tree order.</summary>
+    public void ChooseChannels(IReadOnlyList<Named> channels)
+    {
+        Settings.Channels = channels;
+        Settings.ListenersServer = ConnectedWith?.Server;
     }
 
     /// <summary>Takes the typed text. The default text is kept as "the default", so it follows the lead and the language.</summary>

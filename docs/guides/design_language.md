@@ -82,6 +82,7 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   that stays open while ticking (Esc, Enter or a click outside closes it). Until Gengfu is
   connected the drop-downs are off; the server's lists are read once it is, and again whenever
   a list opens, and until they are in the group drop-down holds the group already chosen.
+  Connecting to another server clears the choice, and the status line asks who hears the calls.
 - **Sound file:** in place of Say and Voice, the file's name with a note icon and Change;
   "Use text instead" goes back to the text.
 - **Hints:** an info bar with an accent "i" (the no-voice hint), or a caution bar with a

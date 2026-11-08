@@ -103,7 +103,7 @@ of it. Each applies as soon as it changes:
 | Setting | Default |
 | --- | --- |
 | Server address, bot nickname, server password | none, "Gengfu", none |
-| Who hears the calls | a server group, none chosen; or chosen channels |
+| Who hears the calls | a server group, none chosen; or chosen channels. Cleared on connecting to another server, where the same ids name other groups or channels |
 | Call ahead | 30 s; 15, 20, 30, 45 or 60 |
 | Text | the default for the language and the lead, such as "Jungle in thirty seconds"; it follows them until edited |
 | Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen |

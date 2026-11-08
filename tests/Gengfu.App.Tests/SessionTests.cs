@@ -117,6 +117,26 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_group_and_channels_chosen_on_one_server_are_cleared_on_connecting_to_another()
+    {
+        // Nothing answers on the discard port; the connection keeps trying until the test ends.
+        _session.Settings.Server = "127.0.0.1:9";
+        await _session.ConnectAsync();
+        _session.ChooseGroup(new Named(1625, "ГВГ"));
+        _session.ChooseChannels([new Named(3978, "Пуш 2")]);
+
+        await _session.ConnectAsync();
+        Assert.Equal(new Named(1625, "ГВГ"), _session.Settings.Group);
+        Assert.Single(_session.Settings.Channels);
+
+        _session.Settings.Server = "127.0.0.2:9";
+        await _session.ConnectAsync();
+        Assert.Null(_session.Settings.Group);
+        Assert.Empty(_session.Settings.Channels);
+        Assert.Null(_session.Target);
+    }
+
+    [Fact]
     public void Connect_is_offered_again_once_a_field_changes()
     {
         var login = new Login("ts.example.com", "Gengfu", "");
