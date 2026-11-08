@@ -1,10 +1,11 @@
 using System.Globalization;
 using Gengfu.App.Speech;
 using Gengfu.Core;
+using Gengfu.Core.Settings;
 
 namespace Gengfu.App;
 
-/// <summary>Strings put together from parts: counts, times, voices, and the call's default text.</summary>
+/// <summary>Strings put together from parts: counts, times, voices, events, and the call's default text.</summary>
 internal static class Copy
 {
     /// <summary>The call's default text for a lead Settings offers, such as "Jungle in thirty seconds".</summary>
@@ -18,6 +19,17 @@ internal static class Copy
         var form = language.TwoLetterISOLanguageName == "ru" ? RussianForm(count) : count == 1 ? "One" : "Many";
         return string.Format(language, Strings.ResourceManager.GetString("ChannelCount" + form, language)!, count);
     }
+
+    /// <summary>An event as the calls list names it: its own name, or the jungle's in the app's language.</summary>
+    public static string EventName(MatchEvent matchEvent) => matchEvent.Name ?? Strings.Jungle;
+
+    /// <summary>What the bar at the top of Settings says about the settings file.</summary>
+    public static string FileError(SettingsError error) => error switch
+    {
+        { Line: null } => Strings.SettingsFileUnreadable,
+        { Setting: null } => Format(Strings.SettingsFileErrorOnLine, error.Line),
+        _ => Format(Strings.SettingsFileError, error.Line, error.Setting),
+    };
 
     /// <summary>A lead as Settings offers it, such as "30 seconds".</summary>
     public static string Lead(TimeSpan lead) => Format(Strings.SecondsCount, lead.TotalSeconds);

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using Gengfu.App.Speech;
@@ -18,45 +19,104 @@ internal sealed record Login(string Server, string Nickname, string Password)
 }
 
 /// <summary>
-/// One running Gengfu: what Settings holds, the match clock and its calls, the call's sound, and the
-/// seat on TeamSpeak. The window drives it from its tick, on the UI thread.
+/// One running Gengfu: what Settings holds, kept in the settings file, the match clock and its calls,
+/// the calls' sound, and the seat on TeamSpeak. The window drives it from its tick, on the UI thread.
 /// </summary>
 internal sealed class Session : IAsyncDisposable
 {
     // The server sends its groups a moment after the connection is up.
     private static readonly TimeSpan ListsAfter = TimeSpan.FromSeconds(1);
 
+    // Typing writes the files once it pauses, not on every keystroke.
+    private static readonly TimeSpan SaveAfter = TimeSpan.FromMilliseconds(500);
+
+    // An editor saving the file may touch it several times in a row; it is read once that settles.
+    private static readonly TimeSpan ReadAfter = TimeSpan.FromMilliseconds(250);
+
+    // A file Windows won't let Gengfu read or write, perhaps held by another program, is tried again now and then.
+    private static readonly TimeSpan TryAgainAfter = TimeSpan.FromSeconds(2);
+
+    private static readonly SettingsError CantRead = new(null, null);
+
     private readonly CultureInfo _windows;
     private readonly CallAudio _audio;
+    private readonly SettingsStore _store;
+    private readonly Secrets _secrets;
+    private readonly IDisposable _watch;
+    private readonly bool _secretsUnread;
+
+    // The clips of the events' own texts, by text.
+    private readonly Dictionary<string, Task<CallClip>> _clips = [];
     private Task<CallClip> _clip;
     private ConnectionStatus _seen;
+    private int _touched;
+    private TimeSpan? _readAt;
+    private bool _readRefused;
+    private string? _settingsSeen;
+    private (string, string?) _secretsSeen;
+    private TimeSpan _saveAt;
+    private string? _settingsWritten;
+    private (string, string?) _secretsWritten;
 
     /// <param name="windows">Windows' display language, for "Same as Windows".</param>
     public Session(CultureInfo windows)
-        : this(windows, new SystemTimeSource(), new CallAudio(), new TeamSpeakConnection(null))
+        : this(windows, new SystemTimeSource(), new CallAudio(), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Gengfu"))
     {
     }
 
-    internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, TeamSpeakConnection connection)
+    /// <param name="folder">Where the settings file and the secrets live.</param>
+    internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, string folder)
     {
         _windows = windows;
         _audio = audio;
-        Connection = connection;
+        _store = new SettingsStore(Path.Combine(folder, "settings.json"));
+        _secrets = new Secrets(Path.Combine(folder, "secrets.bin"));
+        switch (_store.Load())
+        {
+            case SettingsLoad.Loaded loaded:
+                Settings = loaded.Settings;
+                _settingsWritten = SettingsStore.Serialize(Settings);
+                break;
+            case SettingsLoad.Broken broken:
+                FileError = broken.Error;
+                break;
+            case SettingsLoad.Unreadable:
+                FileError = CantRead;
+                _readRefused = true;
+                break;
+        }
+        // Unread, the secrets file still holds the identity the bot's server groups belong to: this
+        // run makes do with a new one and never writes over the file.
+        var kept = _secrets.Load();
+        _secretsUnread = kept is null;
+        string? identity;
+        (Password, identity) = kept ?? ("", null);
+        _secretsWritten = (Password, identity);
+        Connection = new TeamSpeakConnection(identity);
         Language = AppLanguage.Resolve(Settings.Language, windows);
         Clock = new MatchClock(time);
-        Schedule = new CallSchedule(Clock, CallSchedule.GvgSpawns, Settings.Lead);
+        Schedule = new CallSchedule(Clock, Settings.Events, Settings.Lead);
         Caller = new Caller(
             Schedule,
             () => CanCall,
             RenderAsync,
             frames => Target is { } target ? Connection.WhisperAsync(frames, target) : Task.FromResult(false));
-        _clip = RenderAsync();
+        SoundChanged();
+        _watch = _store.Watch(() => Interlocked.Exchange(ref _touched, 1));
     }
 
-    public AppSettings Settings { get; } = new();
+    public AppSettings Settings { get; private set; } = new();
 
     /// <summary>The server password, kept out of <see cref="Settings"/>.</summary>
     public string Password { get; set; } = "";
+
+    public string SettingsFile => _store.FilePath;
+
+    /// <summary>What is wrong with the settings file; while it is set, Gengfu never writes over the file.</summary>
+    public SettingsError? FileError { get; private set; }
+
+    /// <summary>Raised when an edit of the settings file replaces <see cref="Settings"/>, so the views show them afresh.</summary>
+    public event EventHandler? SettingsReplaced;
 
     /// <summary>The language the strings show in and a voice is picked by.</summary>
     public CultureInfo Language { get; private set; }
@@ -78,7 +138,7 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>The server's channels in its tree order, as of the last look.</summary>
     public IReadOnlyList<ChannelInfo> Channels { get; private set; } = [];
 
-    /// <summary>The call as last rendered, with why it plays the gong when it does; null until the first render ends.</summary>
+    /// <summary>The call as Settings sets it, last rendered, with why it plays the gong when it does; null until the first render ends.</summary>
     public CallClip? Clip => _clip.IsCompletedSuccessfully ? _clip.Result : null;
 
     /// <summary>Who hears the calls; null until a group or a channel is chosen.</summary>
@@ -102,10 +162,10 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>What a call says: the user's text, or the default for the language and lead.</summary>
     public string CallText => TextOf(Settings, Language);
 
-    /// <summary>What listeners hear, in words, for the line under the clock.</summary>
-    public string Heard => HeardAs(Settings, Language, Clip);
-
-    /// <summary>Makes the calls due now and keeps the server's lists fresh; the window calls it on every tick.</summary>
+    /// <summary>
+    /// Makes the calls due now, keeps the server's lists fresh, and keeps the settings file in step
+    /// both ways; the window calls it on every tick.
+    /// </summary>
     public void Tick()
     {
         Caller.Tick();
@@ -115,7 +175,12 @@ internal sealed class Session : IAsyncDisposable
             _ = RefreshListsLaterAsync();
         }
         _seen = status;
+        ReadIfEdited();
+        Save(flush: false);
     }
+
+    /// <summary>Connects with the saved server, if there is one; the window calls it at start.</summary>
+    public Task ConnectSavedAsync() => string.IsNullOrWhiteSpace(Settings.Server) ? Task.CompletedTask : ConnectAsync();
 
     public Task ConnectAsync()
     {
@@ -195,10 +260,64 @@ internal sealed class Session : IAsyncDisposable
         SoundChanged();
     }
 
-    /// <summary>Renders the call again, after its text, voice or file changed, or a voice was added to Windows.</summary>
-    public void SoundChanged() => _clip = RenderAsync();
+    /// <summary>Renders the calls again, after a text, the voice or the file changed, or a voice was added to Windows.</summary>
+    [MemberNotNull(nameof(_clip))]
+    public void SoundChanged()
+    {
+        _clip = Render(null);
+        _clips.Clear();
+        foreach (var matchEvent in Settings.Events.Where(matchEvent => matchEvent.Text is not null).DistinctBy(matchEvent => matchEvent.Text))
+        {
+            _clips[matchEvent.Text!] = Render(matchEvent);
+        }
+    }
 
-    public ValueTask DisposeAsync() => Connection.DisposeAsync();
+    /// <summary>What listeners hear from a call of <paramref name="matchEvent"/>, in words, for the line under the clock.</summary>
+    public string HeardFor(MatchEvent matchEvent)
+    {
+        var clip = matchEvent.Text is { } text ? _clips.GetValueOrDefault(text) : _clip;
+        return HeardAs(Settings, matchEvent, Language, clip is { IsCompletedSuccessfully: true } ? clip.Result : null);
+    }
+
+    /// <summary>Writes what changed at once, so the file opened in an editor holds it.</summary>
+    public void SaveNow() => Save(flush: true);
+
+    public async ValueTask DisposeAsync()
+    {
+        _watch.Dispose();
+        Save(flush: true);
+        await Connection.DisposeAsync();
+    }
+
+    /// <summary>Takes in the settings file as it is on disk now, after an edit.</summary>
+    internal void Reload()
+    {
+        var load = _store.Load();
+        _readRefused = load is SettingsLoad.Unreadable;
+        switch (load)
+        {
+            case SettingsLoad.Loaded loaded:
+                FileError = null;
+                Apply(loaded.Settings);
+                break;
+            case SettingsLoad.Broken broken:
+                FileError = broken.Error;
+                break;
+            case SettingsLoad.Missing:
+                // Deleted: the next save writes what Gengfu holds, so the file is there to open again.
+                FileError = null;
+                _settingsWritten = null;
+                break;
+            case SettingsLoad.Unreadable:
+                // An error already found stays shown until the file reads again.
+                FileError ??= CantRead;
+                break;
+            case SettingsLoad.Unchanged when FileError == CantRead:
+                // Readable again, and as Gengfu last knew it: the file read cleanly then.
+                FileError = null;
+                break;
+        }
+    }
 
     /// <summary>The group drop-down's list: the server's groups once they are in, until then the group already chosen.</summary>
     internal static IReadOnlyList<Named> GroupChoices(bool connected, IReadOnlyList<ServerGroupInfo> groups, Named? chosen) =>
@@ -212,22 +331,119 @@ internal sealed class Session : IAsyncDisposable
     internal static string TextOf(AppSettings settings, CultureInfo language) =>
         settings.CallText ?? Copy.CallText(settings.Lead, language);
 
-    internal static CallSound SoundOf(AppSettings settings, CultureInfo language) =>
-        settings.SoundFile is { } file ? new CallSound.AudioFile(file)
-        : settings.Voice == AppSettings.Gong ? new CallSound.Gong()
-        : new CallSound.Speech(TextOf(settings, language), settings.Voice);
+    /// <summary>
+    /// What a call of <paramref name="matchEvent"/> plays: its own text in the chosen voice, else what
+    /// Settings sets. Null asks for Settings' own, which Test call plays.
+    /// </summary>
+    internal static CallSound SoundOf(AppSettings settings, MatchEvent? matchEvent, CultureInfo language) =>
+        matchEvent?.Text is { } text ? Spoken(settings, text)
+        : settings.SoundFile is { } file ? new CallSound.AudioFile(file)
+        : Spoken(settings, TextOf(settings, language));
 
     /// <summary>The text, the file's name, or the gong whenever the call plays it, chosen or not.</summary>
-    internal static string HeardAs(AppSettings settings, CultureInfo language, CallClip? clip) =>
+    internal static string HeardAs(AppSettings settings, MatchEvent? matchEvent, CultureInfo language, CallClip? clip) =>
         clip is { Problem: not CallProblem.None } ? Strings.Gong
-        : SoundOf(settings, language) switch
+        : SoundOf(settings, matchEvent, language) switch
         {
             CallSound.AudioFile file => Path.GetFileName(file.Path),
             CallSound.Speech speech => speech.Text,
             _ => Strings.Gong,
         };
 
-    private Task<CallClip> RenderAsync() => _clip = _audio.RenderAsync(SoundOf(Settings, Language), Language);
+    private static CallSound Spoken(AppSettings settings, string text) =>
+        settings.Voice == AppSettings.Gong ? new CallSound.Gong() : new CallSound.Speech(text, settings.Voice);
+
+    private Task<CallClip> Render(MatchEvent? matchEvent) => _audio.RenderAsync(SoundOf(Settings, matchEvent, Language), Language);
+
+    // A call asks for its sound as it is now: its event's own, or Settings' for the rest and Test call.
+    private Task<CallClip> RenderAsync(MatchEvent? matchEvent)
+    {
+        if (matchEvent?.Text is not { } text)
+        {
+            return _clip = Render(null);
+        }
+        return _clips[text] = Render(matchEvent);
+    }
+
+    private void Apply(AppSettings settings)
+    {
+        Settings = settings;
+        _settingsWritten = SettingsStore.Serialize(settings);
+        // The language is the whole app's, so it is set only when the file changes it.
+        if (AppLanguage.Resolve(settings.Language, _windows) is var language && language != Language)
+        {
+            Language = language;
+            AppLanguage.Apply(language);
+        }
+        Schedule.ChangeLead(settings.Lead);
+        Schedule.ChangeEvents(settings.Events);
+        SoundChanged();
+        SettingsReplaced?.Invoke(this, EventArgs.Empty);
+    }
+
+    // The file is read again once an edit has settled, and after a read Windows refused, now and
+    // then, whatever error shows: the refused read may have been of a fix.
+    private void ReadIfEdited()
+    {
+        var now = Clock.Time.Now;
+        if (Interlocked.Exchange(ref _touched, 0) == 1)
+        {
+            _readAt = now + ReadAfter;
+        }
+        else if (_readRefused && _readAt is null)
+        {
+            _readAt = now + TryAgainAfter;
+        }
+        if (_readAt <= now)
+        {
+            _readAt = null;
+            Reload();
+        }
+    }
+
+    // Writes the settings and the secrets once they have stood still a moment; a flush writes them now.
+    private void Save(bool flush)
+    {
+        var now = Clock.Time.Now;
+        var settings = SettingsStore.Serialize(Settings);
+        (string, string?) secrets = (Password, Connection.Identity);
+        if (settings != _settingsSeen || secrets != _secretsSeen)
+        {
+            (_settingsSeen, _secretsSeen, _saveAt) = (settings, secrets, now + SaveAfter);
+        }
+        if (!flush && now < _saveAt)
+        {
+            return;
+        }
+        var refused = false;
+        // Never over a file Gengfu couldn't read: the edit in it would be lost.
+        if (FileError is null && settings != _settingsWritten)
+        {
+            if (_store.Save(Settings))
+            {
+                _settingsWritten = settings;
+            }
+            else
+            {
+                refused = true;
+            }
+        }
+        if (!_secretsUnread && secrets != _secretsWritten)
+        {
+            if (_secrets.Save(Password, Connection.Identity))
+            {
+                _secretsWritten = secrets;
+            }
+            else
+            {
+                refused = true;
+            }
+        }
+        if (refused)
+        {
+            _saveAt = now + TryAgainAfter;
+        }
+    }
 
     // The lists belong to one server: a new connection starts without them.
     private void ForgetLists()

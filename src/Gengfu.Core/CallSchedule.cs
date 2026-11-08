@@ -1,3 +1,5 @@
+using Gengfu.Core.Settings;
+
 namespace Gengfu.Core;
 
 /// <summary>How the calls list shows a call.</summary>
@@ -15,16 +17,17 @@ public enum CallState
     NotSent,
 }
 
-/// <summary>A call: the spawn it announces and the game time it fires at.</summary>
-/// <param name="Index">Its place in <see cref="CallSchedule.Calls"/>, the same as its spawn's in the list the schedule was built from.</param>
-public sealed record Call(int Index, TimeSpan Spawn, TimeSpan At);
+/// <summary>A call: the event and the spawn it announces, and the game time it fires at.</summary>
+/// <param name="Index">Its place in <see cref="CallSchedule.Calls"/>.</param>
+public sealed record Call(int Index, MatchEvent Event, TimeSpan Spawn, TimeSpan At);
 
 /// <summary>
 /// Knows when each call fires: at its spawn plus the lead time, in game time, so a correction to the
-/// clock moves every call still ahead. A call fires once while the clock is between its time and its
-/// spawn: late if a correction lands the clock there, since a late call still helps, but never after
-/// the spawn, when the mob is already farmed. A correction back above its time re-arms it. A call
-/// whose spawn passed without it shows as not sent: nobody heard it.
+/// clock moves every call still ahead. Every spawn of every event gets a call, soonest first. A call
+/// fires once while the clock is between its time and its spawn: late if a correction lands the
+/// clock there, since a late call still helps, but never after the spawn, when the mob is already
+/// farmed. A correction back above its time re-arms it. A call whose spawn passed without it shows
+/// as not sent: nobody heard it.
 /// </summary>
 public sealed class CallSchedule
 {
@@ -44,18 +47,18 @@ public sealed class CallSchedule
     public static TimeSpan CallingFor { get; } = TimeSpan.FromSeconds(3);
 
     private readonly MatchClock _clock;
-    private readonly Fired?[] _fired;
-    private readonly bool[] _notSent;
+    private Fired?[] _fired;
+    private bool[] _notSent;
 
     /// <summary>
     /// The lead must be longer than the app's tick: a call can fire only while the clock is between
     /// its time and its spawn. Validate it where it is read from settings.
     /// </summary>
-    public CallSchedule(MatchClock clock, IEnumerable<TimeSpan> spawns, TimeSpan lead)
+    public CallSchedule(MatchClock clock, IReadOnlyList<MatchEvent> events, TimeSpan lead)
     {
         _clock = clock;
         Lead = lead;
-        Calls = [.. spawns.Select((spawn, index) => new Call(index, spawn, spawn + lead))];
+        Calls = CallsOf(events, lead);
         _fired = new Fired?[Calls.Count];
         _notSent = new bool[Calls.Count];
     }
@@ -90,12 +93,18 @@ public sealed class CallSchedule
         return due;
     }
 
-    /// <summary>Marks a call that came due but couldn't go out; it shows as not sent until it re-arms.</summary>
+    /// <summary>
+    /// Marks a call that came due but couldn't go out; it shows as not sent until it re-arms. The
+    /// events may have changed while it was going out, so it is found among the calls as they are.
+    /// </summary>
     public void MarkNotSent(Call call)
     {
-        if (_fired[call.Index] is not null)
+        var index = call.Index < Calls.Count && SameCall(Calls[call.Index], call)
+            ? call.Index
+            : Calls.FirstOrDefault(now => SameCall(now, call))?.Index;
+        if (index is { } at && _fired[at] is not null)
         {
-            _notSent[call.Index] = true;
+            _notSent[at] = true;
         }
     }
 
@@ -104,6 +113,26 @@ public sealed class CallSchedule
     {
         Lead = lead;
         Calls = [.. Calls.Select(call => call with { At = call.Spawn + lead })];
+    }
+
+    /// <summary>
+    /// Takes new events, as when the settings file changes mid-match. A call the new events still
+    /// make, by an event of the same name at the same spawn, keeps how it stood: made stays made.
+    /// </summary>
+    public void ChangeEvents(IReadOnlyList<MatchEvent> events)
+    {
+        var (calls, fired, notSent) = (Calls, _fired, _notSent);
+        Calls = CallsOf(events, Lead);
+        _fired = new Fired?[Calls.Count];
+        _notSent = new bool[Calls.Count];
+        foreach (var call in Calls)
+        {
+            if (calls.FirstOrDefault(was => SameCall(was, call)) is { } was)
+            {
+                _fired[call.Index] = fired[was.Index];
+                _notSent[call.Index] = notSent[was.Index];
+            }
+        }
     }
 
     public CallState StateOf(Call call)
@@ -129,6 +158,18 @@ public sealed class CallSchedule
         var behindAnother = Calls.Any(other => _fired[other.Index] is null && other.At < gameTime && other.At > call.At);
         return behindAnother ? CallState.Later : CallState.Next;
     }
+
+    // Across a change of events, a call is the one of an event of the same name at the same spawn.
+    private static bool SameCall(Call one, Call other) => one.Spawn == other.Spawn && one.Event.Name == other.Event.Name;
+
+    // Soonest first as the clock counts down; at the same spawn, the events keep their order.
+    private static IReadOnlyList<Call> CallsOf(IReadOnlyList<MatchEvent> events, TimeSpan lead) =>
+    [
+        .. events
+            .SelectMany(matchEvent => matchEvent.Spawns.Select(spawn => (Event: matchEvent, Spawn: spawn)))
+            .OrderByDescending(call => call.Spawn)
+            .Select((call, index) => new Call(index, call.Event, call.Spawn, call.Spawn + lead)),
+    ];
 
     // A made call re-arms once the clock is back above its time and above the time it fired at, so
     // a lead shortened after the call went out doesn't make it again.

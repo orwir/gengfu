@@ -19,6 +19,17 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void A_fresh_Gengfu_calls_the_built_in_GvG_preset_s_jungle_in_the_words_Settings_sets()
+    {
+        var jungle = Assert.Single(new AppSettings().Events);
+
+        Assert.Same(MatchEvent.Jungle, jungle);
+        Assert.Null(jungle.Name);
+        Assert.Null(jungle.Text);
+        Assert.Equal(CallSchedule.GvgSpawns, jungle.Spawns);
+    }
+
+    [Fact]
     public void Every_lead_on_offer_includes_the_default_and_leaves_the_schedule_whole_ticks_to_fire()
     {
         Assert.Contains(CallSchedule.DefaultLead, AppSettings.Leads);

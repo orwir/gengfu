@@ -376,4 +376,20 @@
     <value>Same as Windows</value>
     <comment>Settings › General › Language: the default.</comment>
   </data>
+  <data name="OpenSettingsFile" xml:space="preserve">
+    <value>Open settings file</value>
+    <comment>Link in Settings › General and in the settings-file bar; opens settings.json in an editor.</comment>
+  </data>
+  <data name="SettingsFileError" xml:space="preserve">
+    <value>settings.json has an error on line {0} ({1}). Until it’s fixed, Gengfu works with the settings shown here and saves nothing.</value>
+    <comment>Bar at the top of Settings. {0} is a line number, {1} a setting as the file spells it, such as "events[1].spawns".</comment>
+  </data>
+  <data name="SettingsFileErrorOnLine" xml:space="preserve">
+    <value>settings.json has an error on line {0}. Until it’s fixed, Gengfu works with the settings shown here and saves nothing.</value>
+    <comment>Bar at the top of Settings, for an error outside any setting, such as a missing comma. {0} is a line number.</comment>
+  </data>
+  <data name="SettingsFileUnreadable" xml:space="preserve">
+    <value>Gengfu can’t read settings.json. Until it can, Gengfu works with the settings shown here and saves nothing.</value>
+    <comment>Bar at the top of Settings, when Windows won't let Gengfu read the file.</comment>
+  </data>
 </root>

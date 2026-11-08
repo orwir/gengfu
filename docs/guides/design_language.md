@@ -63,10 +63,13 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   below each nudge ±1 min / ±1 s; Tab skips them, since ↑ ↓ in a field do the same. Enter
   and Esc hand focus to the clock as a whole, so the digits read as plain text again.
   Disabled until Start.
-- **Calls list:** one row per call — called (secondary, check), not sent (secondary,
-  critical ✕ "Not sent"), calling (accent, speaker, tinted), next (accent, "in m:ss",
-  tinted), later (primary). A call is not sent when it comes due with Gengfu off the server
-  or nobody chosen to hear it, or when a correction takes the clock past its spawn first.
+- **Calls list:** one row per call: its time, its event's name and spawn, and how it stands —
+  called (secondary, check), not sent (secondary, critical ✕ "Not sent"), calling (accent,
+  speaker, tinted), next (accent, "in m:ss", tinted), later (primary). A call is not sent when
+  it comes due with Gengfu off the server or nobody chosen to hear it, or when a correction
+  takes the clock past its spawn first. When the calls don't fit, the card stops above the
+  buttons and its rows scroll, keeping the call calling or next second from the top; it moves
+  only when that call changes, so a scroll by wheel stays meanwhile.
 - **Status line:** dot + text, caption size — connected, naming who hears (success);
   connecting (hollow dot); trying again, saying why (hollow caution dot, caution text);
   connected with nobody chosen (caution); not connected, saying why (critical). A Settings
@@ -83,11 +86,19 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   connected the drop-downs are off; the server's lists are read once it is, and again whenever
   a list opens, and until they are in the group drop-down holds the group already chosen.
   Connecting to another server clears the choice, and the status line asks who hears the calls.
+  General ends with the version and an Open settings file link, which opens the file in the app
+  Windows uses for .json files, or in Notepad.
 - **Sound file:** in place of Say and Voice, the file's name with a note icon and Change;
   "Use text instead" goes back to the text.
 - **Hints:** an info bar with an accent "i" (the no-voice hint), or a caution bar with a
   "!" when a call plays the gong for another reason: no text, Windows failed to speak it,
   or the file can't be played.
+- **Settings file bar:** when settings.json has an error, a caution bar sits under the title
+  bar, above Settings' scroll, so it shows however far Settings is scrolled. It names the line
+  and the setting, or the line alone for an error outside any setting, such as a missing comma,
+  or says Gengfu can't read the file when Windows won't let it. It says Gengfu works with the
+  settings shown and saves nothing until then, and links to Open settings file. The main window
+  doesn't change for it.
 - **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
   (the language in its own tongue), the app language's first. Any voice may be picked.
 - **No-voice hint:** when no voice speaks the app's language, Voice shows the gong and an
@@ -110,11 +121,12 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   where it was, with focus on Language. A call's default text follows the lead and the
   language until the user edits it.
 - **Copy:** short and plain; units always written ("30 s" / "30 с"); in Russian, decimal
-  comma and «» quotes. Event names and call text are user data, not copy.
+  comma and «» quotes. Event names and call text are user data, not copy; the file's own words,
+  such as settings.json and a setting's key, stay as the file spells them in both languages.
 
 ## Screens
 
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
+| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |

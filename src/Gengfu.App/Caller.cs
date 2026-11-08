@@ -1,5 +1,6 @@
 using Gengfu.App.Speech;
 using Gengfu.Core;
+using Gengfu.Core.Settings;
 
 namespace Gengfu.App;
 
@@ -9,12 +10,12 @@ namespace Gengfu.App;
 /// outside the schedule.
 /// </summary>
 /// <param name="canSend">Whether a whisper can go out now: connected, with someone to hear it.</param>
-/// <param name="render">The call as it sounds now.</param>
+/// <param name="render">A call of the event as it sounds now; null asks for the sound Settings sets, which Test call plays.</param>
 /// <param name="whisper">Sends the frames; false when they couldn't go out.</param>
 internal sealed class Caller(
     CallSchedule schedule,
     Func<bool> canSend,
-    Func<Task<CallClip>> render,
+    Func<MatchEvent?, Task<CallClip>> render,
     Func<IReadOnlyList<byte[]>, Task<bool>> whisper)
 {
     /// <summary>Whether a test call is playing.</summary>
@@ -33,7 +34,7 @@ internal sealed class Caller(
         Testing = true;
         try
         {
-            return await TrySendAsync();
+            return await TrySendAsync(null);
         }
         finally
         {
@@ -43,18 +44,18 @@ internal sealed class Caller(
 
     private async Task SendAsync(Call call)
     {
-        if (!canSend() || !await TrySendAsync())
+        if (!canSend() || !await TrySendAsync(call.Event))
         {
             schedule.MarkNotSent(call);
         }
     }
 
     // A send that fails, however it fails, is a call nobody heard.
-    private async Task<bool> TrySendAsync()
+    private async Task<bool> TrySendAsync(MatchEvent? matchEvent)
     {
         try
         {
-            return await whisper((await render()).Frames);
+            return await whisper((await render(matchEvent)).Frames);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {

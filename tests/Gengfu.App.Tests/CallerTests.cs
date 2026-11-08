@@ -1,5 +1,6 @@
 using Gengfu.App.Speech;
 using Gengfu.Core;
+using Gengfu.Core.Settings;
 
 namespace Gengfu.App.Tests;
 
@@ -7,17 +8,17 @@ public sealed class CallerTests
 {
     private readonly FakeTimeSource _time = new();
     private readonly MatchClock _clock;
-    private readonly CallSchedule _schedule;
     private readonly CallClip _clip = new([[1], [2], [3]]);
     private readonly List<IReadOnlyList<byte[]>> _whispered = [];
+    private readonly List<MatchEvent?> _rendered = [];
+    private CallSchedule _schedule;
     private bool _canSend = true;
-    private int _renders;
     private Func<IReadOnlyList<byte[]>, Task<bool>> _whisper;
 
     public CallerTests()
     {
         _clock = new MatchClock(_time);
-        _schedule = new CallSchedule(_clock, CallSchedule.GvgSpawns, CallSchedule.DefaultLead);
+        _schedule = new CallSchedule(_clock, [MatchEvent.Jungle], CallSchedule.DefaultLead);
         _whisper = _ => Task.FromResult(true);
     }
 
@@ -48,7 +49,7 @@ public sealed class CallerTests
 
         Assert.All(sends, send => Assert.True(send.IsCompleted));
         Assert.Equal(CallState.NotSent, _schedule.StateOf(First));
-        Assert.Equal(0, _renders);
+        Assert.Empty(_rendered);
         Assert.Empty(_whispered);
     }
 
@@ -73,6 +74,38 @@ public sealed class CallerTests
             _clock.Stop();
             _schedule.TakeDue();
         }
+    }
+
+    [Fact]
+    public async Task A_call_plays_its_event_s_sound_and_a_test_call_the_one_Settings_sets()
+    {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(26)], Text = "Boss in thirty seconds" };
+        _schedule = new CallSchedule(_clock, [MatchEvent.Jungle, boss], CallSchedule.DefaultLead);
+        var caller = NewCaller();
+        _clock.Start();
+        RunTo(First.At);
+
+        await Task.WhenAll(caller.Tick());
+        await caller.TestAsync();
+
+        Assert.Equal(new[] { boss, null }, _rendered);
+    }
+
+    [Fact]
+    public async Task A_call_that_fails_after_the_events_change_shows_as_not_sent_where_it_now_stands()
+    {
+        var playing = new TaskCompletionSource<bool>();
+        _whisper = _ => playing.Task;
+        var caller = NewCaller();
+        _clock.Start();
+        RunTo(First.At);
+        var sends = caller.Tick();
+
+        _schedule.ChangeEvents([new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25.25)] }, MatchEvent.Jungle]);
+        playing.SetResult(false);
+        await Task.WhenAll(sends);
+
+        Assert.Equal(new[] { CallState.Next, CallState.NotSent }, _schedule.Calls.Take(2).Select(_schedule.StateOf));
     }
 
     [Fact]
@@ -105,9 +138,9 @@ public sealed class CallerTests
         new(
             _schedule,
             () => _canSend,
-            () =>
+            matchEvent =>
             {
-                _renders++;
+                _rendered.Add(matchEvent);
                 return Task.FromResult(_clip);
             },
             frames =>

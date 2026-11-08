@@ -66,3 +66,4 @@ The initial set, taken from the approved design; refined at the first UX review.
 | 3. Mid-match fix | Notice the clock is off; click the seconds, type what the game shows, press Enter | Every later call moves with the clock |
 | 4. Early end | The match ends early; press Stop | No more calls |
 | 5. Update | A new version installs in the background; a notice says it applies on next start | Settings › General shows the new version after a restart |
+| 6. Share a preset | An officer sends the settings file's events; a guildmate opens Settings › Open settings file, pastes them in and saves | The guildmate's calls list shows the shared events |

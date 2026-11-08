@@ -32,6 +32,8 @@ public partial class MainWindow : Window
         _ = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Normal, (_, _) => Tick(), Dispatcher);
         // A voice added in Windows' settings meanwhile is picked up when the user comes back.
         Activated += (_, _) => _session.SoundChanged();
+        _session.SettingsReplaced += (_, _) => RemakeViews();
+        _ = _session.ConnectSavedAsync();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -89,26 +91,33 @@ public partial class MainWindow : Window
 
     private void ShowSettings()
     {
-        _settings ??= new SettingsView(_session, RemakeViews);
+        _settings ??= new SettingsView(_session, OnLanguageChosen);
         Page.Content = _settings;
         ShowTitleBar();
         BackButton.Focus();
     }
 
-    // The strings are read when a view is made, so a new language takes new views; Settings stays
-    // where it was, with focus back on Language.
+    // The strings and the settings are read when a view is made, so a new language, or settings
+    // taken from the file, take new views. Whichever view showed stays, Settings where it was scrolled.
     private void RemakeViews()
     {
+        var inSettings = Page.Content is SettingsView;
         var offset = _settings?.ScrollOffset ?? 0;
         _main = new MainView(_session, ShowSettings);
-        _settings = new SettingsView(_session, RemakeViews);
-        Page.Content = _settings;
+        _settings = inSettings ? new SettingsView(_session, OnLanguageChosen) : null;
+        Page.Content = inSettings ? _settings : _main;
         ShowTitleBar();
-        _ = Dispatcher.InvokeAsync(() =>
+        if (_settings is { } settings)
         {
-            _settings.ScrollOffset = offset;
-            _settings.FocusLanguage();
-        }, DispatcherPriority.Loaded);
+            _ = Dispatcher.InvokeAsync(() => settings.ScrollOffset = offset, DispatcherPriority.Loaded);
+        }
+    }
+
+    // Focus goes back to Language, where the user just chose one.
+    private void OnLanguageChosen()
+    {
+        RemakeViews();
+        _ = Dispatcher.InvokeAsync(() => _settings?.FocusLanguage(), DispatcherPriority.Loaded);
     }
 
     private void ShowTitleBar()
