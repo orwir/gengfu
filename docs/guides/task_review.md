@@ -19,7 +19,7 @@ The developer session runs the whole round. The maintainer sees one line when th
 1. **Hand off.** The developer renders the hand-off packet and launches the reviewer as a fresh agent whose task is the packet: a subagent where the assistant can launch one, otherwise a fresh session the packet is pasted into, with the return pasted back. The tree is the reviewer's until the return arrives: no edit in between.
 2. **Review.** The reviewer reads the ticket and the tree, verifies every claim, and returns the return packet as its only output.
 3. **Act.** The developer fixes every finding the return marks required and re-runs the gate. A `Real bug` in the return buys a second round: a reply per finding id — `fixed <how>` / `disputed <why>` / `deferred #N` — to the same reviewer, which keeps its context, and its second return is acted on the same way. Without one, no reply is written: the brief's *Round* line carries the tally.
-4. **Hand back.** The developer renders the brief. The packets stay where the round produced them — the reviewer's task and its result — and, on a feature branch, reach the PR at *Complete*.
+4. **Hand back.** The developer renders the brief. The packets stay where the round produced them: the reviewer's task and its result.
 
 ## Hand-off packet
 
@@ -134,4 +134,4 @@ What the maintainer reads, and the only thing they read: a reader who was at *Cl
 
 ## Where the packets land
 
-The packets are data between the two agents: they sit in the reviewer's task and its result, and are never printed for the maintainer or posted anywhere. Nothing reaches GitHub before the maintainer's approval. At *Complete*, a feature branch's PR body follows the repository's PR template, written for a reader who never saw the round: no packet field, finding id or reviewer verdict in it. On `develop` the close-out comment may quote the brief's *In the tree* bullets and *Round* line.
+The packets are data between the two agents: they sit in the reviewer's task and its result, and are never printed for the maintainer or posted anywhere. The round is the team's own process, so nothing of it reaches GitHub, before the maintainer's approval or after. At *Complete*, a feature branch's PR body follows the repository's PR template, written for a reader who never saw the round: no packet field, finding id or reviewer verdict in it. What that reader needs from the round, such as a decision, a deviation or a follow-up, goes into the PR body or an issue in that reader's words. On `develop` the close-out comment may quote the brief's *In the tree* bullets.

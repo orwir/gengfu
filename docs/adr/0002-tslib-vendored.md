@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted — 2026-11-07
+Accepted — 2026-11-07. Its use of TS3AudioBot's libopus build is superseded by
+[ADR-0005](0005-call-audio-without-bindings-or-native-code.md).
 
 ## Context
 

@@ -779,7 +779,9 @@ internal static class PacketHandlerConst
 	public static readonly Logger LogTimeout = LogManager.GetLogger("TSLib.PacketHandler.Timeout");
 
 	/// <summary>Elapsed time since first send timestamp until the connection is considered lost.</summary>
-	public static readonly TimeSpan PacketTimeout = TimeSpan.FromSeconds(30);
+	// gengfu patch: 10 s, not 30. Pings go out every second, and a server drops a client that has
+	// been silent for about 20 s, so a longer wait only delays the reconnect.
+	public static readonly TimeSpan PacketTimeout = TimeSpan.FromSeconds(10);
 	/// <summary>Smoothing factor for the SmoothedRtt.</summary>
 	public const float AlphaSmooth = 0.125f;
 	/// <summary>Smoothing factor for the SmoothedRttDev.</summary>

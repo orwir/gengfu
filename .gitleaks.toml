@@ -1,0 +1,8 @@
+# gitleaks' default rules, minus vendored code: lib/ holds public TeamSpeak protocol constants
+# (the identity obfuscation key, version signatures) that look like secrets but are not.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Vendored third-party code (see lib/README.md)"
+paths = ['''^lib/''']
