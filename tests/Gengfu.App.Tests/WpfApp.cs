@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -12,22 +13,28 @@ namespace Gengfu.App.Tests;
 /// </summary>
 public sealed class WpfApp : IDisposable
 {
+    private readonly Thread _thread;
     private readonly Dispatcher _dispatcher;
 
     public WpfApp()
     {
         using var ready = new ManualResetEventSlim();
         Dispatcher? dispatcher = null;
-        var thread = new Thread(() =>
+        _thread = new Thread(() =>
         {
-            new App().InitializeComponent();
+            var app = new App();
+            app.InitializeComponent();
+            // App.xaml opens Gengfu's own window once the dispatcher runs: a real Gengfu on the
+            // user's own settings, which connects to their server and keeps the test host alive.
+            // The setter refuses null, so the field is cleared directly.
+            typeof(Application).GetField("_startupUri", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(app, null);
             dispatcher = Dispatcher.CurrentDispatcher;
             ready.Set();
             Dispatcher.Run();
         })
         { IsBackground = true };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
+        _thread.SetApartmentState(ApartmentState.STA);
+        _thread.Start();
         ready.Wait();
         _dispatcher = dispatcher!;
     }
@@ -39,6 +46,7 @@ public sealed class WpfApp : IDisposable
     {
         _dispatcher.Invoke(() => Application.Current.Shutdown());
         _dispatcher.InvokeShutdown();
+        _thread.Join();
     }
 
     /// <summary>Lays a view out at the window's size and in the window's font, as Gengfu shows it.</summary>
