@@ -88,10 +88,12 @@ and the clip says why, for Settings to show.
 The window drives the session from a 50 ms dispatcher timer on the UI thread: it makes the calls
 due, then redraws the view on show; the digits change only on whole game seconds. It reads the
 connection's state on each tick rather than handling its events. Calls render on the thread pool,
-one at a time, so the window never waits on Windows' speech or a file; so does the voice list. TSLib runs the connection on its own scheduler thread: the connection's
-events fire there, and its data book is read only there. Voice frames go out from the voice
-sender's own thread, each up to 60 ms before it plays, so Windows' coarse sleep still keeps
-listeners fed; calls play one at a time. The UI thread never blocks on the network.
+one at a time, so the window never waits on Windows' speech or a file; so does the voice list.
+TSLib runs the connection on its own scheduler thread: the connection's events fire there, and its
+data book is read only there. Voice frames go out from the voice sender's own thread, each up to
+60 ms before it plays, so Windows' coarse sleep still keeps listeners fed; calls play one at a
+time. The UI thread never blocks on the network, except as Gengfu closes, when it waits up to 3 s
+for the connection to leave the server.
 
 ## Configuration
 

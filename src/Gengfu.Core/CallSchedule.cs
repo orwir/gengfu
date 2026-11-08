@@ -116,17 +116,17 @@ public sealed class CallSchedule
         {
             return CallState.NotSent;
         }
-        if (_fired[call.Index] is { } fired && _clock.Time.Now - fired.Instant < CallingFor)
+        // A made call stays made until it re-arms, wherever a new lead puts its time.
+        if (_fired[call.Index] is { } fired)
         {
-            return CallState.Calling;
+            return _clock.Time.Now - fired.Instant < CallingFor ? CallState.Calling : CallState.Called;
         }
         var gameTime = _clock.GameTime;
-        if (gameTime <= call.At)
+        if (gameTime <= call.Spawn)
         {
-            // Past its time and never made: TakeDue makes every call whose time comes before its spawn.
-            return _fired[call.Index] is null ? CallState.NotSent : CallState.Called;
+            return CallState.NotSent;
         }
-        var behindAnother = Calls.Any(other => other.At < gameTime && other.At > call.At);
+        var behindAnother = Calls.Any(other => _fired[other.Index] is null && other.At < gameTime && other.At > call.At);
         return behindAnother ? CallState.Later : CallState.Next;
     }
 

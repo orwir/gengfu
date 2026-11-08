@@ -4,7 +4,8 @@
              StartupUri="MainWindow.xaml"
              ThemeMode="System">
     <!-- Colours are the Fluent theme's own brushes, always taken by DynamicResource so a switch of the
-         Windows theme repaints them; design_language.md maps each token to its brush. -->
+         Windows theme repaints them; design_language.md maps each token to its brush. The one
+         exception is the close button's red, which is Windows' own in both themes. -->
     <Application.Resources>
         <!-- Title bar buttons, drawn like Windows 11's own and, like them, out of the Tab order. -->
         <Style x:Key="CaptionButton" TargetType="Button">

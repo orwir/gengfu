@@ -299,15 +299,30 @@ public class CallScheduleTests
         Assert.Single(_schedule.TakeDue());
         _time.Advance(TimeSpan.FromSeconds(5));
 
-        // 25:45 is above the clock at 25:25, and 25:15 below it: neither makes the call twice.
+        // 25:45 is above the clock at 25:25, and 25:15 below it: neither makes the call twice, and
+        // the call never shows as coming again; the next one is next.
         _schedule.ChangeLead(TimeSpan.FromSeconds(45));
         Assert.Empty(_schedule.TakeDue());
+        Assert.Equal(new[] { CallState.Called, CallState.Next }, States().Take(2));
         _schedule.ChangeLead(TimeSpan.FromSeconds(15));
         Assert.Empty(_schedule.TakeDue());
+        Assert.Equal(new[] { CallState.Called, CallState.Next }, States().Take(2));
         RunTo(TimeSpan.FromMinutes(25, 10));
         Assert.Empty(_schedule.TakeDue());
 
         Assert.Equal(CallState.Called, _schedule.StateOf(_schedule.Calls[0]));
+    }
+
+    [Fact]
+    public void Read_before_the_tick_makes_it_a_call_at_its_time_shows_as_next_not_as_lost()
+    {
+        _clock.Start();
+        _schedule.TakeDue();
+
+        RunTo(First.At);
+
+        Assert.Equal(CallState.Next, _schedule.StateOf(First));
+        Assert.Equal(new[] { First }, _schedule.TakeDue());
     }
 
     private IEnumerable<CallState> States() => _schedule.Calls.Select(_schedule.StateOf);

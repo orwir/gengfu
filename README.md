@@ -45,8 +45,9 @@ Gengfu doesn't save its settings yet: after a restart, enter them again.
 ## The calls
 
 Under the clock, Gengfu shows the next call and the time left until it. The list below has every
-call of the match: a check once it went out, and ✕ *Not sent* when nobody heard it, because
-Gengfu was disconnected or the clock was moved past the spawn first.
+call of the match: a check once it went out, and ✕ *Not sent* when nobody heard it: Gengfu was
+off the server, nobody was chosen to hear the calls, the whisper failed, or the clock was moved
+past the spawn first.
 
 ## Match the clock
 

@@ -5,9 +5,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Gengfu.App.Controls;
-using Gengfu.App.Speech;
 using Gengfu.Core;
-using Gengfu.Core.Settings;
 
 namespace Gengfu.App.Views;
 
@@ -115,7 +113,7 @@ internal partial class MainView : UserControl
         }
         else if (schedule.Calls.Any(call => schedule.StateOf(call) == CallState.Calling))
         {
-            ShowNext(Strings.CallingNow, WhatCalls());
+            ShowNext(Strings.CallingNow, _session.Heard);
         }
         else if (schedule.Calls.FirstOrDefault(call => schedule.StateOf(call) == CallState.Next) is { } next)
         {
@@ -134,12 +132,6 @@ internal partial class MainView : UserControl
         NextText.Text = text;
         NextValue.Text = value;
     }
-
-    // What listeners hear: the gong whenever the call falls back to it.
-    private string WhatCalls() =>
-        _session.Clip is { Problem: not CallProblem.None } || _session.Settings.Voice == AppSettings.Gong ? Strings.Gong
-        : _session.Settings.SoundFile is { } file ? System.IO.Path.GetFileName(file)
-        : _session.CallText;
 
     private void ShowCalls()
     {

@@ -87,6 +87,23 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public void The_line_under_the_clock_names_what_listeners_hear()
+    {
+        using var english = new UiCulture("en-US");
+        var played = new CallClip([[1]]);
+        var settings = new AppSettings();
+
+        Assert.Equal("Jungle in thirty seconds", Session.HeardAs(settings, English, played));
+        Assert.Equal("the gong", Session.HeardAs(settings, English, new CallClip([[1]], CallProblem.NoVoice)));
+        settings.Voice = AppSettings.Gong;
+        Assert.Equal("the gong", Session.HeardAs(settings, English, played));
+
+        // A file chosen after the gong plays the file, so the line names the file.
+        settings.SoundFile = @"C:\Sounds\jungle.mp3";
+        Assert.Equal("jungle.mp3", Session.HeardAs(settings, English, played));
+    }
+
+    [Fact]
     public void Connect_is_offered_again_once_a_field_changes()
     {
         var login = new Login("ts.example.com", "Gengfu", "");

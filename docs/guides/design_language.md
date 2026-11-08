@@ -33,6 +33,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **In code:** always the Fluent brush, by DynamicResource, so a switch of the Windows theme
   repaints it; the hex values are the default accent's. Hints use the Fluent InfoBar
   backgrounds: InfoBarInformationalSeverityBackgroundBrush and InfoBarWarningSeverityBackgroundBrush.
+  The one exception is the title bar's close button: its red (#C42B1C on hover) and white
+  glyph are Windows' own in both themes.
 
 - **Type:** Segoe UI Variable only — Display for the clock, Text for everything else.
   Clock 64/72 Semibold with tabular figures · Subtitle 20/28 Semibold · Body strong
@@ -77,8 +79,9 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   placeholder. One button connects with what the fields hold, or disconnects; it offers
   Connect again as soon as a field changes. Radios for who hears the calls: a server group,
   from the server's list, or chosen channels, ticked in a flyout in the server's tree order
-  that stays open while ticking (Esc, Enter or a click outside closes it). Until the server's
-  lists are in, the drop-downs are off.
+  that stays open while ticking (Esc, Enter or a click outside closes it). Until Gengfu is
+  connected the drop-downs are off; the server's lists are read once it is, and again whenever
+  a list opens.
 - **Sound file:** in place of Say and Voice, the file's name with a note icon and Change;
   "Use text instead" goes back to the text.
 - **Hints:** an info bar with an accent "i" (the no-voice hint), or a caution bar with a

@@ -127,7 +127,7 @@ internal partial class SettingsView : UserControl
             var channels => Copy.ChannelCount(channels.Count, _session.Language),
         };
 
-        // Until the server's groups are in, the list holds only the group already chosen.
+        // Until Gengfu is connected, the list holds only the group already chosen.
         IReadOnlyList<Named> groups = connected
             ? [.. _session.Groups.Select(group => new Named(group.Id, group.Name))]
             : settings.Group is { } chosen ? [chosen] : [];

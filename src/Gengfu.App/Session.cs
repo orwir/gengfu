@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO;
 using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
@@ -101,6 +102,9 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>What a call says: the user's text, or the default for the language and lead.</summary>
     public string CallText => TextOf(Settings, Language);
 
+    /// <summary>What listeners hear, in words, for the line under the clock.</summary>
+    public string Heard => HeardAs(Settings, Language, Clip);
+
     /// <summary>Makes the calls due now and keeps the server's lists fresh; the window calls it on every tick.</summary>
     public void Tick()
     {
@@ -117,12 +121,14 @@ internal sealed class Session : IAsyncDisposable
     {
         var login = Login.Of(Settings, Password);
         ConnectedWith = login;
+        ForgetLists();
         return Connection.ConnectAsync(login.Server, login.Nickname, login.Password);
     }
 
     public Task DisconnectAsync()
     {
         ConnectedWith = null;
+        ForgetLists();
         return Connection.DisconnectAsync();
     }
 
@@ -182,7 +188,24 @@ internal sealed class Session : IAsyncDisposable
         : settings.Voice == AppSettings.Gong ? new CallSound.Gong()
         : new CallSound.Speech(TextOf(settings, language), settings.Voice);
 
+    /// <summary>The text, the file's name, or the gong whenever the call plays it, chosen or not.</summary>
+    internal static string HeardAs(AppSettings settings, CultureInfo language, CallClip? clip) =>
+        clip is { Problem: not CallProblem.None } ? Strings.Gong
+        : SoundOf(settings, language) switch
+        {
+            CallSound.AudioFile file => Path.GetFileName(file.Path),
+            CallSound.Speech speech => speech.Text,
+            _ => Strings.Gong,
+        };
+
     private Task<CallClip> RenderAsync() => _clip = _audio.RenderAsync(SoundOf(Settings, Language), Language);
+
+    // The lists belong to one server: a new connection starts without them.
+    private void ForgetLists()
+    {
+        Groups = [];
+        Channels = [];
+    }
 
     private async Task RefreshListsLaterAsync()
     {

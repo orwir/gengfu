@@ -81,12 +81,14 @@
                         </Grid.ColumnDefinitions>
                         <RadioButton x:Name="GroupRadio" GroupName="Listeners" VerticalAlignment="Center" Content="{x:Static app:Strings.AServerGroup}" Checked="OnListenersChecked" />
                         <Grid Grid.Column="1">
-                            <ComboBox x:Name="GroupBox" HorizontalAlignment="Stretch" DropDownOpened="OnGroupsOpened" SelectionChanged="OnGroupChosen" />
+                            <ComboBox x:Name="GroupBox" HorizontalAlignment="Stretch" AutomationProperties.Name="{x:Static app:Strings.AServerGroup}"
+                                      DropDownOpened="OnGroupsOpened" SelectionChanged="OnGroupChosen" />
                             <TextBlock x:Name="GroupPlaceholder" Style="{StaticResource Placeholder}" Margin="12,0,28,0" TextTrimming="CharacterEllipsis" />
                         </Grid>
                         <RadioButton x:Name="ChannelsRadio" Grid.Row="2" GroupName="Listeners" VerticalAlignment="Center" Content="{x:Static app:Strings.ChosenChannels}" Checked="OnListenersChecked" />
                         <Button x:Name="ChannelsButton" Grid.Row="2" Grid.Column="1" Style="{StaticResource ContentButton}" Padding="11,0,8,0"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Click="OnChannelsOpen">
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Click="OnChannelsOpen"
+                                AutomationProperties.Name="{x:Static app:Strings.ChosenChannels}">
                             <DockPanel>
                                 <Path DockPanel.Dock="Right" Style="{StaticResource Chevron}" Margin="8,0,0,0" />
                                 <TextBlock x:Name="ChannelsText" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
