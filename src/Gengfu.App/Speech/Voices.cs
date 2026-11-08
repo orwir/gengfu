@@ -10,7 +10,7 @@ public static class Voices
 {
     /// <summary>
     /// The installed voices, Windows' default first; none when Windows has no speech. Read afresh each
-    /// time, so a voice added in Windows' speech settings counts without a restart.
+    /// time, so a voice added in Windows counts without a restart.
     /// </summary>
     public static IReadOnlyList<Voice> Installed()
     {

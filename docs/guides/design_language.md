@@ -61,8 +61,9 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
   (the language in its own tongue), the app language's first. Any voice may be picked.
 - **No-voice hint:** when no voice speaks the app's language, Voice shows the gong and an
-  info bar under it (accent info icon, caption text, a link that opens Windows' speech
-  settings) says so.
+  info bar under it says so: accent info icon, caption text naming the way in (Language &
+  region › the language › Language options), and a link that opens Language & region.
+  Not Speech › Add voices, which can fail silently.
 
 ## Patterns
 

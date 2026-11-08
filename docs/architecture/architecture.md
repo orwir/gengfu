@@ -55,7 +55,8 @@ and the clip says why, for Settings to show.
 - **Voice.** The chosen voice while it is installed, else the first in the app's language with
   Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
   text is the user's to match. The voice list is read afresh each time, so a voice added in
-  Windows' speech settings counts without a restart.
+  Windows counts without a restart. Windows adds a language's voices from that language's options
+  under Language & region; Speech › Add voices can fail silently.
 - **Shape.** Silence is trimmed; a call stops after 10 s of sound, counted from where its sound
   starts, and fades out, so a wrong file can't hold the whisper; its loudest 400 ms sit at
   −16 LUFS with peaks 1 dB under full scale; 100 ms of silence lead it, so its start is never

@@ -6,8 +6,8 @@ namespace Gengfu.App.Speech;
 
 /// <summary>
 /// Windows' speech API, Windows.Media.SpeechSynthesis, called through its documented interfaces. Its
-/// voices are the ones Windows' speech settings install, on Windows 10 and later. Call it off the UI
-/// thread.
+/// voices are the ones Windows installs with each language's speech, on Windows 10 and later. Call it
+/// off the UI thread.
 /// </summary>
 internal static unsafe class WindowsSpeech
 {
