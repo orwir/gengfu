@@ -46,6 +46,12 @@
     <RuntimeHostConfigurationOption Include="Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering" Value="false" />
   </ItemGroup>
 
+  <!-- The window draws its own title bar on the flat surface colour. The Fluent theme's Mica backdrop
+       would extend Windows' frame under it, and Windows would draw its caption buttons there too. -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Switch.System.Windows.Appearance.DisableFluentThemeWindowBackdrop" Value="true" />
+  </ItemGroup>
+
   <!-- The markup compiler first builds a temporary assembly from the code alone, before resources,
        so the strings class has to exist by then. In the real build this target finds it done. -->
   <Target Name="GenerateStringsBeforeCompile" BeforeTargets="CoreCompile" DependsOnTargets="PrepareResourceNames;ResGen" />

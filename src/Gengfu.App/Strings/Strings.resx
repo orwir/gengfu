@@ -48,4 +48,332 @@
     <value>One second less</value>
     <comment>Screen-reader name of the arrow below the seconds.</comment>
   </data>
+  <data name="Minimize" xml:space="preserve">
+    <value>Minimize</value>
+    <comment>Title bar button.</comment>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+    <comment>Title bar button.</comment>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Back</value>
+    <comment>Title bar button in Settings: back to the main window.</comment>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+    <comment>The Settings screen's title, the gear button's name, and the link in the status line.</comment>
+  </data>
+  <data name="TestCall" xml:space="preserve">
+    <value>Test call</value>
+    <comment>Button: whispers the call once, now.</comment>
+  </data>
+  <data name="TestCalling" xml:space="preserve">
+    <value>Calling…</value>
+    <comment>The Test call button while its call plays.</comment>
+  </data>
+  <data name="StatusGroup" xml:space="preserve">
+    <value>Connected · whispering to the {0} group</value>
+    <comment>Status line. {0}: the server group's name.</comment>
+  </data>
+  <data name="StatusChannel" xml:space="preserve">
+    <value>Connected · whispering to {0}</value>
+    <comment>Status line, one channel chosen. {0}: its name.</comment>
+  </data>
+  <data name="StatusChannels" xml:space="preserve">
+    <value>Connected · whispering to {0}</value>
+    <comment>Status line, several channels chosen. {0}: ChannelCount, such as "3 channels".</comment>
+  </data>
+  <data name="StatusNoListeners" xml:space="preserve">
+    <value>Connected · choose who hears the calls</value>
+    <comment>Status line: connected, but no group or channel chosen. Followed by a Settings link.</comment>
+  </data>
+  <data name="StatusConnecting" xml:space="preserve">
+    <value>Connecting to {0}…</value>
+    <comment>Status line. {0}: the server address.</comment>
+  </data>
+  <data name="StatusNoAnswer" xml:space="preserve">
+    <value>No answer from {0} — trying again</value>
+    <comment>Status line: the server doesn't answer or stopped answering; Gengfu retries by itself. {0}: the server address.</comment>
+  </data>
+  <data name="StatusAddressNotFound" xml:space="preserve">
+    <value>Can’t find {0} — trying again</value>
+    <comment>Status line: the address resolves to nothing. {0}: the server address.</comment>
+  </data>
+  <data name="StatusServerShutdown" xml:space="preserve">
+    <value>The server shut down — trying again</value>
+    <comment>Status line.</comment>
+  </data>
+  <data name="StatusServerFull" xml:space="preserve">
+    <value>The server is full — trying again</value>
+    <comment>Status line.</comment>
+  </data>
+  <data name="StatusRefused" xml:space="preserve">
+    <value>The server refused: {0} — trying again</value>
+    <comment>Status line. {0}: the server's own message, often in English.</comment>
+  </data>
+  <data name="StatusNotConnected" xml:space="preserve">
+    <value>Not connected</value>
+    <comment>Status line, followed by a Settings link; also the line beside Connect in Settings.</comment>
+  </data>
+  <data name="StatusWrongPassword" xml:space="preserve">
+    <value>Not connected — wrong server password</value>
+    <comment>Status line, followed by a Settings link.</comment>
+  </data>
+  <data name="StatusKicked" xml:space="preserve">
+    <value>Not connected — kicked from the server</value>
+    <comment>Status line, followed by a Settings link.</comment>
+  </data>
+  <data name="StatusBanned" xml:space="preserve">
+    <value>Not connected — banned from the server</value>
+    <comment>Status line, followed by a Settings link.</comment>
+  </data>
+  <data name="StatusNotSetUp" xml:space="preserve">
+    <value>TeamSpeak isn’t set up</value>
+    <comment>Status line before any server is entered, followed by a Settings link.</comment>
+  </data>
+  <data name="NextIdle" xml:space="preserve">
+    <value>Press Start when the match begins</value>
+    <comment>Under the clock, before Start.</comment>
+  </data>
+  <data name="NextAt" xml:space="preserve">
+    <value>{0} call at {1} ·</value>
+    <comment>Under the clock. {0}: the event, such as "Jungle"; {1}: the call's game time, such as 25:30. Followed by In.</comment>
+  </data>
+  <data name="In" xml:space="preserve">
+    <value>in {0}</value>
+    <comment>Time left until a call, such as "in 2:13".</comment>
+  </data>
+  <data name="CallingNow" xml:space="preserve">
+    <value>Calling now:</value>
+    <comment>Under the clock while a call plays, followed by what it says.</comment>
+  </data>
+  <data name="Gong" xml:space="preserve">
+    <value>the gong</value>
+    <comment>What a call says when it plays the gong, after CallingNow.</comment>
+  </data>
+  <data name="NoMoreCalls" xml:space="preserve">
+    <value>No more calls this match</value>
+    <comment>Under the clock after the last call.</comment>
+  </data>
+  <data name="MatchOver" xml:space="preserve">
+    <value>Match over</value>
+    <comment>Under the clock at 00:00.</comment>
+  </data>
+  <data name="Calls" xml:space="preserve">
+    <value>Calls</value>
+    <comment>Heading of the calls list and of the Calls card in Settings.</comment>
+  </data>
+  <data name="CallsAhead" xml:space="preserve">
+    <value>{0} s before each spawn</value>
+    <comment>Beside the calls list's heading. {0}: the lead in seconds.</comment>
+  </data>
+  <data name="Jungle" xml:space="preserve">
+    <value>Jungle</value>
+    <comment>The built-in GvG preset's event name.</comment>
+  </data>
+  <data name="Spawns" xml:space="preserve">
+    <value>spawns {0}</value>
+    <comment>A call's row. {0}: the spawn's game time, such as 25:00.</comment>
+  </data>
+  <data name="Called" xml:space="preserve">
+    <value>Called</value>
+    <comment>Screen-reader name of a made call's check mark.</comment>
+  </data>
+  <data name="Calling" xml:space="preserve">
+    <value>Calling</value>
+    <comment>A call's row while it plays.</comment>
+  </data>
+  <data name="NotSent" xml:space="preserve">
+    <value>Not sent</value>
+    <comment>A call's row: it came due while Gengfu couldn't whisper.</comment>
+  </data>
+  <data name="ServerAddress" xml:space="preserve">
+    <value>Server address</value>
+    <comment>Settings › TeamSpeak.</comment>
+  </data>
+  <data name="ServerPassword" xml:space="preserve">
+    <value>Server password</value>
+    <comment>Settings › TeamSpeak.</comment>
+  </data>
+  <data name="Optional" xml:space="preserve">
+    <value>Optional</value>
+    <comment>Placeholder of the server password.</comment>
+  </data>
+  <data name="BotNickname" xml:space="preserve">
+    <value>Bot nickname</value>
+    <comment>Settings › TeamSpeak.</comment>
+  </data>
+  <data name="Connect" xml:space="preserve">
+    <value>Connect</value>
+    <comment>Settings › TeamSpeak: connects with what the fields hold.</comment>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Disconnect</value>
+    <comment>Settings › TeamSpeak.</comment>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Connected</value>
+    <comment>Beside Disconnect in Settings.</comment>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Connecting…</value>
+    <comment>Beside Disconnect in Settings.</comment>
+  </data>
+  <data name="WrongPassword" xml:space="preserve">
+    <value>Wrong server password</value>
+    <comment>Beside Connect in Settings.</comment>
+  </data>
+  <data name="Kicked" xml:space="preserve">
+    <value>Kicked from the server</value>
+    <comment>Beside Connect in Settings.</comment>
+  </data>
+  <data name="Banned" xml:space="preserve">
+    <value>Banned from the server</value>
+    <comment>Beside Connect in Settings.</comment>
+  </data>
+  <data name="WhoHears" xml:space="preserve">
+    <value>Who hears the calls</value>
+    <comment>Settings heading.</comment>
+  </data>
+  <data name="AServerGroup" xml:space="preserve">
+    <value>A server group</value>
+    <comment>Settings › Who hears the calls: radio button.</comment>
+  </data>
+  <data name="ChosenChannels" xml:space="preserve">
+    <value>Chosen channels</value>
+    <comment>Settings › Who hears the calls: radio button.</comment>
+  </data>
+  <data name="ConnectFirst" xml:space="preserve">
+    <value>Connect first</value>
+    <comment>The group drop-down before Gengfu has the server's groups.</comment>
+  </data>
+  <data name="ChooseGroup" xml:space="preserve">
+    <value>Choose a group</value>
+    <comment>The group drop-down with nothing chosen.</comment>
+  </data>
+  <data name="PickChannels" xml:space="preserve">
+    <value>Pick channels</value>
+    <comment>The channels drop-down with nothing chosen.</comment>
+  </data>
+  <data name="ChannelCountOne" xml:space="preserve">
+    <value>{0} channel</value>
+    <comment>A count of channels, singular form.</comment>
+  </data>
+  <data name="ChannelCountFew" xml:space="preserve">
+    <value>{0} channels</value>
+    <comment>A count of channels; Russian's 2–4 form.</comment>
+  </data>
+  <data name="ChannelCountMany" xml:space="preserve">
+    <value>{0} channels</value>
+    <comment>A count of channels; Russian's 5–20 form.</comment>
+  </data>
+  <data name="WhoNoteGroup" xml:space="preserve">
+    <value>Gengfu whispers, so everyone in the group hears it in whatever channel they are. The server has to allow the bot to whisper.</value>
+    <comment>Settings › Who hears the calls, with a server group chosen.</comment>
+  </data>
+  <data name="WhoNoteChannels" xml:space="preserve">
+    <value>Gengfu whispers, so everyone in the chosen channels hears it. The server has to allow the bot to whisper.</value>
+    <comment>Settings › Who hears the calls, with channels chosen.</comment>
+  </data>
+  <data name="CallAhead" xml:space="preserve">
+    <value>Call ahead</value>
+    <comment>Settings › Calls: how long before each spawn a call goes out.</comment>
+  </data>
+  <data name="SecondsCount" xml:space="preserve">
+    <value>{0} seconds</value>
+    <comment>A lead on offer: 15, 20, 30, 45 or 60.</comment>
+  </data>
+  <data name="Say" xml:space="preserve">
+    <value>Say</value>
+    <comment>Settings › Calls: the call's text.</comment>
+  </data>
+  <data name="CallText15" xml:space="preserve">
+    <value>Jungle in fifteen seconds</value>
+    <comment>The call's default text with a 15 s lead; spoken by a Windows voice.</comment>
+  </data>
+  <data name="CallText20" xml:space="preserve">
+    <value>Jungle in twenty seconds</value>
+    <comment>The call's default text with a 20 s lead.</comment>
+  </data>
+  <data name="CallText30" xml:space="preserve">
+    <value>Jungle in thirty seconds</value>
+    <comment>The call's default text with a 30 s lead.</comment>
+  </data>
+  <data name="CallText45" xml:space="preserve">
+    <value>Jungle in forty-five seconds</value>
+    <comment>The call's default text with a 45 s lead.</comment>
+  </data>
+  <data name="CallText60" xml:space="preserve">
+    <value>Jungle in one minute</value>
+    <comment>The call's default text with a 60 s lead.</comment>
+  </data>
+  <data name="Voice" xml:space="preserve">
+    <value>Voice</value>
+    <comment>Settings › Calls.</comment>
+  </data>
+  <data name="GongNoVoice" xml:space="preserve">
+    <value>Gong (no voice)</value>
+    <comment>First entry of the voice list.</comment>
+  </data>
+  <data name="NoVoice" xml:space="preserve">
+    <value>Windows has no English voice, so calls play a gong. Add one in Language &amp; region › English › Language options, or pick another language’s voice and write the text in it.</value>
+    <comment>Hint under Voice when no voice speaks the app's language. Name Windows' own labels.</comment>
+  </data>
+  <data name="OpenLanguageRegion" xml:space="preserve">
+    <value>Open Language &amp; region</value>
+    <comment>Link in the no-voice hint; opens Windows Settings.</comment>
+  </data>
+  <data name="NoText" xml:space="preserve">
+    <value>There is nothing to say, so calls play a gong.</value>
+    <comment>Hint under Voice when Say is empty.</comment>
+  </data>
+  <data name="SpeechFailed" xml:space="preserve">
+    <value>Windows couldn’t speak the text, so calls play a gong.</value>
+    <comment>Hint under Voice when the voice failed.</comment>
+  </data>
+  <data name="SoundFile" xml:space="preserve">
+    <value>Sound file</value>
+    <comment>Settings › Calls, in place of Say and Voice.</comment>
+  </data>
+  <data name="Change" xml:space="preserve">
+    <value>Change</value>
+    <comment>Button beside the sound file: pick another.</comment>
+  </data>
+  <data name="FileUnreadable" xml:space="preserve">
+    <value>Windows can’t play this file, so calls play a gong. Pick another, such as an MP3 or WAV.</value>
+    <comment>Hint under the sound file.</comment>
+  </data>
+  <data name="UseSoundFile" xml:space="preserve">
+    <value>Use a sound file instead</value>
+    <comment>Link in Settings › Calls.</comment>
+  </data>
+  <data name="UseText" xml:space="preserve">
+    <value>Use text instead</value>
+    <comment>Link in Settings › Calls while a sound file is chosen.</comment>
+  </data>
+  <data name="ChooseSoundFile" xml:space="preserve">
+    <value>Choose a sound file</value>
+    <comment>Title of Windows' file picker.</comment>
+  </data>
+  <data name="SoundFiles" xml:space="preserve">
+    <value>Sound files</value>
+    <comment>File type in Windows' file picker.</comment>
+  </data>
+  <data name="AllFiles" xml:space="preserve">
+    <value>All files</value>
+    <comment>File type in Windows' file picker.</comment>
+  </data>
+  <data name="General" xml:space="preserve">
+    <value>General</value>
+    <comment>Settings heading.</comment>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+    <comment>Settings › General.</comment>
+  </data>
+  <data name="SameAsWindows" xml:space="preserve">
+    <value>Same as Windows</value>
+    <comment>Settings › General › Language: the default.</comment>
+  </data>
 </root>

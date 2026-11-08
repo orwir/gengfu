@@ -38,6 +38,12 @@ public sealed class VoicesTests
     }
 
     [Fact]
+    public void The_list_puts_the_app_language_s_voices_first_each_kept_in_Windows_order()
+    {
+        Assert.Equal(new[] { Irina, Pavel, David, Hazel }, Voices.ForList([David, Irina, Hazel, Pavel], Russian));
+    }
+
+    [Fact]
     public void Without_a_voice_in_the_app_language_there_is_none_and_the_call_plays_the_gong()
     {
         Assert.Null(Voices.Pick([David, Hazel], null, Russian));

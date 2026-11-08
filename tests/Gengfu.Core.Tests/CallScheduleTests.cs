@@ -216,6 +216,96 @@ public class CallScheduleTests
         Assert.Equal(schedule.Calls.Count - 1, next.Index);
     }
 
+    [Fact]
+    public void A_call_that_could_not_go_out_shows_as_not_sent_until_it_re_arms()
+    {
+        _clock.Start();
+        RunTo(First.At);
+        _schedule.MarkNotSent(Assert.Single(_schedule.TakeDue()));
+        Assert.Equal(CallState.NotSent, _schedule.StateOf(First));
+
+        _time.Advance(TimeSpan.FromMinutes(1));
+        _schedule.TakeDue();
+        Assert.Equal(CallState.NotSent, _schedule.StateOf(First));
+
+        // A correction back above its time re-arms it, and it goes out again at its time.
+        _clock.Move(TimeSpan.FromMinutes(2));
+        Assert.Empty(_schedule.TakeDue());
+        Assert.Equal(CallState.Next, _schedule.StateOf(First));
+        RunTo(First.At);
+        Assert.Equal(new[] { First }, _schedule.TakeDue());
+        Assert.Equal(CallState.Calling, _schedule.StateOf(First));
+    }
+
+    [Fact]
+    public void Only_a_made_call_can_be_not_sent()
+    {
+        _clock.Start();
+        _schedule.TakeDue();
+
+        _schedule.MarkNotSent(First);
+
+        Assert.Equal(CallState.Next, _schedule.StateOf(First));
+    }
+
+    [Fact]
+    public void Stop_clears_a_not_sent_call()
+    {
+        _clock.Start();
+        RunTo(First.At);
+        _schedule.MarkNotSent(Assert.Single(_schedule.TakeDue()));
+
+        _clock.Stop();
+        _schedule.TakeDue();
+        Assert.Equal(CallState.Later, _schedule.StateOf(First));
+
+        _clock.Start();
+        _schedule.TakeDue();
+        Assert.Equal(CallState.Next, _schedule.StateOf(First));
+    }
+
+    [Fact]
+    public void A_new_lead_moves_every_call()
+    {
+        _schedule.ChangeLead(TimeSpan.FromSeconds(45));
+
+        Assert.Equal(TimeSpan.FromSeconds(45), _schedule.Lead);
+        Assert.Equal(
+            new[] { "25:45", "20:45", "15:45", "10:45", "05:45" },
+            _schedule.Calls.Select(call => MatchClock.Format(call.At)));
+    }
+
+    [Fact]
+    public void A_longer_lead_makes_a_call_at_once_when_the_clock_is_already_inside_its_new_time()
+    {
+        _clock.Start();
+        RunTo(TimeSpan.FromMinutes(25, 40));
+        Assert.Empty(_schedule.TakeDue());
+
+        _schedule.ChangeLead(TimeSpan.FromSeconds(45));
+
+        Assert.Equal(new[] { _schedule.Calls[0] }, _schedule.TakeDue());
+    }
+
+    [Fact]
+    public void A_made_call_is_not_made_again_when_the_lead_changes()
+    {
+        _clock.Start();
+        RunTo(First.At);
+        Assert.Single(_schedule.TakeDue());
+        _time.Advance(TimeSpan.FromSeconds(5));
+
+        // 25:45 is above the clock at 25:25, and 25:15 below it: neither makes the call twice.
+        _schedule.ChangeLead(TimeSpan.FromSeconds(45));
+        Assert.Empty(_schedule.TakeDue());
+        _schedule.ChangeLead(TimeSpan.FromSeconds(15));
+        Assert.Empty(_schedule.TakeDue());
+        RunTo(TimeSpan.FromMinutes(25, 10));
+        Assert.Empty(_schedule.TakeDue());
+
+        Assert.Equal(CallState.Called, _schedule.StateOf(_schedule.Calls[0]));
+    }
+
     private IEnumerable<CallState> States() => _schedule.Calls.Select(_schedule.StateOf);
 
     // Lets the running clock count down, uncorrected, until it shows the given game time.
