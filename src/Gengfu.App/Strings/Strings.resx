@@ -374,7 +374,19 @@
   </data>
   <data name="SameAsWindows" xml:space="preserve">
     <value>Same as Windows</value>
-    <comment>Settings › General › Language: the default.</comment>
+    <comment>Settings › General › Language and Theme: the default.</comment>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>Settings › General.</comment>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Light</value>
+    <comment>Settings › General › Theme.</comment>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Dark</value>
+    <comment>Settings › General › Theme.</comment>
   </data>
   <data name="OpenSettingsFile" xml:space="preserve">
     <value>Open settings file</value>

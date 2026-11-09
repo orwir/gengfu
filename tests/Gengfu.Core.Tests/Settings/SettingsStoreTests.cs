@@ -18,8 +18,10 @@ public sealed class SettingsStoreTests : IDisposable
         }
     }
 
-    [Fact]
-    public void Saved_settings_load_back_the_same()
+    [Theory]
+    [InlineData(Theme.Light)]
+    [InlineData(Theme.Dark)]
+    public void Saved_settings_load_back_the_same(Theme theme)
     {
         var settings = new AppSettings
         {
@@ -34,6 +36,7 @@ public sealed class SettingsStoreTests : IDisposable
             Voice = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_ruRU_IrinaM",
             SoundFile = @"C:\Users\Игрок\Music\лес.mp3",
             Language = "ru",
+            Theme = theme,
             Events =
             [
                 MatchEvent.Jungle,
@@ -46,8 +49,8 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Equal(SettingsStore.Serialize(settings), SettingsStore.Serialize(loaded));
         Assert.Equal(settings.Channels, loaded.Channels);
-        Assert.Equal((settings.Server, settings.Nickname, settings.Group, settings.Lead, settings.Voice, settings.SoundFile, settings.Language),
-            (loaded.Server, loaded.Nickname, loaded.Group, loaded.Lead, loaded.Voice, loaded.SoundFile, loaded.Language));
+        Assert.Equal((settings.Server, settings.Nickname, settings.Group, settings.Lead, settings.Voice, settings.SoundFile, settings.Language, settings.Theme),
+            (loaded.Server, loaded.Nickname, loaded.Group, loaded.Lead, loaded.Voice, loaded.SoundFile, loaded.Language, loaded.Theme));
     }
 
     [Fact]
@@ -84,6 +87,7 @@ public sealed class SettingsStoreTests : IDisposable
               "voice": null,
               "soundFile": null,
               "language": null,
+              "theme": null,
               "events": [
                 {
                   "name": null,
@@ -106,7 +110,8 @@ public sealed class SettingsStoreTests : IDisposable
               "events": [
                 { "name": "Boss", "spawns": ["28:00", "5:30",], "text": "Boss in thirty seconds" },
               ],
-              "language": "en", /* the rest stays as it is */
+              "language": "en",
+              "theme": "dark", /* the rest stays as it is */
             }
             """);
 
@@ -116,6 +121,7 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(("Boss", "Boss in thirty seconds"), (boss.Name, boss.Text));
         Assert.Equal([TimeSpan.FromMinutes(28), TimeSpan.FromMinutes(5.5)], boss.Spawns);
         Assert.Equal("en", settings.Language);
+        Assert.Equal(Theme.Dark, settings.Theme);
         Assert.Equal(("", "Gengfu", CallSchedule.DefaultLead), (settings.Server, settings.Nickname, settings.Lead));
     }
 
@@ -129,6 +135,10 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("{\n  \"listeners\": 1\n}", 2, "listeners")]
     [InlineData("{\n  \"group\": { \"name\": \"GvG\" }\n}", 2, "group")]
     [InlineData("{\n  \"language\": \"de\"\n}", 2, "language")]
+    [InlineData("{\n  \"theme\": \"blue\"\n}", 2, "theme")]
+    [InlineData("{\n  \"theme\": \"Dark\"\n}", 2, "theme")]
+    [InlineData("{\n  \"theme\": \"light, dark\"\n}", 2, "theme")]
+    [InlineData("{\n  \"theme\": 1\n}", 2, "theme")]
     [InlineData("{\n  \"events\": [\n    { \"name\": \"Boss\" }\n  ]\n}", 3, "events[0]")]
     [InlineData("{\n  \"events\": [\n    { \"spawns\": [\"25:00\",\n      \"36:00\"] }\n  ]\n}", 4, "events[0].spawns")]
     [InlineData("{\n  \"events\": [{ \"spawns\": [\"25\"] }]\n}", 2, "events[0].spawns")]

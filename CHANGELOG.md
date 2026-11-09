@@ -29,6 +29,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Every call plays at the same loudness, whatever its voice or file (#5)
 - Test call whispers the call once, from the main window or from Settings (#6)
 - The language can be set to English or Russian, or left to follow Windows (#6)
+- The theme can be set to light or dark, or left to follow Windows (#23)
 - Settings are saved as you change them and come back after a restart (#7)
 - Gengfu connects at start when a server is saved (#7)
 - The server password and the bot's identity are kept encrypted, apart from the settings file (#7)

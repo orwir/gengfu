@@ -55,6 +55,10 @@ v0.2) plugs in without touching it.
   buttons too. Windows 11 rounds the corners on request.
 - `MainView` and `SettingsView` read their strings and settings when they are made, so a new
   language, or an edit of the settings file, makes them again; Settings keeps its place.
+- A new theme makes them again too. `AppTheme` sets the App's `ThemeMode`, which swaps the Fluent
+  brushes that every colour takes by DynamicResource, and gives every control its template afresh,
+  which would scroll each list back to its top. `MainWindow` sets the saved theme before its window
+  is made, so the window opens in it.
 
 ## Clock model
 
@@ -142,9 +146,9 @@ it opens as an error.
 Each setting applies as soon as it changes, and Gengfu writes the file whole once the changes
 stop for half a second. It writes only after a change in the app, so the comments in a hand-edited
 file last until then, and never over a file it couldn't read, where the edit would be lost. It
-watches the file: an edit saved there applies at once, events and language too, and calls already
-made stay made. A file with an error changes nothing, and Settings shows where the error is until
-it is fixed.
+watches the file: an edit saved there applies at once, events, language and theme too, and calls
+already made stay made. A file with an error changes nothing, and Settings shows where the error is
+until it is fixed.
 
 The server password and the bot's identity stay out of the file, so it can be shared. `Secrets`
 (App) keeps them beside it in `secrets.bin`, encrypted with Windows' data protection for this
@@ -161,6 +165,7 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen |
 | Sound file | none: the text is spoken |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
+| Theme | the same as Windows, following it when it switches; or light or dark |
 | Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00. Each event has its spawns, and may have a name and a text of its own; without them it is the jungle and says the text above. Set in the file only |
 
 ## TeamSpeak specifics

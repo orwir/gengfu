@@ -2,9 +2,10 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ThemeMode="System">
-    <!-- Colours are the Fluent theme's own brushes, always taken by DynamicResource so a switch of the
-         Windows theme repaints them; design_language.md maps each token to its brush. The one
-         exception is the close button's red, which is Windows' own in both themes. -->
+    <!-- Colours are the Fluent theme's own brushes, always taken by DynamicResource so a switch of
+         theme, Windows' or the one Settings picks, repaints them; design_language.md maps each token
+         to its brush. The one exception is the close button's red, which is Windows' own in both
+         themes. ThemeMode starts as Windows' and MainWindow sets the one Settings picked. -->
     <Application.Resources>
         <!-- Title bar buttons, drawn like Windows 11's own and, like them, out of the Tab order. -->
         <Style x:Key="CaptionButton" TargetType="Button">

@@ -16,6 +16,7 @@ public class AppSettingsTests
         Assert.Null(settings.Voice);
         Assert.Null(settings.SoundFile);
         Assert.Null(settings.Language);
+        Assert.Null(settings.Theme);
     }
 
     [Fact]

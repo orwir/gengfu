@@ -285,6 +285,15 @@
   <data name="SameAsWindows" xml:space="preserve">
     <value>Как в Windows</value>
   </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Тема</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Светлая</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Тёмная</value>
+  </data>
   <data name="OpenSettingsFile" xml:space="preserve">
     <value>Открыть файл настроек</value>
   </data>

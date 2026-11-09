@@ -61,6 +61,7 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
   use a sound file instead. **Test call** whispers the call once, now.
 - **Language.** English, Russian, or the same as Windows.
+- **Theme.** Light, dark, or the same as Windows.
 
 ## Your settings
 

@@ -197,6 +197,10 @@
                             <TextBlock Text="{x:Static app:Strings.Language}" VerticalAlignment="Center" />
                         </DockPanel>
                         <DockPanel Margin="0,12,0,0">
+                            <ComboBox x:Name="ThemeBox" DockPanel.Dock="Right" Width="168" AutomationProperties.Name="{x:Static app:Strings.Theme}" SelectionChanged="OnThemeChosen" />
+                            <TextBlock Text="{x:Static app:Strings.Theme}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <DockPanel Margin="0,12,0,0">
                             <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Height="32"
                                     Content="{x:Static app:Strings.OpenSettingsFile}" Click="OnOpenSettingsFile" />
                             <TextBlock x:Name="VersionText" LineHeight="20" VerticalAlignment="Center" />

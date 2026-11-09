@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Windows;
 using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
@@ -484,5 +485,51 @@ public sealed class SessionTests : IAsyncLifetime
         await _session.DisposeAsync();
         meanwhile?.Invoke();
         _session = NewSession(install);
+    }
+}
+
+// The theme is the whole app's, set on Gengfu's App, so these run on its thread.
+[Collection(WpfAppCollection.Name)]
+public sealed class SessionThemeTests(WpfApp wpf)
+{
+    [Fact]
+    public async Task A_theme_chosen_in_Settings_or_edited_into_the_file_applies_at_once()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var file = Path.Combine(folder, "settings.json");
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder);
+        try
+        {
+            var modes = wpf.Invoke(() =>
+            {
+                try
+                {
+                    session.ChangeTheme(Theme.Dark);
+                    var chosen = Application.Current.ThemeMode;
+                    File.WriteAllText(file, "{ \"theme\": \"light\" }");
+                    session.Reload();
+                    var edited = Application.Current.ThemeMode;
+                    File.WriteAllText(file, "{ \"theme\": null }");
+                    session.Reload();
+                    return new[] { chosen, edited, Application.Current.ThemeMode };
+                }
+                finally
+                {
+                    AppTheme.Apply(null);
+                }
+            });
+
+            Assert.Equal([ThemeMode.Dark, ThemeMode.Light, ThemeMode.System], modes);
+            Assert.Null(session.Settings.Theme);
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            Directory.Delete(folder, recursive: true);
+        }
     }
 }

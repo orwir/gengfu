@@ -15,8 +15,9 @@ using Microsoft.Win32;
 namespace Gengfu.App.Views;
 
 /// <summary>
-/// Settings: the TeamSpeak server, who hears the calls, what a call plays, and the language. Every
-/// change applies at once and goes into the settings file; the server password stays out of it.
+/// Settings: the TeamSpeak server, who hears the calls, what a call plays, the language and the
+/// theme. Every change applies at once and goes into the settings file; the server password stays
+/// out of it.
 /// </summary>
 internal partial class SettingsView : UserControl
 {
@@ -25,6 +26,7 @@ internal partial class SettingsView : UserControl
 
     private readonly Session _session;
     private readonly Action _languageChanged;
+    private readonly Action _themeChanged;
     private readonly DispatcherTimer _typing;
 
     // Set while the view writes a control, so only the user's own changes count.
@@ -32,11 +34,12 @@ internal partial class SettingsView : UserControl
     private StatusTone? _tone;
     private CallProblem? _problem;
 
-    public SettingsView(Session session, Action languageChanged)
+    public SettingsView(Session session, Action languageChanged, Action themeChanged)
     {
         InitializeComponent();
         _session = session;
         _languageChanged = languageChanged;
+        _themeChanged = themeChanged;
         _typing = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher) { Interval = TypingPause };
         _typing.Tick += (_, _) =>
         {
@@ -60,6 +63,13 @@ internal partial class SettingsView : UserControl
             new ComboBoxItem { Content = "Русский", Tag = "ru" },
         };
         LanguageBox.SelectedItem = LanguageBox.Items.Cast<ComboBoxItem>().First(item => (string?)item.Tag == session.Settings.Language);
+        ThemeBox.ItemsSource = new[]
+        {
+            new ComboBoxItem { Content = Strings.SameAsWindows, Tag = null },
+            new ComboBoxItem { Content = Strings.Light, Tag = Theme.Light },
+            new ComboBoxItem { Content = Strings.Dark, Tag = Theme.Dark },
+        };
+        ThemeBox.SelectedItem = ThemeBox.Items.Cast<ComboBoxItem>().First(item => (Theme?)item.Tag == session.Settings.Theme);
         VersionText.Text = "Gengfu " + AppVersion.Current;
         _showing = false;
         ShowPlaceholders();
@@ -74,6 +84,8 @@ internal partial class SettingsView : UserControl
     }
 
     public void FocusLanguage() => LanguageBox.Focus();
+
+    public void FocusTheme() => ThemeBox.Focus();
 
     /// <summary>Shows the session as it is now; the window calls this on every tick.</summary>
     public void Refresh()
@@ -431,5 +443,16 @@ internal partial class SettingsView : UserControl
         _session.ChangeLanguage((string?)item.Tag);
         // Views read their strings when they are made, so the window makes them again, after this event.
         _ = Dispatcher.InvokeAsync(_languageChanged);
+    }
+
+    // A new theme gives every control its template afresh, which scrolls each list back to its top,
+    // so the window makes the views again, as for a language, after this event.
+    private void OnThemeChosen(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_showing && ThemeBox.SelectedItem is ComboBoxItem item)
+        {
+            _session.ChangeTheme((Theme?)item.Tag);
+            _ = Dispatcher.InvokeAsync(_themeChanged);
+        }
     }
 }

@@ -10,7 +10,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Compact.** One 380 px window. The clock and the next call are the only large things.
 - **The clock mirrors the game.** Same format, counts down 35:00 → 00:00, rounds up
   (35:00 holds for the first second, 00:00 shows only at the end). Digits never animate.
-- **System theme.** Light and dark follow Windows; the accent follows the Windows accent.
+- **Theme.** Light and dark follow Windows unless Settings › General picks one; the accent
+  follows the Windows accent in either. Windows' high contrast wins over the pick.
 - **Two languages.** Every string ships in English and Russian; leave room for Russian,
   which runs about a quarter longer.
 
@@ -30,9 +31,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 | status.caution  | #9D5D00 | #FCE100 | warnings                          | SystemFillColorCautionBrush           |
 | status.critical | #C42B1C | #FF99A4 | errors, not connected             | SystemFillColorCriticalBrush          |
 
-- **In code:** always the Fluent brush, by DynamicResource, so a switch of the Windows theme
-  repaints it; the hex values are the default accent's. Hints use the Fluent InfoBar
-  backgrounds: InfoBarInformationalSeverityBackgroundBrush and InfoBarWarningSeverityBackgroundBrush.
+- **In code:** always the Fluent brush, by DynamicResource, so a switch of theme, Windows' or the
+  one Settings picks, repaints it; the hex values are the default accent's. Hints use the Fluent
+  InfoBar backgrounds: InfoBarInformationalSeverityBackgroundBrush and
+  InfoBarWarningSeverityBackgroundBrush.
   The one exception is the title bar's close button: its red (#C42B1C on hover) and white
   glyph are Windows' own in both themes.
 
@@ -96,7 +98,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   connected the drop-downs are off; the server's lists are read once it is, and again whenever
   a list opens, and until they are in the group drop-down holds the group already chosen.
   Connecting to another server clears the choice, and the status line asks who hears the calls.
-  General ends with the version and an Open settings file link, which opens the file in the app
+  General starts with Language and Theme, each offering Same as Windows first, then its fixed
+  choices. It ends with the version and an Open settings file link, which opens the file in the app
   Windows uses for .json files, or in Notepad. Under the version, across the card, a caption says
   where updates stand: checking, up to date, downloading, installed, or couldn't check; a copy
   Setup didn't install shows none.
@@ -130,8 +133,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   says it is "in sync" — the clock itself is the feedback. Out-of-range typed values are
   ignored. No dialogs, no toasts; Windows' own file picker is the one exception.
 - **Settings apply at once:** no Save or OK. A new language remakes the views; Settings stays
-  where it was, with focus on Language. A call's default text follows the lead and the
-  language until the user edits it.
+  where it was, with focus on Language. A new theme does the same, with focus on Theme. A call's
+  default text follows the lead and the language until the user edits it.
 - **Copy:** short and plain; units always written ("30 s" / "30 с"); in Russian, decimal
   comma and «» quotes. Event names and call text are user data, not copy; the file's own words,
   such as settings.json and a setting's key, stay as the file spells them in both languages.
@@ -141,5 +144,5 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
 | App icon    | AppIcon.dc.html | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |
