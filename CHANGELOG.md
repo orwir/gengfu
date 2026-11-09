@@ -5,6 +5,8 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-09
+
 ### Added
 
 - Start sets the match clock to 35:00 and counts it down like the in-game timer (#3)
@@ -20,6 +22,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - A line at the top of the main window says whether Gengfu is connected and who hears the calls (#6)
 - The main window lists the match's calls (#6)
 - The calls list shows the time left until the next call (#6)
+- Under the clock, a hint asks you to match the in-game timer (#26)
 - A call nobody heard shows as "Not sent" in the list (#6)
 - Calls can go out 15, 20, 30, 45 or 60 seconds before each spawn (#6)
 - A call speaks your text in any Windows voice, plays a sound file, or strikes the gong (#6)
@@ -46,13 +49,3 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Settings › General says whether Gengfu is up to date, or checking or downloading a new version (#8)
 - Gengfu has its own icon on the taskbar, in Start and on the desktop (#8)
 - Starting Gengfu while it runs brings its window to the front (#8)
-
-### Changed
-
-- Under the clock, a hint to match the in-game timer replaces the next call (#26)
-
-### Fixed
-
-- Button icons line up with their labels (#21)
-- Leaving a clock field a few seconds after typing no longer sets the clock behind the game (#22)
-- Typed minutes no longer land a minute off when the clock's minute ticks over before they apply (#22)

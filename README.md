@@ -5,8 +5,6 @@ bot and whispers "jungle in thirty seconds" to every squad before each spawn, on
 to the in-game timer. This page is for players and guild officers; contributors start at
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
-> **Status:** in development — v0.1 is not released yet.
-
 ## What it does
 
 - **A clock that reads like the game's.** It counts 35:00 → 00:00, so checking it against the
