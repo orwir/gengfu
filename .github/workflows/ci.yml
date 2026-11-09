@@ -6,8 +6,11 @@ on:
     branches: [develop]
   workflow_call:
 
+# A newer run cancels the older one of the same ref: a branch's pushes, or one pull request's
+# commits. A push and a pull request never share a ref, so a release PR opened right after its
+# push to develop leaves that push's run alone; a cancelled gate would block the merge into master.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
