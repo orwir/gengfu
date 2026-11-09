@@ -45,3 +45,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Settings › General says whether Gengfu is up to date, or checking or downloading a new version (#8)
 - Gengfu has its own icon on the taskbar, in Start and on the desktop (#8)
 - Starting Gengfu while it runs brings its window to the front (#8)
+
+### Fixed
+
+- Button icons line up with their labels (#21)

@@ -191,5 +191,15 @@
             <Setter Property="StrokeEndLineCap" Value="Round" />
             <Setter Property="StrokeLineJoin" Value="Round" />
         </Style>
+
+        <!-- A one-line label after a 16 px icon, in a panel that centres the pair. A line keeps more
+             room over its capitals, for accents, than under them, so its capitals sit below its
+             centre: lifted 2.2 px, their centre meets the icon's, and the bottom margin takes 0.4 px
+             off to keep the pair 16 px tall. Label and icon both hang from the panel's top, so
+             rounding to device pixels moves them together. -->
+        <Style x:Key="IconLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="8,-2.2,0,-0.4" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
     </Application.Resources>
 </Application>

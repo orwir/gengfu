@@ -56,7 +56,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   Settings icon), link (accent text: the status line's Settings, "Use a sound file
   instead"); Fluent rest / hover / pressed / disabled. Start and Stop are one button that
   flips, so keyboard focus stays on it. Test call is off unless Gengfu is connected with
-  someone to hear it, and reads "Calling…" while its call plays.
+  someone to hear it, and reads "Calling…" while its call plays. An icon and its label share
+  the centre of what holds them, the label's capitals rather than its line: the IconLabel
+  style lifts a 14 px label 2.2 px beside its 16 px icon, and both hang from the top of a
+  panel that centres the pair, so rounding to device pixels moves them together.
 - **Clock digits:** minutes and seconds are fields that look like plain digits. Hover →
   subtle fill; focus → field fill, 2 px accent underline, whole value selected (accent fill,
   text on accent), the running clock shown until the first keystroke. Arrows above and
