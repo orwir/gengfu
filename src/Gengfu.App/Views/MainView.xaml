@@ -22,7 +22,7 @@
         <StackPanel Grid.Row="1" Margin="16,8,16,12">
             <Border x:Name="ClockHost" HorizontalAlignment="Center" />
             <TextBlock Margin="0,2,0,0" TextAlignment="Center" TextWrapping="Wrap" LineHeight="20" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                <Run x:Name="NextText" /> <Run x:Name="NextValue" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                <Run x:Name="LineText" /> <Run x:Name="LineValue" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
             </TextBlock>
         </StackPanel>
 

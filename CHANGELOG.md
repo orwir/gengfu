@@ -19,7 +19,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Calls are whispered to a chosen server group or to chosen channels (#6)
 - A line at the top of the main window says whether Gengfu is connected and who hears the calls (#6)
 - The main window lists the match's calls (#6)
-- Under the clock, the next call shows with the time left until it (#6)
+- The calls list shows the time left until the next call (#6)
 - A call nobody heard shows as "Not sent" in the list (#6)
 - Calls can go out 15, 20, 30, 45 or 60 seconds before each spawn (#6)
 - A call speaks your text in any Windows voice, plays a sound file, or strikes the gong (#6)
@@ -46,6 +46,10 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Settings › General says whether Gengfu is up to date, or checking or downloading a new version (#8)
 - Gengfu has its own icon on the taskbar, in Start and on the desktop (#8)
 - Starting Gengfu while it runs brings its window to the front (#8)
+
+### Changed
+
+- Under the clock, a hint to match the in-game timer replaces the next call (#26)
 
 ### Fixed
 

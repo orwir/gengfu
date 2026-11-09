@@ -93,11 +93,13 @@ gets it pastes it over the `events` in their own file through **Open settings fi
 
 ## The calls
 
-Under the clock, Gengfu shows the next call and the time left until it. The list below has every
-call of the match: a check once it went out, and ✕ *Not sent* when nobody heard it: Gengfu was
-off the server, nobody was chosen to hear the calls, the whisper failed, or the clock was moved
-past the spawn first. When there are more calls than fit, the list scrolls to keep the next one in
-view.
+The calls list has every call of the match: the next one with the time left until it, a check once
+a call went out, and ✕ *Not sent* when nobody heard it: Gengfu was off the server, nobody was
+chosen to hear the calls, the whisper failed, or the clock was moved past the spawn first. When
+there are more calls than fit, the list scrolls to keep the next one in view.
+
+Under the clock, a line asks you to match the in-game timer until the last call; while a call goes
+out, it says what the squads hear instead.
 
 ## Match the clock
 

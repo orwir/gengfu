@@ -7,7 +7,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 ## Principles
 
 - **Native Windows 11.** WPF Fluent look; no custom chrome beyond the title bar.
-- **Compact.** One 380 px window. The clock and the next call are the only large things.
+- **Compact.** One 380 px window. The clock is the only large thing; the next call stands out in
+  the list.
 - **The clock mirrors the game.** Same format, counts down 35:00 → 00:00, rounds up
   (35:00 holds for the first second, 00:00 shows only at the end). Digits never animate.
 - **Theme.** Light and dark follow Windows unless Settings › General picks one; the accent
@@ -68,6 +69,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   below each nudge ±1 min / ±1 s; Tab skips them, since ↑ ↓ in a field do the same. Enter
   and Esc hand focus to the clock as a whole, so the digits read as plain text again.
   Disabled until Start.
+- **Line under the clock:** centred secondary body text: "Press Start when the match begins"
+  before Start; "Match the in-game timer" while a call is next, since the list shows the call;
+  "Calling now:" and what listeners hear (the text, the file's name or the gong) in accent
+  Semibold while one plays; "No more calls this match" after the last; "Match over" at 00:00.
 - **Calls list:** one row per call: its time, its event's name and spawn, and how it stands —
   called (secondary, check), not sent (secondary, critical ✕ "Not sent"), calling (accent,
   speaker, tinted), next (accent, "in m:ss", tinted), later (primary). A call is not sent when
