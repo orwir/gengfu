@@ -37,9 +37,15 @@ v0.2) plugs in without touching it.
 
 - `Program.Main` runs Velopack before WPF starts: when Setup or the updater starts Gengfu to finish
   their work, it does so and exits there, and an update downloaded earlier applies before the
-  window opens. Only one Gengfu runs per Windows session, held by `SingleInstance`: Velopack's
-  updater closes every running copy, so a second start applies nothing and brings the first one's
-  window forward.
+  window opens. Only one Gengfu runs per folder, held by `SingleInstance`: Velopack's updater
+  closes every running copy, so a second start on the same folder applies nothing and brings that
+  folder's Gengfu forward, which marks its window for this. A Gengfu on another folder stays as it is.
+- `Program.Main` is also the one place that names Gengfu's folder, through `Home`: `%AppData%\Gengfu`,
+  or the folder in the `GENGFU_HOME` environment variable
+  ([ADR-0007](../adr/0007-gengfus-folder-and-isolated-copies.md)). It builds the `Session` there and
+  opens `MainWindow` with it; the App opens no window by itself. A Gengfu on any other folder, as
+  tests and checks run it, holds a lock of its own and never updates, so it can't stand in for the
+  user's Gengfu, close it or change its install.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
@@ -99,7 +105,8 @@ Gengfu ships as a Velopack installer of a self-contained build, published to Git
 update is built against. The settings stay in `%AppData%\Gengfu`, out of the install's reach.
 
 - `Updates` looks at GitHub's releases at start and every 4 hours, and downloads a new version: a
-  delta when it can, else the whole package. It never looks in a copy Setup didn't install.
+  delta when it can, else the whole package. It never looks in a copy Setup didn't install, nor in
+  one on a folder of its own.
 - A test build, its version suffixed, also takes test builds; a release takes releases only.
 - A downloaded version applies the next time Gengfu starts. Restart instead hands it to Velopack's
   updater, which waits for Gengfu to close normally, applies it and starts Gengfu again.
@@ -123,7 +130,8 @@ for the connection to leave the server.
 
 ## Configuration
 
-Settings live in `AppSettings` (Core) and in one file, `%AppData%\Gengfu\settings.json`, that
+Settings live in `AppSettings` (Core) and in one file, `settings.json` in Gengfu's folder
+(`%AppData%\Gengfu`, or the one `GENGFU_HOME` names; see [The App](#the-app)), that
 `SettingsStore` reads and writes. It is JSON a person can edit, comments and trailing commas
 allowed. Every value is checked on reading, and an unknown setting is an error too, so a typo
 never passes unseen; the error names the line and the setting as the file spells it. A version

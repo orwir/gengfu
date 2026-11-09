@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
@@ -18,12 +17,13 @@ public partial class MainWindow : Window
     private const int DwmWindowCornerPreference = 33;
     private const int DwmRound = 2;
 
-    private readonly Session _session = new(CultureInfo.CurrentUICulture);
+    private readonly Session _session;
     private MainView _main;
     private SettingsView? _settings;
 
-    public MainWindow()
+    internal MainWindow(Session session)
     {
+        _session = session;
         InitializeComponent();
         AppLanguage.Apply(_session.Language);
         _main = new MainView(_session, ShowSettings);
