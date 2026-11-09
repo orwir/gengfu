@@ -14,7 +14,7 @@ CHANGELOG section. Its files:
 - `Gengfu-<version>-full.nupkg`: the whole app, for new installs and for updates from far behind.
 - `Gengfu-<version>-delta.nupkg`: only what changed since the previous release; the first release
   has none.
-- `releases.win.json`, `assets.win.json`, `RELEASES`: the feed installed copies read.
+- `releases.win.json`, `RELEASES`: the feed installed copies read.
 
 ## Versions
 
