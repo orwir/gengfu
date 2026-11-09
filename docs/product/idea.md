@@ -30,7 +30,7 @@ Skip the cooldown only for a hard external deadline — write down what it is.
 
 - [x] Existing solutions checked — best candidates and the *specific* reason each
       doesn't fit:
-      1. ts6-crier (OSS TS6 voice bot, the one we use): TS6-only, buggy,
+      1. ts6-crier (OSS TS6 voice bot, the one we use): buggy,
          maintainer unresponsive; its timer starts on a chat command, and the
          offset from the game clock can't be seen or corrected.
       2. GaleByte (WWM Discord bot, scheduled messages), Guild Order War Board
