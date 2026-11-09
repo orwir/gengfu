@@ -23,3 +23,4 @@ in the root [README](../README.md); how to work in the repo is in [CONTRIBUTING]
 | [ADR-0004](adr/0004-licensing.md) | MIT for Gengfu; vendored code keeps its licenses |
 | [ADR-0005](adr/0005-call-audio-without-bindings-or-native-code.md) | Call audio without Windows bindings or native code |
 | [ADR-0006](adr/0006-self-contained-installer-and-updates.md) | A self-contained installer that updates itself from GitHub Releases |
+| [ADR-0007](adr/0007-gengfus-folder-and-isolated-copies.md) | One place names Gengfu's folder, and a copy on another folder stays apart |

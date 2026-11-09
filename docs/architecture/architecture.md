@@ -41,10 +41,11 @@ v0.2) plugs in without touching it.
   closes every running copy, so a second start on the same folder applies nothing and brings that
   folder's Gengfu forward, which marks its window for this. A Gengfu on another folder stays as it is.
 - `Program.Main` is also the one place that names Gengfu's folder, through `Home`: `%AppData%\Gengfu`,
-  or the folder in the `GENGFU_HOME` environment variable. It builds the `Session` there and opens
-  `MainWindow` with it; the App opens no window by itself. A Gengfu on any other folder, as tests
-  and checks run it, holds a lock of its own and never updates, so it can't stand in for the user's
-  Gengfu, close it or change its install.
+  or the folder in the `GENGFU_HOME` environment variable
+  ([ADR-0007](../adr/0007-gengfus-folder-and-isolated-copies.md)). It builds the `Session` there and
+  opens `MainWindow` with it; the App opens no window by itself. A Gengfu on any other folder, as
+  tests and checks run it, holds a lock of its own and never updates, so it can't stand in for the
+  user's Gengfu, close it or change its install.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
