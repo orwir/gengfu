@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Windows.Interop;
 using Gengfu.App.Speech;
 using Gengfu.Core;
 using Velopack;
@@ -13,28 +14,33 @@ internal static class Program
     /// <summary>
     /// Velopack goes first: when Setup or an update runs Gengfu to finish its work, it does so and
     /// exits here, and an update downloaded earlier is applied before the window opens. Only the
-    /// first Gengfu applies one, since Velopack's updater closes every copy it finds running; a
-    /// second start brings the first one's window forward instead.
+    /// first Gengfu on the user's own folder applies one, since Velopack's updater closes every copy
+    /// it finds running; a second start on the same folder brings the first one's window forward.
     /// </summary>
     [STAThread]
     private static void Main()
     {
         var home = Home.Of(Environment.GetEnvironmentVariable(Home.Variable));
         using var single = new SingleInstance(home.Lock);
-        VelopackApp.Build().SetAutoApplyOnStartup(single.IsFirst && !home.Isolated).Run();
+        VelopackApp.Build().SetAutoApplyOnStartup(AppliesUpdate(home, single.IsFirst)).Run();
         if (!single.IsFirst)
         {
-            SingleInstance.ShowRunning();
+            single.ShowRunning();
             return;
         }
         var app = new App();
         app.InitializeComponent();
-        var session = new Session(CultureInfo.CurrentUICulture, new SystemTimeSource(), new CallAudio(), home.Folder, Install(home));
-        app.Run(new MainWindow(session));
+        var session = new Session(CultureInfo.CurrentUICulture, new SystemTimeSource(), new CallAudio(), home.Folder, Install(home, Updates.Installed));
+        var window = new MainWindow(session);
+        single.Mark(new WindowInteropHelper(window).EnsureHandle());
+        app.Run(window);
     }
 
+    /// <summary>Whether this Gengfu applies an update downloaded earlier as it starts.</summary>
+    internal static bool AppliesUpdate(Home home, bool first) => first && !home.Isolated;
+
     /// <summary>Velopack's manager for the installed copy; null for a copy that leaves the install alone.</summary>
-    internal static UpdateManager? Install(Home home) => home.Isolated ? null : Updates.Installed();
+    internal static UpdateManager? Install(Home home, Func<UpdateManager?> installed) => home.Isolated ? null : installed();
 }
 
 /// <summary>
@@ -50,7 +56,10 @@ internal sealed record Home(string Folder)
 
     public bool Isolated => !string.Equals(Folder, Own, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>One Gengfu per folder in a Windows session; the user's own keeps the name it always had.</summary>
+    /// <summary>
+    /// One Gengfu per folder in a Windows session. The user's own folder takes Local\Gengfu, the name
+    /// every version holds, so copies of any version on it exclude each other.
+    /// </summary>
     public string Lock => Isolated
         ? @"Local\Gengfu-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Folder.ToUpperInvariant())))[..16]
         : @"Local\Gengfu";

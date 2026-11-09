@@ -28,7 +28,24 @@ public sealed class ProgramTests
         Assert.Equal(Elsewhere, home.Folder);
         Assert.True(home.Isolated);
         Assert.StartsWith(@"Local\Gengfu-", home.Lock);
-        Assert.Null(Program.Install(home));
+        Assert.False(Program.AppliesUpdate(home, first: true));
+        Assert.Null(Program.Install(home, () => throw new InvalidOperationException("A Gengfu on a folder of its own asked for the install.")));
+    }
+
+    [Fact]
+    public void The_users_own_Gengfu_takes_the_install_and_applies_an_update_when_it_is_the_first()
+    {
+        var home = Home.Of(null);
+        var asked = false;
+
+        Assert.True(Program.AppliesUpdate(home, first: true));
+        Assert.False(Program.AppliesUpdate(home, first: false));
+        Assert.Null(Program.Install(home, () =>
+        {
+            asked = true;
+            return null;
+        }));
+        Assert.True(asked);
     }
 
     [Fact]
@@ -44,9 +61,12 @@ public sealed class ProgramTests
     [Fact]
     public void GENGFU_HOME_naming_the_users_own_folder_is_the_users_own_Gengfu()
     {
-        var home = Home.Of(Own + Path.DirectorySeparatorChar);
+        foreach (var spelled in new[] { Own + Path.DirectorySeparatorChar, Own.ToUpperInvariant(), Own.ToLowerInvariant() })
+        {
+            var home = Home.Of(spelled);
 
-        Assert.False(home.Isolated);
-        Assert.Equal(@"Local\Gengfu", home.Lock);
+            Assert.False(home.Isolated);
+            Assert.Equal(@"Local\Gengfu", home.Lock);
+        }
     }
 }

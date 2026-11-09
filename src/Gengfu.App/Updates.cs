@@ -12,7 +12,7 @@ internal abstract record UpdateState
     {
     }
 
-    /// <summary>Setup didn't install this copy, such as a developer build: there is nothing to update.</summary>
+    /// <summary>Nothing to update: Setup didn't install this copy, such as a developer build, or it runs on a folder of its own.</summary>
     public sealed record Off : UpdateState;
 
     /// <summary>The first look since Gengfu started is under way.</summary>
@@ -47,7 +47,7 @@ internal sealed class Updates
     private VelopackAsset? _ready;
     private volatile UpdateState _state;
 
-    /// <param name="manager">Velopack's, for a copy Setup installed; null for any other.</param>
+    /// <param name="manager">Velopack's, for a copy Setup installed that runs on the user's own folder; null for any other.</param>
     public Updates(ITimeSource time, UpdateManager? manager)
     {
         _time = time;

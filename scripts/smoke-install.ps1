@@ -44,3 +44,10 @@ if (-not $app.WaitForExit(15000)) {
     $app.Kill()
     throw "Gengfu didn't close within 15 s of its window closing."
 }
+
+# Gengfu writes its settings file on its first save and again as it closes, so the file shows which
+# folder it ran on.
+if (-not (Test-Path (Join-Path $env:GENGFU_HOME 'settings.json'))) {
+    throw "Gengfu didn't keep its settings in GENGFU_HOME."
+}
+Remove-Item $env:GENGFU_HOME -Recurse -Force
