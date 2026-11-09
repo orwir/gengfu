@@ -49,3 +49,5 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 ### Fixed
 
 - Button icons line up with their labels (#21)
+- Leaving a clock field a few seconds after typing no longer sets the clock behind the game (#22)
+- Typed minutes no longer land a minute off when the clock's minute ticks over before they apply (#22)

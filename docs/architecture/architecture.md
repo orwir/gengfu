@@ -63,10 +63,11 @@ The clock keeps one anchor: "at local instant *t* the game showed *r*", so game 
 moves with it. The display rounds up: 35:00 holds for the first second and 00:00 shows only at the
 end. The clock stops at 00:00 and takes corrections only while it runs; Stop returns it to 35:00.
 
-Typed values go through `SyncInput`. Typed minutes keep the running seconds. Typed seconds land on
-the nearest minute that makes a time the game can show, and are timed from the first keystroke, or
-from Enter after a pause, for typing ahead. Its lag constants assume the game rounds its timer up,
-as the display does.
+Typed values go through `SyncInput`. Typed minutes keep the running seconds and count from the
+clock's minute at the first keystroke. Typed seconds land on the nearest minute that makes a time
+the game can show, and are timed from the first keystroke, or from Enter after a pause, for typing
+ahead; leaving the field never counts as typing ahead. Its lag constants assume the game rounds its
+timer up, as the display does.
 
 A call fires once while the clock is between its game time and its spawn, and shows as calling
 for 3 s: on time as the clock counts down, or late when a correction lands the clock in that

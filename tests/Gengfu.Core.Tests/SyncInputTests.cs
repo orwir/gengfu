@@ -86,9 +86,10 @@ public class SyncInputTests
     }
 
     [Theory]
-    [InlineData(2.0, false)]
-    [InlineData(3.5, true)]
-    public void Leaving_the_field_applies_and_takes_a_longer_pause_to_count_as_typing_ahead(double pause, bool fromLeaving)
+    [InlineData(0.3)]
+    [InlineData(2.0)]
+    [InlineData(5.0)]
+    public void Leaving_the_field_times_the_value_from_the_first_keystroke_however_long_after(double pause)
     {
         RunTo("21:44");
         var input = new SyncInput(_clock, ClockField.Seconds);
@@ -98,14 +99,32 @@ public class SyncInputTests
         _time.Advance(TimeSpan.FromSeconds(pause));
         input.Leave("40");
 
-        if (fromLeaving)
+        Assert.Equal(Time("21:40") - SyncInput.TypingLag, _clock.GameTimeAt(firstKeystroke));
+    }
+
+    [Theory]
+    [InlineData("10:00", 0.6, false, "08:59")]
+    [InlineData("10:01", 5.0, false, "08:56")]
+    [InlineData("10:00", 0.6, true, "08:59")]
+    [InlineData("10:01", 2.0, true, "08:59")]
+    public void Typed_minutes_count_from_the_clock_at_the_first_keystroke(string shown, double pause, bool byEnter, string after)
+    {
+        RunTo(shown);
+        var input = new SyncInput(_clock, ClockField.Minutes);
+
+        input.Keystroke();
+        _time.Advance(TimeSpan.FromSeconds(pause));
+        Assert.StartsWith("09:", _clock.Display);
+        if (byEnter)
         {
-            Assert.Equal(Time("21:40") - SyncInput.EnterLag, _clock.GameTime);
+            input.Enter("9");
         }
         else
         {
-            Assert.Equal(Time("21:40") - SyncInput.TypingLag, _clock.GameTimeAt(firstKeystroke));
+            input.Leave("9");
         }
+
+        Assert.Equal(after, _clock.Display);
     }
 
     [Theory]

@@ -13,7 +13,8 @@ public enum ClockField
 /// One typed correction to a clock field, from its first keystroke to Enter or leaving the field.
 /// Typed minutes keep the running seconds. Typed seconds land on the nearest minute and are timed
 /// from the first keystroke, or from Enter after a pause, so the user can type ahead and press
-/// Enter as the game reaches the number. A value the game can't show is ignored.
+/// Enter as the game reaches the number; leaving the field never counts as typing ahead. A value
+/// the game can't show is ignored.
 /// </summary>
 public sealed class SyncInput(MatchClock clock, ClockField field)
 {
@@ -29,9 +30,6 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
     /// <summary>A longer wait between the last keystroke and Enter means the user typed ahead.</summary>
     public static TimeSpan EnterPause { get; } = TimeSpan.FromSeconds(1.2);
 
-    /// <summary>Leaving the field takes longer than Enter, so it needs a longer pause to mean the same.</summary>
-    public static TimeSpan LeavePause { get; } = TimeSpan.FromSeconds(3);
-
     private TimeSpan? _firstKeystroke;
     private TimeSpan _lastKeystroke;
 
@@ -46,12 +44,14 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
         _lastKeystroke = now;
     }
 
-    public void Enter(string text) => Apply(text, EnterPause);
+    public void Enter(string text) => Apply(text, typedAhead: clock.Time.Now - _lastKeystroke > EnterPause);
 
-    public void Leave(string text) => Apply(text, LeavePause);
+    // Leaving often comes well after typing what the game showed: a Tab, a click, a switch back to
+    // the game. So it never reads as typing ahead, however long the pause.
+    public void Leave(string text) => Apply(text, typedAhead: false);
 
     // Applies once: a typed-ahead Enter followed by leaving the field must not be re-timed.
-    private void Apply(string text, TimeSpan pause)
+    private void Apply(string text, bool typedAhead)
     {
         if (_firstKeystroke is not { } firstKeystroke)
         {
@@ -62,12 +62,13 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
         {
             return;
         }
-        var now = clock.Time.Now;
         if (field == ClockField.Minutes)
         {
+            // A minute holds for 60 s, so nobody types one ahead: typed minutes describe the clock as
+            // typing began, even when its own minute ticks over before they apply.
             if (value <= MatchClock.MatchLength.TotalMinutes)
             {
-                clock.Move(TimeSpan.FromMinutes(value - MatchClock.Shown(clock.GameTimeAt(now)).Minutes));
+                clock.Move(TimeSpan.FromMinutes(value - MatchClock.Shown(clock.GameTimeAt(firstKeystroke)).Minutes));
             }
             return;
         }
@@ -75,8 +76,8 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
         {
             return;
         }
-        var typedAhead = now - _lastKeystroke > pause;
-        var instant = typedAhead ? now : firstKeystroke;
+        // The moment the seconds describe: the game reaching them, or showing them as typing began.
+        var instant = typedAhead ? clock.Time.Now : firstKeystroke;
         if (NearestMinute(clock.GameTimeAt(instant), value, typedAhead ? EnterLag : TypingLag) is { } gameTime)
         {
             clock.Anchor(instant, gameTime);
