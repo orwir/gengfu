@@ -15,7 +15,7 @@ package.
 On `develop`, server-group whisper is broken: commit `2126993e` (2021) dropped the `Newprotocol`
 packet flag, so servers discard those whispers. `master` still sets it.
 
-The Phase 3 spike connected to our TS6 server. Normal voice, channel whisper and — with the flag
+The Phase 3 spike connected to our TS3 server. Normal voice, channel whisper and — with the flag
 restored — server-group whisper were all heard.
 
 ## Decision

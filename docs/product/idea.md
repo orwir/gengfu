@@ -112,7 +112,7 @@ Timebox: one weekend.
       comes with v0.1.
 - [x] Runner-up — a very small .NET console app against our TS server:
       connect, then whisper a Windows-TTS clip to a server group and to chosen
-      channels. Done 2026-11-07 (spike/tslib-whisper): connects to our TS6
+      channels. Done 2026-11-07 (spike/tslib-whisper): connects to our TS3
       server; normal voice, channel whisper and server-group whisper all heard.
       Found on the way:
       - TSLib's develop branch (the .NET 10 one) lost the group-whisper flag
@@ -124,13 +124,13 @@ Timebox: one weekend.
       - Windows has no Russian voice unless the user adds one, so the default
         calls need recorded clips or a setup hint.
 - [x] Stack / platform picked while spiking, reasons noted: C# / .NET 10 (LTS)
-      + WPF. TSLib is native C# and works with our TS6 server under .NET 10
+      + WPF. TSLib is native C# and works with our TS3 server under .NET 10
       (with the patch above); TTS, audio decoding and later OCR come with
       Windows/.NET; light next to the game; the core can run headless on Linux
       later; Velopack covers self-update from GitHub Releases. Discord in
       v0.2: DisCatSharp.Voice ≥10.7 (has DAVE) or a discord.js sidecar.
 - [x] Result, one line: survived — the sync UX is approved in the prototype,
-      and TSLib reaches every squad on our TS6 server by group and channel
+      and TSLib reaches every squad on our TS3 server by group and channel
       whisper.
 
 GATE: the assumption survived? Yes -> Phase 4. No -> back to Phase 2 with what was
