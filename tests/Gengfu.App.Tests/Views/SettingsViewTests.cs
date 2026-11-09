@@ -10,8 +10,9 @@ namespace Gengfu.App.Tests.Views;
 [Collection(WpfAppCollection.Name)]
 public sealed class SettingsViewTests(WpfApp wpf)
 {
-    [Fact]
-    public async Task Test_call_and_the_sound_file_keep_their_icon_and_label_on_one_centre()
+    [Theory]
+    [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]
+    public async Task Test_call_and_the_sound_file_keep_their_icon_and_label_on_one_centre(double scale)
     {
         var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
         var session = new Session(
@@ -25,20 +26,20 @@ public sealed class SettingsViewTests(WpfApp wpf)
             var offsets = wpf.Invoke(() =>
             {
                 var view = new SettingsView(session, () => { });
-                WpfApp.Lay(view);
+                WpfApp.Lay(view, scale);
                 var speaker = (FrameworkElement)((Panel)view.TestButton.Content).Children[0];
                 var note = (FrameworkElement)((Panel)view.FileName.Parent).Children[0];
                 return new[]
                 {
-                    WpfApp.Offsets(view.TestButton, speaker, view.TestText),
-                    WpfApp.Offsets(view.FileBox, note, view.FileName),
+                    WpfApp.Offsets(view.TestButton, speaker, view.TestText, scale),
+                    WpfApp.Offsets(view.FileBox, note, view.FileName, scale),
                 };
             });
 
             Assert.All(offsets, offset =>
             {
                 Assert.InRange(offset.Icon, -0.5, 0.5);
-                Assert.InRange(offset.Label, -0.5, 0.5);
+                Assert.InRange(offset.Capitals, -0.5, 0.5);
             });
         }
         finally

@@ -37,7 +37,16 @@ public sealed class WpfApp : IDisposable
         _thread.Start();
         ready.Wait();
         _dispatcher = dispatcher!;
+        // A window the App opens any other way would be the same real Gengfu.
+        if (_dispatcher.Invoke(() => Application.Current.Windows.Count, DispatcherPriority.ApplicationIdle) != 0)
+        {
+            Dispose();
+            throw new InvalidOperationException("Gengfu's App opened a window by itself.");
+        }
     }
+
+    /// <summary>Display scales Windows offers, 100% to 200%.</summary>
+    public static TheoryData<double> Scales => new() { 1.0, 1.25, 1.5, 1.75, 2.0 };
 
     /// <summary>Runs on the App's thread, where views can be made and laid out.</summary>
     public T Invoke<T>(Func<T> work) => _dispatcher.Invoke(work);
@@ -49,30 +58,57 @@ public sealed class WpfApp : IDisposable
         _thread.Join();
     }
 
-    /// <summary>Lays a view out at the window's size and in the window's font, as Gengfu shows it.</summary>
-    public static void Lay(Control view)
+    /// <summary>
+    /// Lays a view out as Gengfu's window does at a display scale: its size and font, rounded to
+    /// whole device pixels. A detached root's scale reaches only what is already under it, so the
+    /// view is laid out once to build its tree, then scaled and laid out again.
+    /// </summary>
+    public static void Lay(Control view, double scale)
     {
         view.FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI");
         view.FontSize = 14;
+        view.UseLayoutRounding = true;
+        Arrange(view);
+        VisualTreeHelper.SetRootDpi(view, new DpiScale(scale, scale));
+        Invalidate(view);
+        Arrange(view);
+    }
+
+    /// <summary>
+    /// In device pixels at the scale laid out, below being positive: how far an icon's centre sits
+    /// from the centre of what holds it, and how far its label's capitals sit from the icon's
+    /// centre. The capitals, not the line, so a descender doesn't count.
+    /// </summary>
+    public static (double Icon, double Capitals) Offsets(FrameworkElement holder, FrameworkElement icon, TextBlock label, double scale)
+    {
+        Assert.Equal(scale, VisualTreeHelper.GetDpi(label).DpiScaleY);
+        var typeface = new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch);
+        Assert.True(typeface.TryGetGlyphTypeface(out var glyphs));
+        var line = new FormattedText(label.Text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, label.FontSize, Brushes.Black, scale);
+        var capitals = label.TransformToAncestor(holder).Transform(new Point(0, line.Baseline - (glyphs.CapsHeight * label.FontSize / 2))).Y;
+        var centre = icon.TransformToAncestor(holder).Transform(new Point(0, icon.ActualHeight / 2)).Y;
+        return ((centre - (holder.ActualHeight / 2)) * scale, (capitals - centre) * scale);
+    }
+
+    private static void Arrange(Control view)
+    {
         view.Measure(new Size(380, 584));
         view.Arrange(new Rect(0, 0, 380, 584));
         view.UpdateLayout();
     }
 
-    /// <summary>
-    /// How far an icon's centre and its label's capitals sit from the centre of what holds them,
-    /// below being positive. The capitals, not the line, so a descender doesn't count.
-    /// </summary>
-    public static (double Icon, double Label) Offsets(FrameworkElement holder, FrameworkElement icon, TextBlock label)
+    private static void Invalidate(DependencyObject element)
     {
-        var typeface = new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch);
-        Assert.True(typeface.TryGetGlyphTypeface(out var glyphs));
-        var line = new FormattedText(label.Text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, label.FontSize, Brushes.Black, 1.0);
-        var capitals = line.Baseline - (glyphs.CapsHeight * label.FontSize / 2);
-        var middle = holder.ActualHeight / 2;
-        return (
-            icon.TransformToAncestor(holder).Transform(new Point(0, icon.ActualHeight / 2)).Y - middle,
-            label.TransformToAncestor(holder).Transform(new Point(0, capitals)).Y - middle);
+        if (element is UIElement laid)
+        {
+            laid.InvalidateMeasure();
+            laid.InvalidateArrange();
+        }
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
+        {
+            Invalidate(VisualTreeHelper.GetChild(element, i));
+        }
     }
 }
 

@@ -33,8 +33,9 @@ public sealed class MainViewTests(WpfApp wpf)
         Assert.False(MainView.ShowsUpdate(new UpdateState.UpToDate(), ClockState.Idle));
     }
 
-    [Fact]
-    public async Task Start_Stop_and_Test_call_keep_their_icon_and_label_on_the_buttons_centre()
+    [Theory]
+    [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]
+    public async Task Start_Stop_and_Test_call_keep_their_icon_and_label_on_the_buttons_centre(double scale)
     {
         var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
         var session = new Session(
@@ -47,24 +48,24 @@ public sealed class MainViewTests(WpfApp wpf)
             var offsets = wpf.Invoke(() =>
             {
                 var view = new MainView(session, () => { });
-                WpfApp.Lay(view);
+                WpfApp.Lay(view, scale);
                 var speaker = (FrameworkElement)((Panel)view.TestButton.Content).Children[0];
-                var found = new List<(double Icon, double Label)>
+                var found = new List<(double Icon, double Capitals)>
                 {
-                    WpfApp.Offsets(view.StartStop, view.StartIcon, view.StartStopText),
-                    WpfApp.Offsets(view.TestButton, speaker, view.TestText),
+                    WpfApp.Offsets(view.StartStop, view.StartIcon, view.StartStopText, scale),
+                    WpfApp.Offsets(view.TestButton, speaker, view.TestText, scale),
                 };
                 session.Clock.Start();
                 view.Refresh();
                 view.UpdateLayout();
-                found.Add(WpfApp.Offsets(view.StartStop, view.StopIcon, view.StartStopText));
+                found.Add(WpfApp.Offsets(view.StartStop, view.StopIcon, view.StartStopText, scale));
                 return found;
             });
 
             Assert.All(offsets, offset =>
             {
                 Assert.InRange(offset.Icon, -0.5, 0.5);
-                Assert.InRange(offset.Label, -0.5, 0.5);
+                Assert.InRange(offset.Capitals, -0.5, 0.5);
             });
         }
         finally
