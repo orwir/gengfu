@@ -215,6 +215,39 @@ public sealed class TeamSpeakConnectionTests
         }
     }
 
+    [Theory]
+    [InlineData(@"error id=1028 msg=invalid\sserver\spassword", ConnectionStatus.Disconnected, ConnectionProblem.WrongPassword)]
+    [InlineData(@"error id=3329 msg=connection\sfailed,\syou\sare\sbanned", ConnectionStatus.Disconnected, ConnectionProblem.Banned)]
+    [InlineData(@"error id=1027 msg=server\smaxclient\sreached", ConnectionStatus.Connecting, ConnectionProblem.ServerFull)]
+    public async Task The_servers_refusal_of_an_attempt_decides_what_follows(string refusal, ConnectionStatus status, ConnectionProblem problem)
+    {
+        using var server = new LocalTsServer(refusal);
+        await using var connection = new TeamSpeakConnection(null);
+        var states = Watch(connection);
+
+        await connection.ConnectAsync(server.Address, "Gengfu", "");
+
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
+        Assert.Equal(new ConnectionState(status, problem), await NextAsync(states));
+    }
+
+    [Fact]
+    public async Task A_server_that_asks_for_a_stronger_identity_gets_one_on_the_next_attempt()
+    {
+        using var server = new LocalTsServer(
+            @"error id=519 msg=could\snot\svalidate\sclient\sidentity extra_msg=16",
+            @"error id=1028 msg=invalid\sserver\spassword");
+        await using var connection = new TeamSpeakConnection(IdentityData.GenerateNewIdentity(0).ToTsIdentity());
+        var states = Watch(connection);
+
+        await connection.ConnectAsync(server.Address, "Gengfu", "");
+
+        // Only a second attempt is refused for its password.
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Disconnected, ConnectionProblem.WrongPassword), await NextAsync(states));
+        Assert.True(IdentityData.FromTsIdentity(connection.Identity).Unwrap().GetSecurityLevel() >= 16);
+    }
+
     [Fact]
     public async Task Overlapping_connects_and_disconnects_end_disconnected_with_no_attempt_left()
     {

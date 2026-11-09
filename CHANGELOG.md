@@ -5,6 +5,14 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+### Fixed
+
+- A wrong server password shows as such, not as "no answer" retried every 5 s (#35)
+- A ban from the server shows as such, not as "no answer" retried every 5 s (#35)
+- A full server shows as full, not as "no answer" (#35)
+- Any other refusal from the server shows the server's own words, not "no answer" (#35)
+- Gengfu raises its identity's security level when a server asks for more, and joins (#35)
+
 ## [0.1.0] - 2026-11-09
 
 ### Added
