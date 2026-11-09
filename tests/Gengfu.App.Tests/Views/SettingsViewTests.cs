@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 using Gengfu.App.Speech;
 using Gengfu.App.Views;
@@ -101,6 +102,97 @@ public sealed class SettingsViewTests(WpfApp wpf)
             }
         }
     }
+
+    [Fact]
+    public async Task A_privilege_key_waits_behind_its_link_and_the_bar_under_it_says_how_the_server_took_it()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder);
+        try
+        {
+            var (tabOrder, closed, opened, offline, taken, typedAgain, unknown) = wpf.Invoke(() =>
+            {
+                var view = new SettingsView(session, () => { }, () => { });
+                // Tab follows the tree: from the field to Use.
+                var tabOrder = Controls(view.KeyPanel).Where(control => control.Focusable).Select(control => control.Name).ToList();
+                var closed = (view.KeyLink.Visibility, view.KeyPanel.Visibility);
+                view.KeyLink.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                var opened = (view.KeyLink.Visibility, view.KeyPanel.Visibility, view.KeyBar.Visibility);
+                view.KeyBox.Text = "first";
+                view.Refresh();
+                // Use waits for a connection.
+                var offline = (session.PrivilegeKey, view.UseKeyButton.IsEnabled);
+                session.KeyUsed(new KeyResult(KeyOutcome.Taken, "Callers"));
+                view.Refresh();
+                var taken = (view.KeyBar.Visibility, view.KeyBar.Style == view.FindResource("SuccessBar"), view.KeyText.Text, view.KeyBox.Text);
+                view.KeyBox.Text = "second";
+                view.Refresh();
+                var typedAgain = view.KeyBar.Visibility;
+                session.KeyUsed(new KeyResult(KeyOutcome.Unknown));
+                view.Refresh();
+                var unknown = (view.KeyBar.Style == view.FindResource("ErrorBar"), view.KeyText.Text, view.KeyBox.Text);
+                return (tabOrder, closed, opened, offline, taken, typedAgain, unknown);
+            });
+
+            Assert.Equal(["KeyBox", "UseKeyButton"], tabOrder);
+            Assert.Equal((Visibility.Visible, Visibility.Collapsed), closed);
+            Assert.Equal((Visibility.Collapsed, Visibility.Visible, Visibility.Collapsed), opened);
+            Assert.Equal(("first", false), offline);
+            Assert.Equal((Visibility.Visible, true, "Key used — Gengfu is in Callers now.", ""), taken);
+            Assert.Equal(Visibility.Collapsed, typedAgain);
+            Assert.Equal((true, Strings.KeyUnknown, "second"), unknown);
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Settings_made_again_opens_the_key_s_field_while_a_key_is_typed_or_its_answer_stands()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder);
+        try
+        {
+            var (typed, answered) = wpf.Invoke(() =>
+            {
+                session.TypeKey("first");
+                var typed = new SettingsView(session, () => { }, () => { });
+                session.KeyUsed(new KeyResult(KeyOutcome.Taken, "Callers"));
+                var answered = new SettingsView(session, () => { }, () => { });
+                return ((typed.KeyPanel.Visibility, typed.KeyBox.Text), (answered.KeyPanel.Visibility, answered.KeyBar.Visibility));
+            });
+
+            Assert.Equal((Visibility.Visible, "first"), typed);
+            Assert.Equal((Visibility.Visible, Visibility.Visible), answered);
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    // The controls under an element in tree order, which is the order Tab takes.
+    private static IEnumerable<Control> Controls(DependencyObject parent) =>
+        LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>()
+            .SelectMany(child => child is Control control ? [control] : Controls(child));
 
     [Theory]
     [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]

@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gengfu.App.Speech;
 using Gengfu.Core.Settings;
+using Gengfu.TeamSpeak;
 
 namespace Gengfu.App.Tests;
 
@@ -36,6 +37,29 @@ public sealed class CopyTests
         Assert.Equal(
             new[] { "1 channel", "2 channels", "21 channels" },
             new[] { 1, 2, 21 }.Select(count => Copy.ChannelCount(count, English)));
+    }
+
+    [Fact]
+    public void A_privilege_key_s_bar_names_the_group_it_gave_or_says_why_the_server_didn_t_take_it()
+    {
+        using (new UiCulture("en-US"))
+        {
+            Assert.Equal("Key used — Gengfu is in Callers now.", Copy.KeyAnswer(new KeyResult(KeyOutcome.Taken, "Callers")));
+            Assert.Equal("Key used — the server gave Gengfu the key’s group.", Copy.KeyAnswer(new KeyResult(KeyOutcome.Taken)));
+            Assert.Equal("The server doesn’t know this key: it’s used already, or mistyped.", Copy.KeyAnswer(new KeyResult(KeyOutcome.Unknown)));
+            Assert.Equal(
+                "The server doesn’t let the bot use privilege keys: an admin has to give it the group.",
+                Copy.KeyAnswer(new KeyResult(KeyOutcome.NotAllowed)));
+            Assert.Equal("The server refused the key: flood ban", Copy.KeyAnswer(new KeyResult(KeyOutcome.Refused, "flood ban")));
+            Assert.Equal(
+                "The connection dropped before the server answered. Try again once connected.",
+                Copy.KeyAnswer(new KeyResult(KeyOutcome.NoAnswer)));
+        }
+        using (new UiCulture("ru-RU"))
+        {
+            Assert.Equal("Ключ применён — Gengfu теперь в группе Боты.", Copy.KeyAnswer(new KeyResult(KeyOutcome.Taken, "Боты")));
+            Assert.Equal("Сервер отклонил ключ: flood ban", Copy.KeyAnswer(new KeyResult(KeyOutcome.Refused, "flood ban")));
+        }
     }
 
     [Fact]

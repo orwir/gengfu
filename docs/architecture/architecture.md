@@ -52,6 +52,9 @@ v0.2) plugs in without touching it.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
   line's words. When the server says a call reached nobody, `Session` keeps that for the status line
   and Settings until a whisper gets through, the connection is new, or other listeners are chosen.
+  It holds a privilege key typed in Settings, in memory only, uses it through the connection, and
+  keeps the server's answer for Settings until another key is typed or Connect is pressed: the
+  connection's own reconnects leave the bot's group as it was.
 - `MainWindow` draws its own title bar: Settings' way back sits in it, and maximize is left out.
   Its surface is flat, with no Mica backdrop: under a Mica frame Windows draws its own caption
   buttons too. Windows 11 rounds the corners on request.
@@ -152,7 +155,8 @@ watches the file: an edit saved there applies at once, events, language and them
 already made stay made. A file with an error changes nothing, and Settings shows where the error is
 until it is fixed.
 
-The server password and the bot's identity stay out of the file, so it can be shared. `Secrets`
+The server password and the bot's identity stay out of the file, so it can be shared; a privilege
+key is kept nowhere, since a used one is worthless. `Secrets`
 (App) keeps them beside it in `secrets.bin`, encrypted with Windows' data protection for this
 Windows user; one another user or PC wrote reads as empty, and Gengfu makes a new identity. One
 Windows won't let Gengfu read, perhaps held by another program, is never written over: the
@@ -198,6 +202,16 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
   error doesn't say which. It names no whisper either, so the connection counts it for the one on
   air, from its first frame, and says how a whisper went once it has played, waiting at least 1 s
   from that frame for the word of a far server.
+- A whisper reaches a listener only when the bot's `i_client_whisper_power` is at least the
+  listener's `i_client_needed_whisper_power`. Stock TS3 and TS6 set neither, so a bot in Guest
+  reaches everyone. A group with enough power, given to the bot while it is connected, counts at
+  once, with no reconnect.
+- A privilege key gives the bot such a group with no admin online. TSLib sends an empty
+  `client_default_token` when it connects, so Gengfu uses a key once connected (`privilegekeyuse`).
+  The server says which group it put the bot in (`notifyservergroupclientadded`) just before it
+  answers, and the connection names that group from the server's group list. The server checks
+  `b_virtualserver_token_use` before it looks the key up, so a refusal for it leaves the key unspent.
+  Guest has it by default; a group made from scratch doesn't, so after one key a second may fail.
 - The server sends its group list a moment after the connection is up; group ids come from the
   book's keys, because TSLib leaves the group's own `Id` at 0.
 - The bot's identity is created once and kept, so a server group can be assigned to it; its
@@ -226,3 +240,12 @@ Gengfu takes `3331 flood ban` as flood protection too, though neither server sen
 only why the bot left. Who kicked it comes with the leave notice, which TSLib raises as an event
 before it ends the connection, so the connection reads it there. An admin bot's kick carries the
 bot's own client id, so it stops Gengfu as a person's kick does.
+
+How a privilege key ends, the same on TS3 3.13.7 and TS6 6.0 beta:
+
+| The server | sends | and Settings says |
+| --- | --- | --- |
+| takes the key | the bot's new group, then `ok` | the group the bot is in now |
+| doesn't know it: made up, mistyped, or used already, since it deletes a used key | `3840 invalid privilege key` | it doesn't know the key |
+| won't let the bot's groups use keys | `2568 insufficient client permissions`, whatever the key | it doesn't let the bot use keys |
+| refuses for any other reason | its error | the server's words |

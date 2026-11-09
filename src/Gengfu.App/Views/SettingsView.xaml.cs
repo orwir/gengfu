@@ -33,6 +33,10 @@ internal partial class SettingsView : UserControl
     private bool _showing;
     private StatusTone? _tone;
     private CallProblem? _problem;
+    private KeyResult? _keyShown;
+
+    // Whether the privilege key's field is open in place of its link.
+    private bool _keyOpen;
 
     public SettingsView(Session session, Action languageChanged, Action themeChanged)
     {
@@ -51,6 +55,9 @@ internal partial class SettingsView : UserControl
         ServerBox.Text = session.Settings.Server;
         PasswordBox.Password = session.Password;
         NicknameBox.Text = session.Settings.Nickname;
+        KeyBox.Text = session.PrivilegeKey;
+        // A remade view opens the field again when a key is typed or an answer stands.
+        _keyOpen = session.PrivilegeKey.Length > 0 || session.KeyAnswer is not null;
         GroupRadio.IsChecked = session.Settings.Listeners == ListenerKind.Group;
         ChannelsRadio.IsChecked = session.Settings.Listeners == ListenerKind.Channels;
         LeadBox.ItemsSource = AppSettings.Leads.Select(lead => new ComboBoxItem { Content = Copy.Lead(lead), Tag = lead }).ToList();
@@ -93,6 +100,7 @@ internal partial class SettingsView : UserControl
         _showing = true;
         ShowFileError();
         ShowConnection();
+        ShowKey();
         ShowListeners();
         ShowSound();
         ShowNobodyHeard();
@@ -135,6 +143,31 @@ internal partial class SettingsView : UserControl
         }
         ConnectionText.SetResourceReference(TextBlock.ForegroundProperty,
             status.Tone is StatusTone.Critical or StatusTone.Retrying ? brush : "TextFillColorSecondaryBrush");
+    }
+
+    private void ShowKey()
+    {
+        KeyLink.Visibility = _keyOpen ? Visibility.Collapsed : Visibility.Visible;
+        KeyPanel.Visibility = _keyOpen ? Visibility.Visible : Visibility.Collapsed;
+        // A key the server took is spent, and the session empties it.
+        if (KeyBox.Text != _session.PrivilegeKey)
+        {
+            KeyBox.Text = _session.PrivilegeKey;
+        }
+        UseKeyButton.IsEnabled = _session.CanUseKey;
+        var answer = _session.KeyAnswer;
+        KeyBar.Visibility = answer is null ? Visibility.Collapsed : Visibility.Visible;
+        if (answer is null || answer == _keyShown)
+        {
+            return;
+        }
+        _keyShown = answer;
+        var taken = answer.Outcome == KeyOutcome.Taken;
+        KeyBar.Style = (Style)FindResource(taken ? "SuccessBar" : "ErrorBar");
+        KeyDisc.SetResourceReference(Shape.FillProperty, taken ? "SystemFillColorSuccessBrush" : "SystemFillColorCriticalBrush");
+        // A check for a key the server took, a cross for one it didn't.
+        KeyMark.Data = Geometry.Parse(taken ? "M5,8.25 L7,10.25 L11,6" : "M5.75,5.75 L10.25,10.25 M10.25,5.75 L5.75,10.25");
+        KeyText.Text = Copy.KeyAnswer(answer);
     }
 
     private void ShowListeners()
@@ -211,6 +244,7 @@ internal partial class SettingsView : UserControl
     {
         ServerPlaceholder.Visibility = ServerBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         PasswordPlaceholder.Visibility = PasswordBox.Password.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        KeyPlaceholder.Visibility = KeyBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // Windows lists its voices off the UI thread; a voice added meanwhile shows the next time the list opens.
@@ -275,6 +309,48 @@ internal partial class SettingsView : UserControl
         else
         {
             await _session.DisconnectAsync();
+        }
+    }
+
+    // The field opens in place of the link, with focus in it.
+    private void OnKeyLink(object sender, RoutedEventArgs e)
+    {
+        _keyOpen = true;
+        Refresh();
+        KeyBox.Focus();
+    }
+
+    private void OnKeyChanged(object sender, TextChangedEventArgs e)
+    {
+        ShowPlaceholders();
+        if (!_showing)
+        {
+            _session.TypeKey(KeyBox.Text);
+        }
+    }
+
+    // Enter in the key's field uses it, as Use would.
+    private void OnKeyKey(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && _session.CanUseKey)
+        {
+            e.Handled = true;
+            _ = UseKeyAsync();
+        }
+    }
+
+    private async void OnUseKey(object sender, RoutedEventArgs e) => await UseKeyAsync();
+
+    // Use is off while the key is on its way, which takes focus from it; focus goes to the field, which
+    // keeps a key the server didn't take.
+    private async Task UseKeyAsync()
+    {
+        var fromButton = UseKeyButton.IsKeyboardFocused;
+        await _session.UseKeyAsync();
+        Refresh();
+        if (fromButton)
+        {
+            KeyBox.Focus();
         }
     }
 

@@ -240,6 +240,50 @@
     <value>Disconnect</value>
     <comment>Settings › TeamSpeak.</comment>
   </data>
+  <data name="UsePrivilegeKey" xml:space="preserve">
+    <value>Use a privilege key</value>
+    <comment>Settings › TeamSpeak: a link under Connect that opens the privilege key's field in its place.</comment>
+  </data>
+  <data name="PrivilegeKey" xml:space="preserve">
+    <value>Privilege key</value>
+    <comment>Settings › TeamSpeak: a one-time key from a server admin that puts the bot in a server group. TeamSpeak's own word for it.</comment>
+  </data>
+  <data name="PrivilegeKeyPlaceholder" xml:space="preserve">
+    <value>From the server’s admin</value>
+    <comment>Placeholder of the privilege key.</comment>
+  </data>
+  <data name="UseKey" xml:space="preserve">
+    <value>Use</value>
+    <comment>Button beside the privilege key: sends it to the server Gengfu is on.</comment>
+  </data>
+  <data name="UseKeyName" xml:space="preserve">
+    <value>Use the privilege key</value>
+    <comment>What a screen reader says of Use beside the privilege key.</comment>
+  </data>
+  <data name="KeyTaken" xml:space="preserve">
+    <value>Key used — Gengfu is in {0} now.</value>
+    <comment>Under the privilege key: the server took it. {0} is the server group it put the bot in, as the server names it.</comment>
+  </data>
+  <data name="KeyTakenNoGroup" xml:space="preserve">
+    <value>Key used — the server gave Gengfu the key’s group.</value>
+    <comment>Under the privilege key: the server took it and named no server group, as for a key to a channel group.</comment>
+  </data>
+  <data name="KeyUnknown" xml:space="preserve">
+    <value>The server doesn’t know this key: it’s used already, or mistyped.</value>
+    <comment>Under the privilege key. The server deletes a key once used, so it answers a used key as it does a made-up one.</comment>
+  </data>
+  <data name="KeyNotAllowed" xml:space="preserve">
+    <value>The server doesn’t let the bot use privilege keys: an admin has to give it the group.</value>
+    <comment>Under the privilege key: the bot's groups may not use keys, whatever the key.</comment>
+  </data>
+  <data name="KeyRefused" xml:space="preserve">
+    <value>The server refused the key: {0}</value>
+    <comment>Under the privilege key: any other refusal. {0} is the server's own words, in English.</comment>
+  </data>
+  <data name="KeyNoAnswer" xml:space="preserve">
+    <value>The connection dropped before the server answered. Try again once connected.</value>
+    <comment>Under the privilege key: the connection ended before the server answered the key.</comment>
+  </data>
   <data name="Connected" xml:space="preserve">
     <value>Connected</value>
     <comment>Beside Disconnect in Settings.</comment>

@@ -186,6 +186,78 @@ public sealed class TeamSpeakConnectionTests
     }
 
     [Fact]
+    public void A_privilege_key_is_read_from_the_servers_answer()
+    {
+        Assert.Equal(new KeyResult(KeyOutcome.Taken, "Callers"), TeamSpeakConnection.ReadKey(null, "Callers"));
+        Assert.Equal(new KeyResult(KeyOutcome.Taken), TeamSpeakConnection.ReadKey(null, null));
+        Assert.Equal(
+            new KeyResult(KeyOutcome.Unknown),
+            TeamSpeakConnection.ReadKey(new CommandError { Id = TsErrorCode.privilege_key_invalid, Message = "invalid privilege key" }, null));
+        // Whatever permission it names: before TSLib has the server's permission names, it names none.
+        Assert.Equal(
+            new KeyResult(KeyOutcome.NotAllowed),
+            TeamSpeakConnection.ReadKey(new CommandError { Id = TsErrorCode.permissions_client_insufficient, MissingPermissionId = TsPermission.undefined }, null));
+        Assert.Equal(new KeyResult(KeyOutcome.NoAnswer), TeamSpeakConnection.ReadKey(CommandError.ConnectionClosed, null));
+        Assert.Equal(new KeyResult(KeyOutcome.NoAnswer), TeamSpeakConnection.ReadKey(CommandError.CommandTimeout, null));
+        Assert.Equal(
+            new KeyResult(KeyOutcome.Refused, "flood ban"),
+            TeamSpeakConnection.ReadKey(new CommandError { Id = TsErrorCode.ban_flooding, Message = "flood ban" }, null));
+    }
+
+    [Fact]
+    public async Task A_privilege_key_while_not_connected_sends_nothing()
+    {
+        await using var connection = new TeamSpeakConnection(null, _time);
+
+        Assert.Equal(new KeyResult(KeyOutcome.NoAnswer), await connection.UsePrivilegeKeyAsync("key"));
+    }
+
+    [Fact]
+    public async Task A_privilege_key_the_server_takes_names_the_group_it_put_the_bot_in()
+    {
+        // TS3 and TS6 send their group list once the bot is in; they answer a key they take with the
+        // bot's new group, then the answer itself. A group given to someone else meanwhile isn't the bot's.
+        using var server = new LocalTsServer(
+            @"notifyservergrouplist sgid=10 name=Callers type=1 iconid=0 savedb=1 sortid=0 namemode=0 n_modifyp=0 n_member_addp=0 n_member_removep=0" +
+            @"|sgid=11 name=Def type=1 iconid=0 savedb=1 sortid=0 namemode=0 n_modifyp=0 n_member_addp=0 n_member_removep=0")
+        {
+            CommandAnswer =
+            [
+                $@"notifyservergroupclientadded invokerid=0 invokername=Server sgid=10 clid={LocalTsServer.BotId} name=Gengfu cluid=bot",
+                @"notifyservergroupclientadded invokerid=61 invokername=Admin invokeruid=admin sgid=11 clid=5 name=Defender cluid=defender",
+                "error id=0 msg=ok",
+            ],
+        };
+        await using var connection = new TeamSpeakConnection(null, _time);
+        var states = Watch(connection);
+        await connection.ConnectAsync(server.Address, "Gengfu", "");
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        var up = connection.State;
+
+        Assert.Equal(new KeyResult(KeyOutcome.Taken, "Callers"), await connection.UsePrivilegeKeyAsync("key").WaitAsync(Patience));
+        Assert.Same(up, connection.State);
+    }
+
+    [Theory]
+    [InlineData("error id=0 msg=ok", KeyOutcome.Taken, null)]
+    [InlineData(@"error id=3840 msg=invalid\sprivilege\skey", KeyOutcome.Unknown, null)]
+    [InlineData(@"error id=2568 msg=insufficient\sclient\spermissions failed_permid=40", KeyOutcome.NotAllowed, null)]
+    [InlineData(@"error id=3331 msg=flood\sban", KeyOutcome.Refused, "flood ban")]
+    public async Task A_privilege_key_ends_as_the_server_answers_it(string answer, KeyOutcome outcome, string? detail)
+    {
+        // A key for a channel group gives the bot no server group, so the server names none.
+        using var server = new LocalTsServer("") { CommandAnswer = [answer] };
+        await using var connection = new TeamSpeakConnection(null, _time);
+        var states = Watch(connection);
+        await connection.ConnectAsync(server.Address, "Gengfu", "");
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+
+        Assert.Equal(new KeyResult(outcome, detail), await connection.UsePrivilegeKeyAsync("key").WaitAsync(Patience));
+    }
+
+    [Fact]
     public async Task A_raised_identity_keeps_its_key_and_reaches_the_level_asked_for()
     {
         var weak = IdentityData.GenerateNewIdentity(0);

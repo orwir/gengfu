@@ -17,7 +17,7 @@ namespace Gengfu.TeamSpeak.Tests;
 /// in, through the key exchange TSLib keeps for older servers (initivexpand), and is then sent to it,
 /// as a server sends the notice that the bot was kicked; an empty line lets the bot stay. While
 /// <see cref="RefusesWhispers"/> is set, it answers the bot's whispers as a server does when nobody
-/// can hear them.
+/// can hear them; it answers the bot's commands with <see cref="CommandAnswer"/>.
 /// </summary>
 internal sealed class LocalTsServer : IDisposable
 {
@@ -34,6 +34,7 @@ internal sealed class LocalTsServer : IDisposable
     // Init1 packet's data opens with a 4-byte version, then the handshake's step; the last step
     // carries the solved puzzle, then the client's clientinitiv.
     private const int Header = 13;
+    private const int PacketId = 8;
     private const int Step = Header + 4;
     private const int ClientInitIv = Step + 1 + 232 + 64;
 
@@ -78,6 +79,13 @@ internal sealed class LocalTsServer : IDisposable
         set => _refusesWhispers = value;
     }
 
+    /// <summary>
+    /// The lines it answers each command of the bot's with once the bot is in, as a server answers a
+    /// privilege key; the last, its error line, gets the command's return code, which TSLib counts
+    /// from 1 on each connection. None leaves the commands unanswered.
+    /// </summary>
+    public string[] CommandAnswer { get; init; } = [];
+
     public void Dispose() => _udp.Dispose();
 
     private async Task ServeAsync()
@@ -120,13 +128,29 @@ internal sealed class LocalTsServer : IDisposable
                     Interlocked.Increment(ref _attemptCount);
                 }
                 return Handshake(packet, attempt);
-            case PacketType.Command when _attempts.TryGetValue(client, out var joining) && joining.Mac is not null && !joining.Joined:
-                // The client's first command, clientinit, shows it has the keys: only now does it
-                // take packets that carry the MAC made from them.
-                joining.Joined = true;
-                return joining.Line.Length == 0
-                    ? [joining.Next(InitServer)]
-                    : [joining.Next(InitServer), joining.Next(joining.Line)];
+            case PacketType.Command when _attempts.TryGetValue(client, out var joining) && joining.Mac is not null:
+                // TSLib sends a command again until the server acknowledges it, which this one never does.
+                var id = (packet[PacketId] << 8) | packet[PacketId + 1];
+                if (id <= joining.LastCommand)
+                {
+                    return [];
+                }
+                joining.LastCommand = id;
+                if (!joining.Joined)
+                {
+                    // The client's first command, clientinit, shows it has the keys: only now does it
+                    // take packets that carry the MAC made from them.
+                    joining.Joined = true;
+                    return joining.Line.Length == 0
+                        ? [joining.Next(InitServer)]
+                        : [joining.Next(InitServer), joining.Next(joining.Line)];
+                }
+                if (CommandAnswer.Length == 0)
+                {
+                    return [];
+                }
+                var returnCode = ++joining.Answered;
+                return [.. CommandAnswer[..^1].Select(joining.Next), joining.Next($"{CommandAnswer[^1]} return_code={returnCode}")];
             case PacketType.VoiceWhisper when RefusesWhispers && _attempts.TryGetValue(client, out var whispering) && whispering.Joined:
                 var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
                 if (whispering.NoTargetsAt is not { } last || now - last >= NoTargetsEvery)
@@ -239,6 +263,12 @@ internal sealed class LocalTsServer : IDisposable
         public byte[]? Mac { get; set; }
 
         public bool Joined { get; set; }
+
+        /// <summary>The packet id of the client's last command, so a command sent again goes unanswered.</summary>
+        public int LastCommand { get; set; } = -1;
+
+        /// <summary>How many of the client's commands have had <see cref="CommandAnswer"/>.</summary>
+        public int Answered { get; set; }
 
         /// <summary>When the server last said a whisper reached nobody, on <see cref="Environment.TickCount64"/>.</summary>
         public TimeSpan? NoTargetsAt { get; set; }

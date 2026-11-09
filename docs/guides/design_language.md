@@ -35,7 +35,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **In code:** always the Fluent brush, by DynamicResource, so a switch of theme, Windows' or the
   one Settings picks, repaints it; the hex values are the default accent's. Hints use the Fluent
   InfoBar backgrounds: InfoBarInformationalSeverityBackgroundBrush and
-  InfoBarWarningSeverityBackgroundBrush.
+  InfoBarWarningSeverityBackgroundBrush; how a privilege key went, InfoBarSuccessSeverityBackgroundBrush
+  and InfoBarErrorSeverityBackgroundBrush.
   The one exception is the title bar's close button: its red (#C42B1C on hover) and white
   glyph are Windows' own in both themes.
 
@@ -109,6 +110,11 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   connected the drop-downs are off; the server's lists are read once it is, and again whenever
   a list opens, and until they are in the group drop-down holds the group already chosen.
   Connecting to another server clears the choice, and the status line asks who hears the calls.
+  Privilege keys are rare, so under Connect a link, Use a privilege key, opens the key's field in
+  its place, with focus in it; Use beside the field is off until Gengfu is connected and a key is
+  typed, and Enter in the field does the same. A key the server took empties the field; one it
+  didn't stays, so a typo can be fixed. The field stays open, and opens again when Settings is
+  made anew while a key is typed or an answer stands.
   General starts with Language and Theme, each offering Same as Windows first, then its fixed
   choices. It ends with the version and an Open settings file link, which opens the file in the app
   Windows uses for .json files, or in Notepad. Under the version, across the card, a caption says
@@ -120,7 +126,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   "!" when a call plays the gong for another reason: no text, Windows failed to speak it,
   or the file can't be played. Under Test call, a caution bar says the server said the last
   call reached nobody, and why that may be, for the group or the channels: Settings hides the
-  main window's status line, and its own Test call is pressed there.
+  main window's status line, and its own Test call is pressed there. Under the privilege key, a
+  success bar with a check names the group the server put the bot in, or an error bar with a cross
+  says why the server didn't take the key; it stays until another key is typed or Connect is
+  pressed, through the connection's own reconnects.
 - **Settings file bar:** when settings.json has an error, a caution bar sits under the title
   bar, above Settings' scroll, so it shows however far Settings is scrolled. It names the line
   and the setting, or the line alone for an error outside any setting, such as a missing comma,
@@ -157,5 +166,5 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html, MainRaising.dc.html, MainServerKick.dc.html, MainFlood.dc.html, MainLevelTooHigh.dc.html, MainFull.dc.html, MainNobodyHeard.dc.html, MainNobodyHeardRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html, SettingsNobodyHeard.dc.html, SettingsNobodyHeardRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html, SettingsNobodyHeard.dc.html, SettingsNobodyHeardRu.dc.html, SettingsKeyOpen.dc.html, SettingsKeyTaken.dc.html, SettingsKeyTakenRu.dc.html, SettingsKeyUnknown.dc.html, SettingsKeyNotAllowedRu.dc.html, SettingsKeyOffline.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
 | App icon    | AppIcon.dc.html | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |

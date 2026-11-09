@@ -64,6 +64,8 @@ internal sealed class Session : IAsyncDisposable
     // state stands, the connection is the same one.
     private (WhisperTarget Target, ConnectionState On)? _unheard;
 
+    private bool _usingKey;
+
     /// <param name="windows">Windows' display language, for "Same as Windows".</param>
     /// <param name="folder">Where the settings file and the secrets live: <see cref="Home"/> names it.</param>
     /// <param name="install">Velopack's manager when this copy keeps the install up to date; null for any other.</param>
@@ -160,6 +162,18 @@ internal sealed class Session : IAsyncDisposable
     public bool NobodyHeard =>
         _unheard is { } unheard && unheard.Target == Target && ReferenceEquals(unheard.On, Connection.State);
 
+    /// <summary>The privilege key typed in Settings. It is never saved: once used, a key is worthless.</summary>
+    public string PrivilegeKey { get; private set; } = "";
+
+    /// <summary>
+    /// How the server took the last key used. It stands until another key is typed or Connect is
+    /// pressed: the connection's own reconnects leave the bot's group as it was.
+    /// </summary>
+    public KeyResult? KeyAnswer { get; private set; }
+
+    /// <summary>Whether Use would send the typed key: connected, a key typed, and none on its way.</summary>
+    public bool CanUseKey => CanUseKeyFor(Connection.State.Status, PrivilegeKey, _usingKey);
+
     /// <summary>Whether Connect would start a new connection: none is up, or a field changed since this one began.</summary>
     public bool OffersConnect => OffersConnectFor(Connection.State.Status, ConnectedWith, Login.Of(Settings, Password));
 
@@ -208,6 +222,7 @@ internal sealed class Session : IAsyncDisposable
         }
         ConnectedWith = login;
         ForgetLists();
+        KeyAnswer = null;
         // The new connection's lists are read even when no tick sees it connecting.
         _seen = ConnectionStatus.Disconnected;
         return Connection.ConnectAsync(login.Server, login.Nickname, login.Password);
@@ -238,6 +253,34 @@ internal sealed class Session : IAsyncDisposable
             .. Settings.Channels.Select(channel =>
                 Channels.FirstOrDefault(known => known.Id == channel.Id) is { } known ? new Named(known.Id, known.Name) : channel),
         ];
+    }
+
+    /// <summary>Takes the privilege key as typed; the answer to the key before it no longer stands.</summary>
+    public void TypeKey(string key)
+    {
+        if (key != PrivilegeKey)
+        {
+            PrivilegeKey = key;
+            KeyAnswer = null;
+        }
+    }
+
+    /// <summary>Uses the typed key on the server Gengfu is on; one the server took is spent, so it is cleared.</summary>
+    public async Task UseKeyAsync()
+    {
+        if (!CanUseKey)
+        {
+            return;
+        }
+        _usingKey = true;
+        try
+        {
+            KeyUsed(await Connection.UsePrivilegeKeyAsync(PrivilegeKey.Trim()));
+        }
+        finally
+        {
+            _usingKey = false;
+        }
     }
 
     /// <summary>Takes a group from the server Gengfu is connected to.</summary>
@@ -325,6 +368,16 @@ internal sealed class Session : IAsyncDisposable
         return result == WhisperResult.Sent;
     }
 
+    /// <summary>Takes in how the server took the key; one it took is spent, so it is cleared.</summary>
+    internal void KeyUsed(KeyResult answer)
+    {
+        KeyAnswer = answer;
+        if (answer.Outcome == KeyOutcome.Taken)
+        {
+            PrivilegeKey = "";
+        }
+    }
+
     /// <summary>Takes in the settings file as it is on disk now, after an edit.</summary>
     internal void Reload()
     {
@@ -363,6 +416,10 @@ internal sealed class Session : IAsyncDisposable
 
     internal static bool OffersConnectFor(ConnectionStatus status, Login? connectedWith, Login fields) =>
         status == ConnectionStatus.Disconnected || connectedWith != fields;
+
+    // A pasted key often brings spaces along; they are no key.
+    internal static bool CanUseKeyFor(ConnectionStatus status, string key, bool sending) =>
+        !sending && key.Trim().Length > 0 && status == ConnectionStatus.Connected;
 
     internal static string TextOf(AppSettings settings, CultureInfo language) =>
         settings.CallText ?? Copy.CallText(settings.Lead, language);

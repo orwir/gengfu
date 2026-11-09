@@ -82,6 +82,28 @@ public enum WhisperResult
     ReachedNobody,
 }
 
+/// <summary>How the server took a privilege key.</summary>
+public enum KeyOutcome
+{
+    /// <summary>The server didn't answer: Gengfu wasn't connected, or the connection ended first.</summary>
+    NoAnswer,
+
+    /// <summary>The server put the bot in the key's group; <see cref="KeyResult.Detail"/> names it when the server says which.</summary>
+    Taken,
+
+    /// <summary>The server doesn't know the key: made up, mistyped, or used already, since the server deletes a used key.</summary>
+    Unknown,
+
+    /// <summary>The bot's groups may not use privilege keys; the key itself is left as it was.</summary>
+    NotAllowed,
+
+    /// <summary>Any other refusal; <see cref="KeyResult.Detail"/> holds the server's own words.</summary>
+    Refused,
+}
+
+/// <summary>How the server took a privilege key, with the group it gave or its own words.</summary>
+public sealed record KeyResult(KeyOutcome Outcome, string? Detail = null);
+
 /// <summary>
 /// Gengfu's seat on a TeamSpeak server. It connects as a normal client and keeps the connection up:
 /// an attempt the server doesn't answer gives up after <see cref="AttemptTimeout"/>, a failure is
@@ -127,6 +149,9 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
     // How often the server has said a whisper reached nobody: TSLib's thread counts, a whisper compares.
     private long _noTargets;
 
+    // The server group the server last put the bot in; read and written on TSLib's thread.
+    private ServerGroupId? _joined;
+
     /// <param name="identity">The bot's identity as <see cref="Identity"/> gave it; null or unreadable makes a new one.</param>
     /// <param name="time">The clock its states' <see cref="ConnectionState.RetryAt"/> is on: the App's own.</param>
     public TeamSpeakConnection(string? identity, ITimeSource time)
@@ -160,6 +185,14 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             if (error.Id == TsErrorCode.whisper_no_targets)
             {
                 Interlocked.Increment(ref _noTargets);
+            }
+        };
+        // The server names the group a privilege key gave the bot just before it answers the key.
+        _client.OnEachClientServerGroupAdded += (_, added) =>
+        {
+            if (added.ClientId == _client.ClientId)
+            {
+                _joined = added.ServerGroupId;
             }
         };
     }
@@ -237,6 +270,25 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
         return Interlocked.Read(ref _noTargets) == before ? WhisperResult.Sent : WhisperResult.ReachedNobody;
     }
 
+    /// <summary>
+    /// Uses a privilege key on the server Gengfu is on, and says how the server took it. The group it
+    /// gives the bot comes at once and stays with the bot's identity. Sends nothing when not connected.
+    /// </summary>
+    public async Task<KeyResult> UsePrivilegeKeyAsync(string key)
+    {
+        if (_state.Status != ConnectionStatus.Connected)
+        {
+            return new KeyResult(KeyOutcome.NoAnswer);
+        }
+        return await _scheduler.InvokeAsync(async () =>
+        {
+            _joined = null;
+            var used = await _client.PrivilegeKeyUse(key);
+            var group = _joined is { } id && _client.Book.ServerGroups.TryGetValue(id, out var joined) ? joined.Name : null;
+            return ReadKey(used.Ok ? null : used.Error, group);
+        });
+    }
+
     public async ValueTask DisposeAsync()
     {
         try
@@ -303,6 +355,23 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             _ => (ConnectionProblem.NoAnswer, null),
         };
     }
+
+    /// <summary>
+    /// How the server took a privilege key, from its error, none when it took it; TS3 and TS6 answer
+    /// alike. <paramref name="group"/> is the group the server put the bot in, when it said.
+    /// </summary>
+    internal static KeyResult ReadKey(CommandError? error, string? group) =>
+        error switch
+        {
+            null => new KeyResult(KeyOutcome.Taken, group),
+            { Id: TsErrorCode.privilege_key_invalid } => new KeyResult(KeyOutcome.Unknown),
+            // The server checks b_virtualserver_token_use before it looks the key up. The permission
+            // the error names doesn't count: TSLib may not have the server's permission names yet.
+            { Id: TsErrorCode.permissions_client_insufficient } => new KeyResult(KeyOutcome.NotAllowed),
+            // TSLib's own failures: there was no connection, or none left before the server answered.
+            { Id: TsErrorCode.custom_error } => new KeyResult(KeyOutcome.NoAnswer),
+            { } other => new KeyResult(KeyOutcome.Refused, other.Message),
+        };
 
     /// <summary>The identity level a refusal asks for; the server puts it in the error's extra message.</summary>
     internal static int? RequiredSecurityLevel(CommandError? error) =>

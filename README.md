@@ -51,7 +51,8 @@ Open Settings with the gear at the bottom right. Every change applies at once an
 - **TeamSpeak.** Enter the server address as your TeamSpeak client takes it, the server password
   if it has one, and a nickname for the bot, then press **Connect**. Gengfu stays connected by
   itself; the line at the top of the main window says how it stands, and while Gengfu waits to
-  try again, how long until it does.
+  try again, how long until it does. A privilege key from the server's admin goes under **Use a
+  privilege key** ([On a strict server](#on-a-strict-server)).
 - **Who hears the calls.** Pick a server group, and everyone in it hears the calls in whatever
   channel they are, or tick the channels that should. The lists come from the server once Gengfu
   is connected, and the server has to allow the bot to whisper. Connecting to another server
@@ -70,7 +71,12 @@ stricter server asks its admin for three things:
 
 - **Whisper power.** The bot's server group needs at least the whisper power the listeners' groups
   ask for (`i_client_whisper_power` against `i_client_needed_whisper_power`). Without it the server
-  tells Gengfu that nobody heard the calls, and Gengfu says so.
+  tells Gengfu that nobody heard the calls, and Gengfu says so. The admin gives the bot such a group
+  while it is online, or, without being online then, makes a privilege key for that group (in
+  TeamSpeak, Permissions › Privilege Keys) and sends it to you. In Settings › TeamSpeak press **Use
+  a privilege key**, paste the key and press **Use**: the bot joins the group at once and keeps it.
+  A key works once. A later key also needs the bot's group to allow privilege keys
+  (`b_virtualserver_token_use`), as Guest does.
 - **No idle limit.** Between matches the bot stays silent. When the server's own idle limit
   (`i_client_max_idletime`) kicks it, Gengfu is back within a second, but a call due that moment
   is lost. An admin bot that kicks idle clients stops Gengfu, as a person's kick does. So exempt

@@ -15,6 +15,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - While Gengfu waits to connect again, the status line counts down to its next attempt (#13)
 - The status line says when the server reports that the last call reached nobody (#37)
 - In Settings, a note under Test call says when nobody heard the last call, and why that may be (#37)
+- Settings › TeamSpeak takes a privilege key from a server admin, so the bot joins the key's group (#36)
 
 ### Changed
 

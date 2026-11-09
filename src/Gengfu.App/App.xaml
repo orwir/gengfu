@@ -168,7 +168,8 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
 
-        <!-- Hints under a setting: informational (the no-voice hint) or a caution (a call that plays the gong). -->
+        <!-- Hints under a setting: informational (the no-voice hint) or a caution (a call that plays the
+             gong); and how a privilege key went, a success or an error. -->
         <Style x:Key="InfoBar" TargetType="Border">
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="CornerRadius" Value="4" />
@@ -179,6 +180,14 @@
 
         <Style x:Key="CautionBar" TargetType="Border" BasedOn="{StaticResource InfoBar}">
             <Setter Property="Background" Value="{DynamicResource InfoBarWarningSeverityBackgroundBrush}" />
+        </Style>
+
+        <Style x:Key="SuccessBar" TargetType="Border" BasedOn="{StaticResource InfoBar}">
+            <Setter Property="Background" Value="{DynamicResource InfoBarSuccessSeverityBackgroundBrush}" />
+        </Style>
+
+        <Style x:Key="ErrorBar" TargetType="Border" BasedOn="{StaticResource InfoBar}">
+            <Setter Property="Background" Value="{DynamicResource InfoBarErrorSeverityBackgroundBrush}" />
         </Style>
 
         <!-- Icons are strokes in the text's colour, 16 px, as the design draws them. -->
