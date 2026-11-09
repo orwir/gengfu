@@ -61,6 +61,7 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
   use a sound file instead. **Test call** whispers the call once, now.
 - **Language.** English, Russian, or the same as Windows.
+- **Theme.** Light, dark, or the same as Windows.
 
 ## Your settings
 
@@ -92,11 +93,13 @@ gets it pastes it over the `events` in their own file through **Open settings fi
 
 ## The calls
 
-Under the clock, Gengfu shows the next call and the time left until it. The list below has every
-call of the match: a check once it went out, and ✕ *Not sent* when nobody heard it: Gengfu was
-off the server, nobody was chosen to hear the calls, the whisper failed, or the clock was moved
-past the spawn first. When there are more calls than fit, the list scrolls to keep the next one in
-view.
+The calls list has every call of the match: the next one with the time left until it, a check once
+a call went out, and ✕ *Not sent* when nobody heard it: Gengfu was off the server, nobody was
+chosen to hear the calls, the whisper failed, or the clock was moved past the spawn first. When
+there are more calls than fit, the list scrolls to keep the next one in view.
+
+Under the clock, a line asks you to match the in-game timer until the last call; while a call goes
+out, it says what the squads hear instead.
 
 ## Match the clock
 
@@ -111,7 +114,8 @@ it drifts from the game's timer, match it while the match runs:
   and land on the nearest minute, so 58 typed while the clock shows 22:02 gives 21:58.
 - **Type ahead** for the closest match: type the seconds the game will reach a few seconds from
   now, wait, and press Enter the moment it reaches them. Without a pause of more than a second
-  before Enter, Gengfu counts from your first keystroke instead.
+  before Enter, Gengfu counts from your first keystroke instead, as it always does when you leave
+  the field.
 
 Values the game can't show, such as 75 seconds, are ignored. **Stop** ends the match.
 

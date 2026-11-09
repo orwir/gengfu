@@ -31,7 +31,7 @@ internal static class Copy
         _ => Format(Strings.SettingsFileError, error.Line, error.Setting),
     };
 
-    /// <summary>The line under the version in Settings › General; none for a copy Setup didn't install.</summary>
+    /// <summary>The line under the version in Settings › General; none for a copy that doesn't update.</summary>
     public static string? UpdateLine(UpdateState state) => state switch
     {
         UpdateState.Checking => Strings.UpdateChecking,

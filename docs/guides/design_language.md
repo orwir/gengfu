@@ -7,10 +7,12 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 ## Principles
 
 - **Native Windows 11.** WPF Fluent look; no custom chrome beyond the title bar.
-- **Compact.** One 380 px window. The clock and the next call are the only large things.
+- **Compact.** One 380 px window. The clock is the only large thing; the next call stands out in
+  the list.
 - **The clock mirrors the game.** Same format, counts down 35:00 → 00:00, rounds up
   (35:00 holds for the first second, 00:00 shows only at the end). Digits never animate.
-- **System theme.** Light and dark follow Windows; the accent follows the Windows accent.
+- **Theme.** Light and dark follow Windows unless Settings › General picks one; the accent
+  follows the Windows accent in either. Windows' high contrast wins over the pick.
 - **Two languages.** Every string ships in English and Russian; leave room for Russian,
   which runs about a quarter longer.
 
@@ -30,9 +32,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 | status.caution  | #9D5D00 | #FCE100 | warnings                          | SystemFillColorCautionBrush           |
 | status.critical | #C42B1C | #FF99A4 | errors, not connected             | SystemFillColorCriticalBrush          |
 
-- **In code:** always the Fluent brush, by DynamicResource, so a switch of the Windows theme
-  repaints it; the hex values are the default accent's. Hints use the Fluent InfoBar
-  backgrounds: InfoBarInformationalSeverityBackgroundBrush and InfoBarWarningSeverityBackgroundBrush.
+- **In code:** always the Fluent brush, by DynamicResource, so a switch of theme, Windows' or the
+  one Settings picks, repaints it; the hex values are the default accent's. Hints use the Fluent
+  InfoBar backgrounds: InfoBarInformationalSeverityBackgroundBrush and
+  InfoBarWarningSeverityBackgroundBrush.
   The one exception is the title bar's close button: its red (#C42B1C on hover) and white
   glyph are Windows' own in both themes.
 
@@ -56,13 +59,20 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   Settings icon), link (accent text: the status line's Settings, "Use a sound file
   instead"); Fluent rest / hover / pressed / disabled. Start and Stop are one button that
   flips, so keyboard focus stays on it. Test call is off unless Gengfu is connected with
-  someone to hear it, and reads "Calling…" while its call plays.
+  someone to hear it, and reads "Calling…" while its call plays. An icon and its label share
+  the centre of what holds them, the label's capitals rather than its line: the IconLabel
+  style lifts a 14 px label 2.2 px beside its 16 px icon, and both hang from the top of a
+  panel that centres the pair, so rounding to device pixels moves them together.
 - **Clock digits:** minutes and seconds are fields that look like plain digits. Hover →
   subtle fill; focus → field fill, 2 px accent underline, whole value selected (accent fill,
   text on accent), the running clock shown until the first keystroke. Arrows above and
   below each nudge ±1 min / ±1 s; Tab skips them, since ↑ ↓ in a field do the same. Enter
   and Esc hand focus to the clock as a whole, so the digits read as plain text again.
   Disabled until Start.
+- **Line under the clock:** centred secondary body text: "Press Start when the match begins"
+  before Start; "Match the in-game timer" while a call is next, since the list shows the call;
+  "Calling now:" and what listeners hear (the text, the file's name or the gong) in accent
+  Semibold while one plays; "No more calls this match" after the last; "Match over" at 00:00.
 - **Calls list:** one row per call: its time, its event's name and spawn, and how it stands —
   called (secondary, check), not sent (secondary, critical ✕ "Not sent"), calling (accent,
   speaker, tinted), next (accent, "in m:ss", tinted), later (primary). A call is not sent when
@@ -93,7 +103,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   connected the drop-downs are off; the server's lists are read once it is, and again whenever
   a list opens, and until they are in the group drop-down holds the group already chosen.
   Connecting to another server clears the choice, and the status line asks who hears the calls.
-  General ends with the version and an Open settings file link, which opens the file in the app
+  General starts with Language and Theme, each offering Same as Windows first, then its fixed
+  choices. It ends with the version and an Open settings file link, which opens the file in the app
   Windows uses for .json files, or in Notepad. Under the version, across the card, a caption says
   where updates stand: checking, up to date, downloading, installed, or couldn't check; a copy
   Setup didn't install shows none.
@@ -120,15 +131,15 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Sync:** Start sets 35:00. Correct with the arrows or by typing; every future call
   moves with the clock. Typed minutes keep the running seconds; typed seconds land on the
   nearest minute and are timed from the first keystroke (from Enter after a pause, for
-  typing ahead). Enter applies, and so does leaving the field (timed from leaving after a
-  pause of over 3 s); Esc cancels, ↑ ↓ nudge. Verify the rounding against the real game
-  timer — the sync offsets depend on it.
+  typing ahead). Enter applies, and so does leaving the field, never read as typing ahead;
+  Esc cancels, ↑ ↓ nudge. Verify the rounding against the real game timer — the sync
+  offsets depend on it.
 - **No sync claims:** Gengfu can't see the game timer, so it shows no sync status and never
   says it is "in sync" — the clock itself is the feedback. Out-of-range typed values are
   ignored. No dialogs, no toasts; Windows' own file picker is the one exception.
 - **Settings apply at once:** no Save or OK. A new language remakes the views; Settings stays
-  where it was, with focus on Language. A call's default text follows the lead and the
-  language until the user edits it.
+  where it was, with focus on Language. A new theme does the same, with focus on Theme. A call's
+  default text follows the lead and the language until the user edits it.
 - **Copy:** short and plain; units always written ("30 s" / "30 с"); in Russian, decimal
   comma and «» quotes. Event names and call text are user data, not copy; the file's own words,
   such as settings.json and a setting's key, stay as the file spells them in both languages.
@@ -138,5 +149,5 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
 | App icon    | AppIcon.dc.html | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |

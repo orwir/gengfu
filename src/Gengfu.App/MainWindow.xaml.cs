@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
@@ -18,14 +17,17 @@ public partial class MainWindow : Window
     private const int DwmWindowCornerPreference = 33;
     private const int DwmRound = 2;
 
-    private readonly Session _session = new(CultureInfo.CurrentUICulture);
+    private readonly Session _session;
     private MainView _main;
     private SettingsView? _settings;
 
-    public MainWindow()
+    internal MainWindow(Session session)
     {
+        _session = session;
         InitializeComponent();
         AppLanguage.Apply(_session.Language);
+        // Before the window has its handle, which WPF gives the theme's frame as it makes it.
+        AppTheme.Apply(_session.Settings.Theme);
         _main = new MainView(_session, ShowSettings);
         ShowMain();
         // The digits change on whole game seconds; a short tick shows each change within 50 ms.
@@ -91,20 +93,22 @@ public partial class MainWindow : Window
 
     private void ShowSettings()
     {
-        _settings ??= new SettingsView(_session, OnLanguageChosen);
+        _settings ??= new SettingsView(_session, OnLanguageChosen, OnThemeChosen);
         Page.Content = _settings;
         ShowTitleBar();
         BackButton.Focus();
     }
 
     // The strings and the settings are read when a view is made, so a new language, or settings
-    // taken from the file, take new views. Whichever view showed stays, Settings where it was scrolled.
+    // taken from the file, take new views; so does a new theme, which scrolls lists back to their
+    // tops. Whichever view showed stays, Settings where it was scrolled.
     private void RemakeViews()
     {
         var inSettings = Page.Content is SettingsView;
+        // Read before the next layout, which is when a new theme's templates scroll it to the top.
         var offset = _settings?.ScrollOffset ?? 0;
         _main = new MainView(_session, ShowSettings);
-        _settings = inSettings ? new SettingsView(_session, OnLanguageChosen) : null;
+        _settings = inSettings ? new SettingsView(_session, OnLanguageChosen, OnThemeChosen) : null;
         Page.Content = inSettings ? _settings : _main;
         ShowTitleBar();
         if (_settings is { } settings)
@@ -118,6 +122,13 @@ public partial class MainWindow : Window
     {
         RemakeViews();
         _ = Dispatcher.InvokeAsync(() => _settings?.FocusLanguage(), DispatcherPriority.Loaded);
+    }
+
+    // Focus goes back to Theme, where the user just chose one.
+    private void OnThemeChosen()
+    {
+        RemakeViews();
+        _ = Dispatcher.InvokeAsync(() => _settings?.FocusTheme(), DispatcherPriority.Loaded);
     }
 
     private void ShowTitleBar()

@@ -60,13 +60,8 @@ internal sealed class Session : IAsyncDisposable
     private (string, string?) _secretsWritten;
 
     /// <param name="windows">Windows' display language, for "Same as Windows".</param>
-    public Session(CultureInfo windows)
-        : this(windows, new SystemTimeSource(), new CallAudio(), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Gengfu"), Updates.Installed())
-    {
-    }
-
-    /// <param name="folder">Where the settings file and the secrets live.</param>
-    /// <param name="install">Velopack's manager when Setup installed this copy; null for any other.</param>
+    /// <param name="folder">Where the settings file and the secrets live: <see cref="Home"/> names it.</param>
+    /// <param name="install">Velopack's manager when this copy keeps the install up to date; null for any other.</param>
     internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, string folder, Velopack.UpdateManager? install = null)
     {
         Updates = new Updates(time, install);
@@ -266,6 +261,13 @@ internal sealed class Session : IAsyncDisposable
         SoundChanged();
     }
 
+    /// <param name="choice">Light, dark, or null for Windows' own.</param>
+    public void ChangeTheme(Theme? choice)
+    {
+        Settings.Theme = choice;
+        AppTheme.Apply(choice);
+    }
+
     /// <summary>Renders the calls again, after a text, the voice or the file changed, or a voice was added to Windows.</summary>
     [MemberNotNull(nameof(_clip))]
     public void SoundChanged()
@@ -373,13 +375,18 @@ internal sealed class Session : IAsyncDisposable
 
     private void Apply(AppSettings settings)
     {
+        var themeChanged = settings.Theme != Settings.Theme;
         Settings = settings;
         _settingsWritten = SettingsStore.Serialize(settings);
-        // The language is the whole app's, so it is set only when the file changes it.
+        // The language and the theme are the whole app's, so each is set only when the file changes it.
         if (AppLanguage.Resolve(settings.Language, _windows) is var language && language != Language)
         {
             Language = language;
             AppLanguage.Apply(language);
+        }
+        if (themeChanged)
+        {
+            AppTheme.Apply(settings.Theme);
         }
         Schedule.ChangeLead(settings.Lead);
         Schedule.ChangeEvents(settings.Events);

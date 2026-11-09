@@ -37,9 +37,15 @@ v0.2) plugs in without touching it.
 
 - `Program.Main` runs Velopack before WPF starts: when Setup or the updater starts Gengfu to finish
   their work, it does so and exits there, and an update downloaded earlier applies before the
-  window opens. Only one Gengfu runs per Windows session, held by `SingleInstance`: Velopack's
-  updater closes every running copy, so a second start applies nothing and brings the first one's
-  window forward.
+  window opens. Only one Gengfu runs per folder, held by `SingleInstance`: Velopack's updater
+  closes every running copy, so a second start on the same folder applies nothing and brings that
+  folder's Gengfu forward, which marks its window for this. A Gengfu on another folder stays as it is.
+- `Program.Main` is also the one place that names Gengfu's folder, through `Home`: `%AppData%\Gengfu`,
+  or the folder in the `GENGFU_HOME` environment variable
+  ([ADR-0007](../adr/0007-gengfus-folder-and-isolated-copies.md)). It builds the `Session` there and
+  opens `MainWindow` with it; the App opens no window by itself. A Gengfu on any other folder, as
+  tests and checks run it, holds a lock of its own and never updates, so it can't stand in for the
+  user's Gengfu, close it or change its install.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
@@ -49,6 +55,10 @@ v0.2) plugs in without touching it.
   buttons too. Windows 11 rounds the corners on request.
 - `MainView` and `SettingsView` read their strings and settings when they are made, so a new
   language, or an edit of the settings file, makes them again; Settings keeps its place.
+- A new theme makes them again too. `AppTheme` sets the App's `ThemeMode`, which swaps the Fluent
+  brushes that every colour takes by DynamicResource, and gives every control its template afresh,
+  which would scroll each list back to its top. `MainWindow` sets the saved theme before its window
+  is made, so the window opens in it.
 
 ## Clock model
 
@@ -57,10 +67,11 @@ The clock keeps one anchor: "at local instant *t* the game showed *r*", so game 
 moves with it. The display rounds up: 35:00 holds for the first second and 00:00 shows only at the
 end. The clock stops at 00:00 and takes corrections only while it runs; Stop returns it to 35:00.
 
-Typed values go through `SyncInput`. Typed minutes keep the running seconds. Typed seconds land on
-the nearest minute that makes a time the game can show, and are timed from the first keystroke, or
-from Enter after a pause, for typing ahead. Its lag constants assume the game rounds its timer up,
-as the display does.
+Typed values go through `SyncInput`. Typed minutes keep the running seconds and count from the
+clock's minute at the first keystroke. Typed seconds land on the nearest minute that makes a time
+the game can show, and are timed from the first keystroke, or from Enter after a pause, for typing
+ahead; leaving the field never counts as typing ahead. Its lag constants assume the game rounds its
+timer up, as the display does.
 
 A call fires once while the clock is between its game time and its spawn, and shows as calling
 for 3 s: on time as the clock counts down, or late when a correction lands the clock in that
@@ -99,7 +110,8 @@ Gengfu ships as a Velopack installer of a self-contained build, published to Git
 update is built against. The settings stay in `%AppData%\Gengfu`, out of the install's reach.
 
 - `Updates` looks at GitHub's releases at start and every 4 hours, and downloads a new version: a
-  delta when it can, else the whole package. It never looks in a copy Setup didn't install.
+  delta when it can, else the whole package. It never looks in a copy Setup didn't install, nor in
+  one on a folder of its own.
 - A test build, its version suffixed, also takes test builds; a release takes releases only.
 - A downloaded version applies the next time Gengfu starts. Restart instead hands it to Velopack's
   updater, which waits for Gengfu to close normally, applies it and starts Gengfu again.
@@ -123,7 +135,8 @@ for the connection to leave the server.
 
 ## Configuration
 
-Settings live in `AppSettings` (Core) and in one file, `%AppData%\Gengfu\settings.json`, that
+Settings live in `AppSettings` (Core) and in one file, `settings.json` in Gengfu's folder
+(`%AppData%\Gengfu`, or the one `GENGFU_HOME` names; see [The App](#the-app)), that
 `SettingsStore` reads and writes. It is JSON a person can edit, comments and trailing commas
 allowed. Every value is checked on reading, and an unknown setting is an error too, so a typo
 never passes unseen; the error names the line and the setting as the file spells it. A version
@@ -133,9 +146,9 @@ it opens as an error.
 Each setting applies as soon as it changes, and Gengfu writes the file whole once the changes
 stop for half a second. It writes only after a change in the app, so the comments in a hand-edited
 file last until then, and never over a file it couldn't read, where the edit would be lost. It
-watches the file: an edit saved there applies at once, events and language too, and calls already
-made stay made. A file with an error changes nothing, and Settings shows where the error is until
-it is fixed.
+watches the file: an edit saved there applies at once, events, language and theme too, and calls
+already made stay made. A file with an error changes nothing, and Settings shows where the error is
+until it is fixed.
 
 The server password and the bot's identity stay out of the file, so it can be shared. `Secrets`
 (App) keeps them beside it in `secrets.bin`, encrypted with Windows' data protection for this
@@ -152,6 +165,7 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen |
 | Sound file | none: the text is spoken |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
+| Theme | the same as Windows, following it when it switches; or light or dark |
 | Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00. Each event has its spawns, and may have a name and a text of its own; without them it is the jungle and says the text above. Set in the file only |
 
 ## TeamSpeak specifics

@@ -34,8 +34,12 @@ CHANGELOG section. Its files:
 4. `vpk download github` fetches the last release, for `vpk pack` to make the delta from. A test
    build counts earlier test builds; a release counts only releases.
 5. `vpk pack` builds Setup and the packages. Nothing is signed.
-6. [smoke-install.ps1](../../scripts/smoke-install.ps1) installs Setup silently on the CI machine,
-   starts Gengfu and waits for its window, then closes it.
+6. [smoke-install.ps1](../../scripts/smoke-install.ps1) installs Setup silently on the CI machine
+   and starts Gengfu twice, each time waiting for its window, closing it and checking where its
+   settings landed: first on a settings folder of its own, then as a player's copy starts, on its
+   usual folder with its updates. A test PC gets only the first start, and the script refuses to
+   run where Gengfu is installed, as on a developer's PC
+   ([ADR-0007](../adr/0007-gengfus-folder-and-isolated-copies.md)).
 7. `vpk upload github` creates the release and its tag on the merge commit, and publishes it.
 
 ## Velopack

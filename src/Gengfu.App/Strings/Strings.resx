@@ -132,13 +132,13 @@
     <value>TeamSpeak isn’t set up</value>
     <comment>Status line before any server is entered, followed by a Settings link.</comment>
   </data>
-  <data name="NextIdle" xml:space="preserve">
+  <data name="PressStart" xml:space="preserve">
     <value>Press Start when the match begins</value>
     <comment>Under the clock, before Start.</comment>
   </data>
-  <data name="NextAt" xml:space="preserve">
-    <value>{0} call at {1} ·</value>
-    <comment>Under the clock. {0}: the event, such as "Jungle"; {1}: the call's game time, such as 25:30. Followed by In.</comment>
+  <data name="MatchTimer" xml:space="preserve">
+    <value>Match the in-game timer</value>
+    <comment>Under the clock while a call is next; the calls list shows the call itself.</comment>
   </data>
   <data name="In" xml:space="preserve">
     <value>in {0}</value>
@@ -374,7 +374,19 @@
   </data>
   <data name="SameAsWindows" xml:space="preserve">
     <value>Same as Windows</value>
-    <comment>Settings › General › Language: the default.</comment>
+    <comment>Settings › General › Language and Theme: the default.</comment>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>Settings › General.</comment>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Light</value>
+    <comment>Settings › General › Theme.</comment>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Dark</value>
+    <comment>Settings › General › Theme.</comment>
   </data>
   <data name="OpenSettingsFile" xml:space="preserve">
     <value>Open settings file</value>

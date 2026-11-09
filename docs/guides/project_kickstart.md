@@ -75,6 +75,10 @@ The smell test: **can you add a second transport — another chat platform, a CL
 
 If `src/billing/invoices.py` exists, `tests/billing/test_invoices.py` exists. No clever grouping, no `tests/unit/` vs `tests/integration/` top-level split until you actually need it. One-to-one mirroring means you can find the test for any file in one jump.
 
+### Tests never touch the user's data
+
+On a desktop or CLI app, the developer's machine is also a user's: their settings, secrets and install sit next to the code. Make isolation structural, not careful. One place names the data folder, with an environment variable to point it elsewhere; nothing the test framework can start (an app object, a startup window) opens the real one on its own; tests and harnesses get temp folders, and a run of the app itself sets the variable. A check that installs the app refuses where the app is already installed, since installers register per user, not per folder.
+
 ---
 
 ## Source-of-truth files
@@ -258,8 +262,8 @@ on:
   push:
     branches: [develop]
   workflow_call:     # lets deploy.yml reuse this
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+concurrency:         # by ref: push and PR runs apart, so a release PR can't cancel its push's run
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 ```
 

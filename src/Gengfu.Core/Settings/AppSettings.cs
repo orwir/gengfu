@@ -9,6 +9,13 @@ public enum ListenerKind
     Channels,
 }
 
+/// <summary>How Gengfu looks when it doesn't look as Windows does.</summary>
+public enum Theme
+{
+    Light,
+    Dark,
+}
+
 /// <summary>A server group or a channel: its id, and its name as the server gave it.</summary>
 public sealed record Named(ulong Id, string Name);
 
@@ -77,6 +84,10 @@ public sealed class AppSettings
     /// <summary>"en" or "ru"; null follows Windows.</summary>
     [JsonConverter(typeof(LanguageConverter))]
     public string? Language { get; set; }
+
+    /// <summary>Light or dark; null follows Windows.</summary>
+    [JsonConverter(typeof(ThemeConverter))]
+    public Theme? Theme { get; set; }
 
     /// <summary>The events whose spawns get calls; the built-in GvG preset is the jungle alone.</summary>
     public IReadOnlyList<MatchEvent> Events { get; set; } = [MatchEvent.Jungle];

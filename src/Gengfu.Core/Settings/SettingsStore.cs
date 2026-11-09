@@ -223,6 +223,25 @@ internal sealed class LanguageConverter : JsonConverter<string>
     public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) => writer.WriteStringValue(value);
 }
 
+/// <summary>
+/// "light" or "dark", spelt exactly; null, which never reaches a converter, follows Windows. The
+/// stock enum converter would also read "Dark", " dark" or "light, dark", so a slip would pass unseen.
+/// </summary>
+internal sealed class ThemeConverter : JsonConverter<Theme>
+{
+    public override Theme Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType != JsonTokenType.String ? throw new JsonException()
+        : reader.GetString() switch
+        {
+            "light" => Theme.Light,
+            "dark" => Theme.Dark,
+            _ => throw new JsonException(),
+        };
+
+    public override void Write(Utf8JsonWriter writer, Theme value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value == Theme.Light ? "light" : "dark");
+}
+
 /// <summary>An event's name or text with something in it: a blank one would show or say nothing.</summary>
 internal sealed class WordsConverter : JsonConverter<string>
 {

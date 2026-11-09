@@ -10,8 +10,8 @@ using Gengfu.Core;
 namespace Gengfu.App.Views;
 
 /// <summary>
-/// The main view: the status line, the clock with the next call under it, the calls list, the update
-/// notice, and Start/Stop, Test call and Settings. It shows the session as it is on each tick.
+/// The main view: the status line, the clock and the line under it, the calls list, the update notice,
+/// and Start/Stop, Test call and Settings. It shows the session as it is on each tick.
 /// </summary>
 internal partial class MainView : UserControl
 {
@@ -46,7 +46,7 @@ internal partial class MainView : UserControl
         _digits.Refresh();
         ShowStartStop();
         ShowStatus();
-        ShowNext();
+        ShowLine();
         ShowCalls();
         FollowCalls();
         TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
@@ -117,38 +117,37 @@ internal partial class MainView : UserControl
             status.Tone is StatusTone.Success or StatusTone.Pending or StatusTone.Off ? "TextFillColorSecondaryBrush" : brush);
     }
 
-    private void ShowNext()
+    private void ShowLine()
     {
         var schedule = _session.Schedule;
         var state = _session.Clock.State;
         if (state == ClockState.Idle)
         {
-            ShowNext(Strings.NextIdle, "");
+            ShowLine(Strings.PressStart, "");
         }
         else if (state == ClockState.Over)
         {
-            ShowNext(Strings.MatchOver, "");
+            ShowLine(Strings.MatchOver, "");
         }
         else if (schedule.Calls.FirstOrDefault(call => schedule.StateOf(call) == CallState.Calling) is { } calling)
         {
-            ShowNext(Strings.CallingNow, _session.HeardFor(calling.Event));
+            ShowLine(Strings.CallingNow, _session.HeardFor(calling.Event));
         }
-        else if (schedule.Calls.FirstOrDefault(call => schedule.StateOf(call) == CallState.Next) is { } next)
+        else if (schedule.Calls.Any(call => schedule.StateOf(call) == CallState.Next))
         {
-            ShowNext(
-                Copy.Format(Strings.NextAt, Copy.EventName(next.Event), MatchClock.Format(next.At)),
-                Copy.Format(Strings.In, Copy.Span(_session.Clock.GameTime - next.At)));
+            // The list shows the next call; the line asks for what keeps every call on time.
+            ShowLine(Strings.MatchTimer, "");
         }
         else
         {
-            ShowNext(Strings.NoMoreCalls, "");
+            ShowLine(Strings.NoMoreCalls, "");
         }
     }
 
-    private void ShowNext(string text, string value)
+    private void ShowLine(string text, string value)
     {
-        NextText.Text = text;
-        NextValue.Text = value;
+        LineText.Text = text;
+        LineValue.Text = value;
     }
 
     private void ShowCalls()

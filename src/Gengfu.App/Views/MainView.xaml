@@ -22,7 +22,7 @@
         <StackPanel Grid.Row="1" Margin="16,8,16,12">
             <Border x:Name="ClockHost" HorizontalAlignment="Center" />
             <TextBlock Margin="0,2,0,0" TextAlignment="Center" TextWrapping="Wrap" LineHeight="20" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                <Run x:Name="NextText" /> <Run x:Name="NextValue" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                <Run x:Name="LineText" /> <Run x:Name="LineValue" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
             </TextBlock>
         </StackPanel>
 
@@ -73,14 +73,14 @@
                           Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource Self}}" />
                     <Rectangle x:Name="StopIcon" Width="8" Height="8" Margin="4" RadiusX="1.5" RadiusY="1.5"
                                Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource Self}}" />
-                    <TextBlock x:Name="StartStopText" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="StartStopText" Style="{StaticResource IconLabel}" />
                 </StackPanel>
             </Button>
             <Button x:Name="TestButton" Grid.Column="2" Style="{StaticResource SubtleButton}" Margin="0,0,4,0" Click="OnTest"
                     AutomationProperties.Name="{Binding Text, ElementName=TestText}">
                 <StackPanel Orientation="Horizontal">
                     <Path Style="{StaticResource Icon}" Data="M2.5,6 L5,6 L8.5,3 L8.5,13 L5,10 L2.5,10 Z M11,5.5 A3.5,3.5 0 0 1 11,10.5" />
-                    <TextBlock x:Name="TestText" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="TestText" Style="{StaticResource IconLabel}" />
                 </StackPanel>
             </Button>
             <Button x:Name="SettingsButton" Grid.Column="3" Style="{StaticResource SubtleButton}" Width="32" Padding="0" Click="OnSettings"

@@ -102,11 +102,11 @@
   <data name="StatusNotSetUp" xml:space="preserve">
     <value>TeamSpeak не настроен</value>
   </data>
-  <data name="NextIdle" xml:space="preserve">
+  <data name="PressStart" xml:space="preserve">
     <value>Нажмите «Старт», когда начнётся матч</value>
   </data>
-  <data name="NextAt" xml:space="preserve">
-    <value>{0} — объявление в {1} ·</value>
+  <data name="MatchTimer" xml:space="preserve">
+    <value>Подгоните под таймер в игре</value>
   </data>
   <data name="In" xml:space="preserve">
     <value>через {0}</value>
@@ -284,6 +284,15 @@
   </data>
   <data name="SameAsWindows" xml:space="preserve">
     <value>Как в Windows</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Тема</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Светлая</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Тёмная</value>
   </data>
   <data name="OpenSettingsFile" xml:space="preserve">
     <value>Открыть файл настроек</value>
