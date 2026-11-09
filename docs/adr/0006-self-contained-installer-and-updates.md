@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-11-08
+Accepted — 2026-11-08. Its one Gengfu per Windows session is now one per settings folder, and a
+Gengfu on a folder of its own never updates: see
+[architecture.md § The App](../architecture/architecture.md#the-app).
 
 ## Context
 
