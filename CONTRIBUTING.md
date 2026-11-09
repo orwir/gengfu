@@ -12,7 +12,11 @@ rationale that don't fit there. Reusable cross-project patterns live in
 2. Install the git hooks: `powershell -File scripts/setup.ps1`. It also checks
    that a .NET 10 SDK is reachable. Non-negotiable — the pre-push stage is the
    local CI gate.
-3. There is no `.env`. The app keeps its settings under `%AppData%`; local test
+3. There is no `.env`. The app keeps its settings in `%AppData%\Gengfu`, or in
+   the folder the `GENGFU_HOME` environment variable names. Tests, harnesses and
+   checks never use yours: a test gives its `Session` a temp folder, a run of
+   Gengfu itself sets `GENGFU_HOME`, and the smoke install refuses to run where
+   Gengfu is installed, since Setup would take over its registration. Local test
    settings go in `*.local.*` files, which git ignores.
 
 ## Branching

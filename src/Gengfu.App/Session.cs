@@ -60,13 +60,8 @@ internal sealed class Session : IAsyncDisposable
     private (string, string?) _secretsWritten;
 
     /// <param name="windows">Windows' display language, for "Same as Windows".</param>
-    public Session(CultureInfo windows)
-        : this(windows, new SystemTimeSource(), new CallAudio(), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Gengfu"), Updates.Installed())
-    {
-    }
-
-    /// <param name="folder">Where the settings file and the secrets live.</param>
-    /// <param name="install">Velopack's manager when Setup installed this copy; null for any other.</param>
+    /// <param name="folder">Where the settings file and the secrets live: <see cref="Home"/> names it.</param>
+    /// <param name="install">Velopack's manager when this copy keeps the install up to date; null for any other.</param>
     internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, string folder, Velopack.UpdateManager? install = null)
     {
         Updates = new Updates(time, install);

@@ -1,11 +1,21 @@
 # Installs a packed release as a player would and checks that Gengfu starts and opens its window.
-# release.yml runs it on the CI machine before publishing; it runs the same on a test PC.
+# release.yml runs it on the CI machine before publishing; it runs the same on a test PC where
+# Gengfu isn't installed.
 #   scripts/smoke-install.ps1 -Releases <folder holding Gengfu-win-Setup.exe> [-InstallTo <folder>]
 param(
     [Parameter(Mandatory)] [string] $Releases,
     [string] $InstallTo = (Join-Path $env:LOCALAPPDATA 'Gengfu')
 )
 $ErrorActionPreference = 'Stop'
+
+# Setup registers Gengfu for this Windows user whatever folder it installs to, so a run here would
+# take over an installed Gengfu's entry in Installed apps and its Start menu shortcut.
+if (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Gengfu') {
+    throw "Gengfu is installed for this Windows user. Run the smoke install where it isn't: CI or a clean test PC."
+}
+
+# The installed Gengfu keeps its settings in a folder of its own, never the user's.
+$env:GENGFU_HOME = Join-Path ([IO.Path]::GetTempPath()) "gengfu-smoke-$([guid]::NewGuid().ToString('N'))"
 
 $setup = Start-Process (Join-Path $Releases 'Gengfu-win-Setup.exe') -ArgumentList '--silent', '--installto', "`"$InstallTo`"" -PassThru -Wait
 if ($setup.ExitCode -ne 0) {

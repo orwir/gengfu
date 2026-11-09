@@ -1,7 +1,6 @@
 ﻿<Application x:Class="Gengfu.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="MainWindow.xaml"
              ThemeMode="System">
     <!-- Colours are the Fluent theme's own brushes, always taken by DynamicResource so a switch of the
          Windows theme repaints them; design_language.md maps each token to its brush. The one

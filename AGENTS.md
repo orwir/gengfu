@@ -13,7 +13,7 @@ For the full rationale behind any rule, read [CONTRIBUTING.md](CONTRIBUTING.md) 
 - Setup: `powershell -File scripts/setup.ps1` (git hooks + .NET 10 SDK check)
 - Gate — format, build, test, coverage: `scripts/check.sh`
 - Format: `dotnet format Gengfu.slnx --exclude lib`
-- Run locally: `dotnet run --project src/Gengfu.App`
+- Run locally, on a folder of its own: `GENGFU_HOME=<folder> dotnet run --project src/Gengfu.App`
 
 These are the canonical invocations — the same ones the hooks and CI run. Don't improvise variants. When the `dotnet` on PATH lacks the .NET 10 SDK, use the one `scripts/dotnet.sh` finds.
 
@@ -71,6 +71,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 - Tests run with xUnit via `dotnet test`. Pure logic takes its time from a fake clock, never the wall clock.
 - Coverage floor: 80% of `Gengfu.Core` lines, enforced by `scripts/check.sh` (pre-push and CI). Add tests, don't lower the floor.
 - Integration tests hit real I/O — a real filesystem for settings, a real local socket for address lookup. **Do not mock the filesystem in integration tests.**
+- **Tests, harnesses and checks run on folders of their own** — a temp folder for a `Session`, `GENGFU_HOME` for Gengfu itself — never on the user's settings, secrets or install. The smoke install refuses to run where Gengfu is installed.
 - Lint + format: `dotnet format` with `.editorconfig` only. Outside `lib/` the build treats warnings as errors.
 
 ## Documentation

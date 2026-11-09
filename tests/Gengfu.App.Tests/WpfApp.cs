@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -22,12 +21,7 @@ public sealed class WpfApp : IDisposable
         Dispatcher? dispatcher = null;
         _thread = new Thread(() =>
         {
-            var app = new App();
-            app.InitializeComponent();
-            // App.xaml opens Gengfu's own window once the dispatcher runs: a real Gengfu on the
-            // user's own settings, which connects to their server and keeps the test host alive.
-            // The setter refuses null, so the field is cleared directly.
-            typeof(Application).GetField("_startupUri", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(app, null);
+            new App().InitializeComponent();
             dispatcher = Dispatcher.CurrentDispatcher;
             ready.Set();
             Dispatcher.Run();
@@ -37,7 +31,8 @@ public sealed class WpfApp : IDisposable
         _thread.Start();
         ready.Wait();
         _dispatcher = dispatcher!;
-        // A window the App opens any other way would be the same real Gengfu.
+        // Only Program opens Gengfu's window, on the folder it names; the App opens none itself,
+        // so a test never runs a Gengfu on the user's own settings. Every view test fails if it does.
         if (_dispatcher.Invoke(() => Application.Current.Windows.Count, DispatcherPriority.ApplicationIdle) != 0)
         {
             Dispose();

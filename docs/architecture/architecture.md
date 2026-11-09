@@ -40,6 +40,11 @@ v0.2) plugs in without touching it.
   window opens. Only one Gengfu runs per Windows session, held by `SingleInstance`: Velopack's
   updater closes every running copy, so a second start applies nothing and brings the first one's
   window forward.
+- `Program.Main` is also the one place that names Gengfu's folder, through `Home`: `%AppData%\Gengfu`,
+  or the folder in the `GENGFU_HOME` environment variable. It builds the `Session` there and opens
+  `MainWindow` with it; the App opens no window by itself. A Gengfu on any other folder, as tests
+  and checks run it, holds a lock of its own and never updates, so it can't stand in for the user's
+  Gengfu, close it or change its install.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
@@ -123,7 +128,8 @@ for the connection to leave the server.
 
 ## Configuration
 
-Settings live in `AppSettings` (Core) and in one file, `%AppData%\Gengfu\settings.json`, that
+Settings live in `AppSettings` (Core) and in one file, `settings.json` in Gengfu's folder
+(`%AppData%\Gengfu`, or the one `GENGFU_HOME` names; see [The App](#the-app)), that
 `SettingsStore` reads and writes. It is JSON a person can edit, comments and trailing commas
 allowed. Every value is checked on reading, and an unknown setting is an error too, so a typo
 never passes unseen; the error names the line and the setting as the file spells it. A version

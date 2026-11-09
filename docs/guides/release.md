@@ -35,7 +35,8 @@ CHANGELOG section. Its files:
    build counts earlier test builds; a release counts only releases.
 5. `vpk pack` builds Setup and the packages. Nothing is signed.
 6. [smoke-install.ps1](../../scripts/smoke-install.ps1) installs Setup silently on the CI machine,
-   starts Gengfu and waits for its window, then closes it.
+   starts Gengfu on a settings folder of its own and waits for its window, then closes it. The
+   script refuses to run where Gengfu is installed, as on a developer's PC.
 7. `vpk upload github` creates the release and its tag on the merge commit, and publishes it.
 
 ## Velopack
