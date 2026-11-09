@@ -24,24 +24,26 @@ internal enum StatusTone
 internal sealed record StatusLine(StatusTone Tone, string Text, bool LinksToSettings)
 {
     /// <param name="server">The server Gengfu is connected or connecting to; null when it has none.</param>
-    public static StatusLine Of(ConnectionState state, string? server, AppSettings settings, CultureInfo language) =>
+    /// <param name="now">The time on the clock the connection's next attempt is set on.</param>
+    public static StatusLine Of(ConnectionState state, string? server, AppSettings settings, CultureInfo language, TimeSpan now) =>
         state.Status switch
         {
             ConnectionStatus.Connected => Listening(settings, language),
-            ConnectionStatus.Connecting => Trying(state, server ?? settings.Server),
-            _ => NotConnected(state.Problem, server is null && string.IsNullOrWhiteSpace(settings.Server)),
+            ConnectionStatus.Connecting => Trying(state, server ?? settings.Server, now),
+            _ => NotConnected(state, server is null && string.IsNullOrWhiteSpace(settings.Server)),
         };
 
     /// <summary>The line beside Connect in Settings, where the listeners are in view and the words are shorter.</summary>
-    public static StatusLine InSettings(ConnectionState state, string? server, AppSettings settings) =>
+    public static StatusLine InSettings(ConnectionState state, string? server, AppSettings settings, TimeSpan now) =>
         state switch
         {
             { Status: ConnectionStatus.Connected } => new(StatusTone.Success, Strings.Connected, false),
             { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.None } => new(StatusTone.Pending, Strings.Connecting, false),
-            { Status: ConnectionStatus.Connecting } => Trying(state, server ?? settings.Server),
+            { Status: ConnectionStatus.Connecting } => Trying(state, server ?? settings.Server, now),
             { Problem: ConnectionProblem.WrongPassword } => new(StatusTone.Critical, Strings.WrongPassword, false),
             { Problem: ConnectionProblem.Kicked } => new(StatusTone.Critical, Strings.Kicked, false),
             { Problem: ConnectionProblem.Banned } => new(StatusTone.Critical, Strings.Banned, false),
+            { Problem: ConnectionProblem.IdentityTooWeak, Detail: { } level } => new(StatusTone.Critical, Copy.Format(Strings.LevelTooHigh, level), false),
             _ => new(StatusTone.Off, Strings.StatusNotConnected, false),
         };
 
@@ -63,25 +65,37 @@ internal sealed record StatusLine(StatusTone Tone, string Text, bool LinksToSett
 
     private static StatusLine NoListeners => new(StatusTone.Caution, Strings.StatusNoListeners, true);
 
-    private static StatusLine Trying(ConnectionState state, string server) =>
-        state.Problem switch
+    private static StatusLine Trying(ConnectionState state, string server, TimeSpan now)
+    {
+        // A wait counts down to the next attempt, as the calls list counts to the next call, so a
+        // long one shows Gengfu at work and when it tries.
+        var again = state.RetryAt is { } at && at > now
+            ? Copy.Format(Strings.TryingAgainIn, Copy.Span(at - now))
+            : Strings.TryingAgainNow;
+        return state.Problem switch
         {
             ConnectionProblem.None => new(StatusTone.Pending, Copy.Format(Strings.StatusConnecting, server), false),
-            ConnectionProblem.AddressNotFound => Retrying(Copy.Format(Strings.StatusAddressNotFound, server)),
-            ConnectionProblem.ServerShutdown => Retrying(Strings.StatusServerShutdown),
-            ConnectionProblem.ServerFull => Retrying(Strings.StatusServerFull),
-            ConnectionProblem.Refused when state.Detail is { } detail => Retrying(Copy.Format(Strings.StatusRefused, detail)),
-            _ => Retrying(Copy.Format(Strings.StatusNoAnswer, server)),
+            // A raise is Gengfu at work, not something gone wrong: it keeps the plain connecting dot.
+            ConnectionProblem.IdentityTooWeak when state.Detail is { } level => new(StatusTone.Pending, Copy.Format(Strings.StatusRaisingIdentity, level), false),
+            ConnectionProblem.AddressNotFound => Retrying(Copy.Format(Strings.StatusAddressNotFound, server, again)),
+            ConnectionProblem.ServerShutdown => Retrying(Copy.Format(Strings.StatusServerShutdown, again)),
+            ConnectionProblem.KickedByServer => Retrying(Copy.Format(Strings.StatusKickedByServer, again)),
+            ConnectionProblem.ServerFull => Retrying(Copy.Format(Strings.StatusServerFull, again)),
+            ConnectionProblem.FloodProtection => Retrying(Copy.Format(Strings.StatusFloodProtection, again)),
+            ConnectionProblem.Refused when state.Detail is { } detail => Retrying(Copy.Format(Strings.StatusRefused, detail, again)),
+            _ => Retrying(Copy.Format(Strings.StatusNoAnswer, server, again)),
         };
+    }
 
     private static StatusLine Retrying(string text) => new(StatusTone.Retrying, text, false);
 
-    private static StatusLine NotConnected(ConnectionProblem problem, bool notSetUp) =>
-        new(StatusTone.Critical, problem switch
+    private static StatusLine NotConnected(ConnectionState state, bool notSetUp) =>
+        new(StatusTone.Critical, state.Problem switch
         {
             ConnectionProblem.WrongPassword => Strings.StatusWrongPassword,
             ConnectionProblem.Kicked => Strings.StatusKicked,
             ConnectionProblem.Banned => Strings.StatusBanned,
+            ConnectionProblem.IdentityTooWeak when state.Detail is { } level => Copy.Format(Strings.StatusLevelTooHigh, level),
             _ when notSetUp => Strings.StatusNotSetUp,
             _ => Strings.StatusNotConnected,
         }, true);

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gengfu.Core;
 using TSLib;
 using TSLib.Full;
 using TSLib.Full.Book;
@@ -30,15 +31,32 @@ public enum ConnectionProblem
     ServerShutdown,
     ServerFull,
     WrongPassword,
+
+    /// <summary>A person kicked the bot.</summary>
     Kicked,
+
+    /// <summary>The server itself kicked the bot, as an idle limit does.</summary>
+    KickedByServer,
+
     Banned,
+
+    /// <summary>The server's flood protection refuses every client from this address for a while.</summary>
+    FloodProtection,
+
+    /// <summary>The server asks for a stronger identity; <see cref="ConnectionState.Detail"/> holds the level it asks for.</summary>
+    IdentityTooWeak,
 
     /// <summary>Any other refusal; <see cref="ConnectionState.Detail"/> holds the server's own words.</summary>
     Refused,
 }
 
-/// <summary>The connection at one moment. It is replaced whole, so a reader on any thread sees one state.</summary>
-public sealed record ConnectionState(ConnectionStatus Status, ConnectionProblem Problem = ConnectionProblem.None, string? Detail = null);
+/// <summary>
+/// The connection at one moment. It is replaced whole, so a reader on any thread sees one state.
+/// <paramref name="RetryAt"/> is when the next attempt starts, on the time source the connection was
+/// given; null while an attempt runs, and once the connection has stopped trying.
+/// </summary>
+public sealed record ConnectionState(
+    ConnectionStatus Status, ConnectionProblem Problem = ConnectionProblem.None, string? Detail = null, TimeSpan? RetryAt = null);
 
 /// <summary>A regular server group, as the server lists it.</summary>
 public sealed record ServerGroupInfo(ulong Id, string Name);
@@ -50,15 +68,27 @@ public sealed record ChannelInfo(ulong Id, string Name, int Depth);
 /// Gengfu's seat on a TeamSpeak server. It connects as a normal client and keeps the connection up:
 /// an attempt the server doesn't answer gives up after <see cref="AttemptTimeout"/>, a failure is
 /// retried after 1 and 2 s and then every 5 s, so a server that comes back is reached within about
-/// 10 s. It stops only when disconnected, kicked, banned or refused the password. When the server
-/// asks for a stronger identity it raises the identity's level and retries at once. TSLib runs the
-/// connection on its own thread, and the events fire there.
+/// 10 s. After a refusal it waits 30 s, and 5 minutes while the server's flood protection holds. When
+/// the server asks for a stronger identity it raises the identity's level and retries at once. It
+/// stops when disconnected, kicked by a person, banned or refused the password, or asked for a level
+/// above <see cref="MaxSecurityLevel"/> or one the identity already has. TSLib runs the connection on
+/// its own thread, and the events fire there.
 /// </summary>
 public sealed class TeamSpeakConnection : IAsyncDisposable
 {
+    /// <summary>
+    /// The highest identity level Gengfu raises to. Each level doubles the work: 32 takes about 17
+    /// minutes on one core of a fast PC, 33 half an hour, and TSLib's raise can't be cancelled.
+    /// </summary>
+    internal const int MaxSecurityLevel = 32;
+
     private static readonly TimeSpan[] RetryDelays =
         [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5)];
 
+    private static readonly TimeSpan RefusedDelay = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan FloodDelay = TimeSpan.FromMinutes(5);
+
+    private readonly ITimeSource _time;
     private readonly TsAddress _address;
     private readonly DedicatedTaskScheduler _scheduler = new(Id.Null);
     private readonly TsFullClient _client;
@@ -69,16 +99,19 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
     private CancellationTokenSource? _run;
     private Task _running = Task.CompletedTask;
     private TaskCompletionSource<DisconnectEventArgs>? _ended;
+    private ClientId? _kicker;
     private volatile ConnectionState _state = new(ConnectionStatus.Disconnected);
 
     /// <param name="identity">The bot's identity as <see cref="Identity"/> gave it; null or unreadable makes a new one.</param>
-    public TeamSpeakConnection(string? identity)
-        : this(identity, new TsAddress())
+    /// <param name="time">The clock its states' <see cref="ConnectionState.RetryAt"/> is on: the App's own.</param>
+    public TeamSpeakConnection(string? identity, ITimeSource time)
+        : this(identity, time, new TsAddress())
     {
     }
 
-    internal TeamSpeakConnection(string? identity, TsAddress address)
+    internal TeamSpeakConnection(string? identity, ITimeSource time, TsAddress address)
     {
+        _time = time;
         _address = address;
         _identity = identity is not null && IdentityData.FromTsIdentity(identity).GetOk(out var kept)
             ? kept
@@ -86,6 +119,15 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
         Identity = _identity.ToTsIdentity();
         _client = new TsFullClient(_scheduler);
         _client.OnDisconnected += (_, e) => _ended?.TrySetResult(e);
+        // TSLib keeps only why the bot left; who kicked it comes with the same notice, which reaches
+        // this event before TSLib ends the connection for it.
+        _client.OnClientLeftView += (_, leaves) =>
+        {
+            foreach (var leave in leaves.Where(leave => leave.ClientId == _client.ClientId))
+            {
+                _kicker = leave.InvokerId;
+            }
+        };
     }
 
     /// <summary>
@@ -161,15 +203,27 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
         }
     }
 
-    /// <summary>The wait before the next attempt, after this many failures in a row.</summary>
-    internal static TimeSpan RetryDelay(int failures) => RetryDelays[Math.Clamp(failures, 1, RetryDelays.Length) - 1];
+    /// <summary>The wait before the next attempt, after this problem and this many failures in a row.</summary>
+    internal static TimeSpan RetryDelay(ConnectionProblem problem, int failures) =>
+        problem switch
+        {
+            // Each attempt a server answers earns flood points for this address, and its flood
+            // protection lifts only once nobody tries for a while: on TS6, about 4 minutes.
+            ConnectionProblem.FloodProtection => FloodDelay,
+            ConnectionProblem.ServerFull or ConnectionProblem.Refused => RefusedDelay,
+            _ => RetryDelays[Math.Clamp(failures, 1, RetryDelays.Length) - 1],
+        };
 
-    /// <summary>Whether to try again after this problem: not after a kick, a ban or a wrong password.</summary>
+    /// <summary>Whether to try again after this problem: not after a person's kick, a ban, a wrong password or an identity a raise can't help.</summary>
     internal static bool Retries(ConnectionProblem problem) =>
-        problem is not (ConnectionProblem.WrongPassword or ConnectionProblem.Kicked or ConnectionProblem.Banned);
+        problem is not (ConnectionProblem.WrongPassword or ConnectionProblem.Kicked or ConnectionProblem.Banned
+            or ConnectionProblem.IdentityTooWeak);
 
-    /// <summary>Why a connection ended or an attempt failed: the server's error when it sent one, else the reason.</summary>
-    internal static (ConnectionProblem Problem, string? Detail) Classify(Reason reason, CommandError? error)
+    /// <summary>
+    /// Why a connection ended or an attempt failed: the server's error when it sent one, else the
+    /// reason. <paramref name="kicker"/> is who kicked the bot; the server itself is client 0.
+    /// </summary>
+    internal static (ConnectionProblem Problem, string? Detail) Classify(Reason reason, CommandError? error, ClientId? kicker = null)
     {
         // TSLib reports its own failures, such as a closed connection, as custom errors.
         if (error is not null && error.Id is not (TsErrorCode.ok or TsErrorCode.custom_error))
@@ -177,13 +231,19 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             return error.Id switch
             {
                 TsErrorCode.server_invalid_password => (ConnectionProblem.WrongPassword, null),
-                TsErrorCode.connect_failed_banned or TsErrorCode.ban_flooding => (ConnectionProblem.Banned, null),
+                // Flood protection refuses as a ban does, and only its words tell it apart. A ban's
+                // words start "You are banned", so no ban reason can pass for them.
+                TsErrorCode.connect_failed_banned when error.ExtraMessage?.StartsWith("flood prevention", StringComparison.OrdinalIgnoreCase) == true
+                    => (ConnectionProblem.FloodProtection, null),
+                TsErrorCode.ban_flooding => (ConnectionProblem.FloodProtection, null),
+                TsErrorCode.connect_failed_banned => (ConnectionProblem.Banned, null),
                 TsErrorCode.server_maxclients_reached => (ConnectionProblem.ServerFull, null),
                 _ => (ConnectionProblem.Refused, error.Message),
             };
         }
         return reason switch
         {
+            Reason.KickedFromServer when kicker == ClientId.Null => (ConnectionProblem.KickedByServer, null),
             Reason.KickedFromServer => (ConnectionProblem.Kicked, null),
             Reason.Banned => (ConnectionProblem.Banned, null),
             Reason.ServerShutdown or Reason.ServerStopped => (ConnectionProblem.ServerShutdown, null),
@@ -278,6 +338,8 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
         {
             while (true)
             {
+                // While it runs, an attempt names no next one.
+                state = state with { RetryAt = null };
                 Report(state);
                 (ConnectionProblem Problem, string? Detail, bool WasUp) outcome;
                 try
@@ -300,9 +362,10 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
                     return;
                 }
                 failures = wasUp ? 1 : failures + 1;
-                state = new ConnectionState(ConnectionStatus.Connecting, problem, detail);
+                var delay = RetryDelay(problem, failures);
+                state = new ConnectionState(ConnectionStatus.Connecting, problem, detail, _time.Now + delay);
                 Report(state);
-                await Task.Delay(RetryDelay(failures), stop);
+                await Task.Delay(delay, stop);
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
@@ -323,6 +386,7 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             // TSLib raises OnDisconnected for a failed attempt too, before Connect returns.
             var ended = new TaskCompletionSource<DisconnectEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
             _ended = ended;
+            _kicker = null;
             var connecting = _client.Connect(new ConnectionDataFull(
                 endPoint.ToString(),
                 _identity,
@@ -343,10 +407,18 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             var error = result.Ok ? end.Error : result.Error;
             if (!result.Ok && RequiredSecurityLevel(error) is { } level)
             {
+                var asked = level.ToString(CultureInfo.InvariantCulture);
+                // Above the ceiling a raise takes too long. At a level the identity already has it
+                // changes nothing, and asking again at once, over and over, would flood the server.
+                if (level > MaxSecurityLevel || _identity.GetSecurityLevel() >= level)
+                {
+                    return (ConnectionProblem.IdentityTooWeak, asked, false);
+                }
+                Report(new ConnectionState(ConnectionStatus.Connecting, ConnectionProblem.IdentityTooWeak, asked));
                 await RaiseSecurityAsync(level, stop);
                 continue;
             }
-            var (problem, detail) = Classify(end.ExitReason, error);
+            var (problem, detail) = Classify(end.ExitReason, error, _kicker);
             return (problem, detail, result.Ok);
         }
     }

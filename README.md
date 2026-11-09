@@ -50,7 +50,8 @@ Open Settings with the gear at the bottom right. Every change applies at once an
 
 - **TeamSpeak.** Enter the server address as your TeamSpeak client takes it, the server password
   if it has one, and a nickname for the bot, then press **Connect**. Gengfu stays connected by
-  itself; the line at the top of the main window says how it stands.
+  itself; the line at the top of the main window says how it stands, and while Gengfu waits to
+  try again, how long until it does.
 - **Who hears the calls.** Pick a server group, and everyone in it hears the calls in whatever
   channel they are, or tick the channels that should. The lists come from the server once Gengfu
   is connected, and the server has to allow the bot to whisper. Connecting to another server
@@ -60,6 +61,25 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   use a sound file instead. **Test call** whispers the call once, now.
 - **Language.** English, Russian, or the same as Windows.
 - **Theme.** Light, dark, or the same as Windows.
+
+## On a strict server
+
+Gengfu joins as an ordinary TeamSpeak client, so a server that takes ordinary clients takes it. A
+stricter server asks its admin for three things:
+
+- **Whisper power.** The bot's server group needs at least the whisper power the listeners' groups
+  ask for (`i_client_whisper_power` against `i_client_needed_whisper_power`).
+- **No idle limit.** Between matches the bot stays silent. When the server's own idle limit
+  (`i_client_max_idletime`) kicks it, Gengfu is back within a second, but a call due that moment
+  is lost. An admin bot that kicks idle clients stops Gengfu, as a person's kick does. So exempt
+  the bot's group from both.
+- **A security level up to 32.** If the server asks for a stronger identity, Gengfu raises the
+  bot's once and keeps it; the status line says so, and it can take minutes. Above 32 the wait
+  would pass half an hour and double with each level, so Gengfu stays off and the line names the
+  level the server asks for.
+
+If the server's flood protection blocks your PC, your own TeamSpeak can't connect either. Gengfu
+then waits 5 minutes before trying again, so the block can lift.
 
 ## Your settings
 

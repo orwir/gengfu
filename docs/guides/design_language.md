@@ -81,8 +81,11 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   buttons and its rows scroll, keeping the call calling or next second from the top; it moves
   only when that call changes, so a scroll by wheel stays meanwhile.
 - **Status line:** dot + text, caption size — connected, naming who hears (success);
-  connecting (hollow dot); trying again, saying why (hollow caution dot, caution text);
-  connected with nobody chosen (caution); not connected, saying why (critical). A Settings
+  connecting, or raising the bot's identity for the server (hollow dot: not yet whispering, and
+  nothing to fix); trying again, saying why (hollow caution dot, caution text) and counting
+  down to the next attempt in m:ss, as the calls list counts to the next call, then "trying
+  again…" while the attempt runs; connected with nobody chosen (caution); not connected,
+  saying why (critical). A Settings
   link follows only when the user has to act. Every state's copy is in the strings and on
   the canvas's Foundations.
 - **Update notice:** a bar above the footer, in the card's colours with an accent "i", once a
@@ -148,6 +151,6 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
+| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html, MainRaising.dc.html, MainServerKick.dc.html, MainFlood.dc.html, MainLevelTooHigh.dc.html, MainFull.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
 | Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
 | App icon    | AppIcon.dc.html | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |

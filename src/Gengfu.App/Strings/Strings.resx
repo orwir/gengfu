@@ -92,25 +92,45 @@
     <value>Connecting to {0}…</value>
     <comment>Status line. {0}: the server address.</comment>
   </data>
+  <data name="StatusRaisingIdentity" xml:space="preserve">
+    <value>Raising the bot’s security level to {0} — can take minutes</value>
+    <comment>Status line: the server asks for a stronger identity and Gengfu raises the bot's; each level doubles the time. {0}: the level the server asks for.</comment>
+  </data>
   <data name="StatusNoAnswer" xml:space="preserve">
-    <value>No answer from {0} — trying again</value>
-    <comment>Status line: the server doesn't answer or stopped answering; Gengfu retries by itself. {0}: the server address.</comment>
+    <value>No answer from {0} — {1}</value>
+    <comment>Status line: the server doesn't answer or stopped answering; Gengfu retries by itself. {0}: the server address. {1}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusAddressNotFound" xml:space="preserve">
-    <value>Can’t find {0} — trying again</value>
-    <comment>Status line: the address resolves to nothing. {0}: the server address.</comment>
+    <value>Can’t find {0} — {1}</value>
+    <comment>Status line: the address resolves to nothing. {0}: the server address. {1}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusServerShutdown" xml:space="preserve">
-    <value>The server shut down — trying again</value>
-    <comment>Status line.</comment>
+    <value>The server shut down — {0}</value>
+    <comment>Status line. {0}: TryingAgainIn or TryingAgainNow.</comment>
+  </data>
+  <data name="StatusKickedByServer" xml:space="preserve">
+    <value>The server kicked the bot — {0}</value>
+    <comment>Status line: the server itself kicked the bot, as an idle limit does; Gengfu reconnects by itself. {0}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusServerFull" xml:space="preserve">
-    <value>The server is full — trying again</value>
-    <comment>Status line.</comment>
+    <value>The server is full — {0}</value>
+    <comment>Status line. {0}: TryingAgainIn or TryingAgainNow.</comment>
+  </data>
+  <data name="StatusFloodProtection" xml:space="preserve">
+    <value>The server is limiting connections — {0}</value>
+    <comment>Status line: the server's flood protection blocks this PC, and Gengfu waits 5 minutes before it tries again. {0}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusRefused" xml:space="preserve">
-    <value>The server refused: {0} — trying again</value>
-    <comment>Status line. {0}: the server's own message, often in English.</comment>
+    <value>The server refused: {0} — {1}</value>
+    <comment>Status line. {0}: the server's own message, often in English. {1}: TryingAgainIn or TryingAgainNow.</comment>
+  </data>
+  <data name="TryingAgainIn" xml:space="preserve">
+    <value>trying again in {0}</value>
+    <comment>Ends a status line while Gengfu waits to try the server again. {0}: the time left, such as 0:25, as the calls list counts to the next call.</comment>
+  </data>
+  <data name="TryingAgainNow" xml:space="preserve">
+    <value>trying again…</value>
+    <comment>Ends a status line while Gengfu tries the server again.</comment>
   </data>
   <data name="StatusNotConnected" xml:space="preserve">
     <value>Not connected</value>
@@ -127,6 +147,10 @@
   <data name="StatusBanned" xml:space="preserve">
     <value>Not connected — banned from the server</value>
     <comment>Status line, followed by a Settings link.</comment>
+  </data>
+  <data name="StatusLevelTooHigh" xml:space="preserve">
+    <value>Not connected — server wants security level {0}</value>
+    <comment>Status line, followed by a Settings link: the server asks for an identity above the level Gengfu raises to. {0}: the level it asks for.</comment>
   </data>
   <data name="StatusNotSetUp" xml:space="preserve">
     <value>TeamSpeak isn’t set up</value>
@@ -231,6 +255,10 @@
   <data name="Banned" xml:space="preserve">
     <value>Banned from the server</value>
     <comment>Beside Connect in Settings.</comment>
+  </data>
+  <data name="LevelTooHigh" xml:space="preserve">
+    <value>Server wants security level {0}</value>
+    <comment>Beside Connect in Settings. {0}: the identity level the server asks for.</comment>
   </data>
   <data name="WhoHears" xml:space="preserve">
     <value>Who hears the calls</value>

@@ -90,7 +90,7 @@ internal sealed class Session : IAsyncDisposable
         string? identity;
         (Password, identity) = kept ?? ("", null);
         _secretsWritten = (Password, identity);
-        Connection = new TeamSpeakConnection(identity);
+        Connection = new TeamSpeakConnection(identity, time);
         Language = AppLanguage.Resolve(Settings.Language, windows);
         Clock = new MatchClock(time);
         Schedule = new CallSchedule(Clock, Settings.Events, Settings.Lead);
@@ -155,9 +155,9 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>Whether Connect would start a new connection: none is up, or a field changed since this one began.</summary>
     public bool OffersConnect => OffersConnectFor(Connection.State.Status, ConnectedWith, Login.Of(Settings, Password));
 
-    public StatusLine Status => StatusLine.Of(Connection.State, ConnectedWith?.Server, Settings, Language);
+    public StatusLine Status => StatusLine.Of(Connection.State, ConnectedWith?.Server, Settings, Language, Clock.Time.Now);
 
-    public StatusLine SettingsStatus => StatusLine.InSettings(Connection.State, ConnectedWith?.Server, Settings);
+    public StatusLine SettingsStatus => StatusLine.InSettings(Connection.State, ConnectedWith?.Server, Settings, Clock.Time.Now);
 
     /// <summary>What a call says: the user's text, or the default for the language and lead.</summary>
     public string CallText => TextOf(Settings, Language);

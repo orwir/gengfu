@@ -5,8 +5,22 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+### Added
+
+- Gengfu reconnects when the server itself kicks it, as an idle limit does (#13)
+- When a server's flood protection blocks Gengfu, it waits 5 minutes and tries again (#13)
+- The status line says when Gengfu raises its identity's security level for a server (#13)
+- A server that wants an identity above security level 32 leaves Gengfu off (#13)
+- When a server wants more than security level 32, the status line names the level it wants (#13)
+- While Gengfu waits to connect again, the status line counts down to its next attempt (#13)
+
+### Changed
+
+- A full server, or one that refuses for another reason, is tried again every 30 s (#13)
+
 ### Fixed
 
+- Gengfu's retries no longer trip a server's flood protection (#13)
 - A wrong server password shows as such, not as "no answer" retried every 5 s (#35)
 - A ban from the server shows as such, not as "no answer" retried every 5 s (#35)
 - A full server shows as full, not as "no answer" (#35)

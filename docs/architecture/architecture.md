@@ -172,10 +172,19 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 
 - Gengfu resolves server addresses itself — [ADR-0003](../adr/0003-own-address-resolver.md).
 - The connection keeps itself up: a failed attempt is retried after 1 and 2 s, then every 5 s,
-  until the user disconnects, or the server kicks, bans or refuses the password. An attempt the
-  server doesn't answer gives up after 5 s: on our server, an attempt made during an outage never
-  succeeds once the link is back — likely because its opening packet carries the time it was
+  until the user disconnects or the server refuses for good, as the table below says. An attempt
+  the server doesn't answer gives up after 5 s: on our server, an attempt made during an outage
+  never succeeds once the link is back — likely because its opening packet carries the time it was
   made — so only a fresh one gets through. A server that comes back is reached within about 10 s.
+- A refusal is tried again only every 30 s, because every attempt a server answers earns flood
+  points for the IP. At 250, the default, the server's flood protection blocks the IP: every
+  client from it, the player's own TeamSpeak too. Retries every 5 s got there within 90 s, and
+  every 30 s not in 12 minutes, on either server. TS3 lifted the block within 20 s, but TS6 held it
+  while attempts kept coming, and lifted it only after about 4 quiet minutes; so Gengfu waits 5
+  minutes before trying again.
+- While the connection waits to try again, its state says when the next attempt starts, on the
+  App's clock, which the App hands it. The status line counts down to it on each tick, and says
+  Gengfu is trying while the attempt runs.
 - A connection silent for 10 s counts as lost: TSLib pings every second, and our server drops a
   client silent for about 20 s. TSLib's own 30 s is patched down
   ([lib/README.md](../../lib/README.md)); with it, a dead connection shows as connected for half
@@ -185,3 +194,26 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 - The bot's identity is created once and kept, so a server group can be assigned to it; its
   security level is raised when a server asks. The connection hands it out in the official
   client's export format, and the App keeps it with the server password.
+- Raising the level costs about 2^level hashes, about 4.5 million a second on one core: level 28
+  takes about a minute, 30 about 4, 32 about 17. TSLib's raise can't be cancelled, and above 160
+  it never ends, so Gengfu raises to 32 at most; a server that asks for more leaves it off.
+
+How each refusal ends, the same on TS3 3.13.7 and TS6 6.0 beta, as found against local servers:
+
+| The server | sends | and Gengfu |
+| --- | --- | --- |
+| refuses the password | `1028 invalid server password` | stops |
+| has banned the bot | `3329 you are banned`, with "You are banned …" | stops |
+| bans or kicks it while connected, a person doing so | a leave, reason ban or kick, from that person | stops |
+| kicks it itself, as an idle limit does | a leave, reason kick, from client 0, "server" | reconnects after 1 s |
+| is full | `1027 server maxclient reached` | tries again every 30 s |
+| refuses for any other reason | its error | tries again every 30 s, showing the server's words |
+| blocks the IP for flooding | `3329 you are banned`, with "flood prevention, please try again later" | waits 5 minutes, then tries again |
+| asks for a stronger identity | `519 could not validate client identity`, with the level | raises the identity and tries again at once; above 32, or at a level it already has, stops |
+| has the nickname in use | nothing: it names the bot "Gengfu1" | joins |
+| sets a minimum client version | nothing: TSLib announces a build from the far future | joins |
+
+Gengfu takes `3331 flood ban` as flood protection too, though neither server sent it. TSLib keeps
+only why the bot left. Who kicked it comes with the leave notice, which TSLib raises as an event
+before it ends the connection, so the connection reads it there. An admin bot's kick carries the
+bot's own client id, so it stops Gengfu as a person's kick does.
