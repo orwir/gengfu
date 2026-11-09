@@ -24,6 +24,11 @@ public abstract record WhisperTarget
 
     public sealed record Channels(IReadOnlyList<ulong> Ids) : WhisperTarget
     {
+        // The same channels are the same listeners; a record alone would compare the two lists as objects.
+        public bool Equals(Channels? other) => other is not null && Ids.SequenceEqual(other.Ids);
+
+        public override int GetHashCode() => Ids.Aggregate(0, HashCode.Combine);
+
         internal override void Send(TsFullClient client, byte[] frame) =>
             client.SendAudioWhisper(frame, Codec.OpusMusic, [.. Ids.Select(id => new ChannelId(id))], []);
     }

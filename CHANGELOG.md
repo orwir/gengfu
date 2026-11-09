@@ -13,6 +13,8 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - A server that wants an identity above security level 32 leaves Gengfu off (#13)
 - When a server wants more than security level 32, the status line names the level it wants (#13)
 - While Gengfu waits to connect again, the status line counts down to its next attempt (#13)
+- The status line says when the server reports that the last call reached nobody (#37)
+- In Settings, a note under Test call says when nobody heard the last call, and why that may be (#37)
 
 ### Changed
 
@@ -21,6 +23,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 ### Fixed
 
 - Gengfu's retries no longer trip a server's flood protection (#13)
+- A call the server says reached nobody shows as Not sent, not as called (#37)
 - A wrong server password shows as such, not as "no answer" retried every 5 s (#35)
 - A ban from the server shows as such, not as "no answer" retried every 5 s (#35)
 - A full server shows as full, not as "no answer" (#35)

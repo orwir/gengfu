@@ -11,8 +11,9 @@ public enum CallState
     Called,
 
     /// <summary>
-    /// It never went out: it came due while Gengfu couldn't whisper (see <see cref="CallSchedule.MarkNotSent"/>),
-    /// or a correction took the clock past its spawn first.
+    /// Nobody heard it: it came due while Gengfu couldn't whisper, or the server said its whisper
+    /// reached nobody (see <see cref="CallSchedule.MarkNotSent"/>), or a correction took the clock
+    /// past its spawn first.
     /// </summary>
     NotSent,
 }
@@ -94,8 +95,9 @@ public sealed class CallSchedule
     }
 
     /// <summary>
-    /// Marks a call that came due but couldn't go out; it shows as not sent until it re-arms. The
-    /// events may have changed while it was going out, so it is found among the calls as they are.
+    /// Marks a call that came due but couldn't go out, or that nobody heard; it shows as not sent
+    /// until it re-arms. The events may have changed while it was going out, so it is found among the
+    /// calls as they are.
     /// </summary>
     public void MarkNotSent(Call call)
     {

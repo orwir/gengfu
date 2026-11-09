@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using Gengfu.App.Speech;
 using Gengfu.App.Views;
 using Gengfu.Core.Settings;
+using Gengfu.TeamSpeak;
 
 namespace Gengfu.App.Tests.Views;
 
@@ -46,6 +47,50 @@ public sealed class SettingsViewTests(WpfApp wpf)
             Assert.Equal(Theme.Dark, chosen);
             Assert.Equal(ThemeMode.Dark, mode);
             Assert.Equal(1, told);
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Under_Test_call_it_says_when_the_server_said_nobody_heard_the_last_call_and_why()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder);
+        session.Settings.Group = new Named(1625, "GvG");
+        try
+        {
+            var (before, group, channels, heard) = wpf.Invoke(() =>
+            {
+                var view = new SettingsView(session, () => { }, () => { });
+                var before = view.NobodyHeardBar.Visibility;
+                session.Whispered(session.Target!, session.Connection.State, WhisperResult.ReachedNobody);
+                view.Refresh();
+                var group = (view.NobodyHeardBar.Visibility, view.NobodyHeardText.Text == Strings.NobodyHeardGroup);
+                session.Settings.Listeners = ListenerKind.Channels;
+                session.Settings.Channels = [new Named(3978, "Push 2")];
+                session.Whispered(session.Target!, session.Connection.State, WhisperResult.ReachedNobody);
+                view.Refresh();
+                var channels = (view.NobodyHeardBar.Visibility, view.NobodyHeardText.Text == Strings.NobodyHeardChannels);
+                session.Whispered(session.Target!, session.Connection.State, WhisperResult.Sent);
+                view.Refresh();
+                return (before, group, channels, view.NobodyHeardBar.Visibility);
+            });
+
+            Assert.Equal(Visibility.Collapsed, before);
+            Assert.Equal((Visibility.Visible, true), group);
+            Assert.Equal((Visibility.Visible, true), channels);
+            Assert.Equal(Visibility.Collapsed, heard);
         }
         finally
         {

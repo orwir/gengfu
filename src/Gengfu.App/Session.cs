@@ -59,6 +59,11 @@ internal sealed class Session : IAsyncDisposable
     private string? _settingsWritten;
     private (string, string?) _secretsWritten;
 
+    // The listeners the last whisper reached nobody among, as the server said, and the connection's
+    // state when it went out. The connection replaces its state whenever it changes, so while that
+    // state stands, the connection is the same one.
+    private (WhisperTarget Target, ConnectionState On)? _unheard;
+
     /// <param name="windows">Windows' display language, for "Same as Windows".</param>
     /// <param name="folder">Where the settings file and the secrets live: <see cref="Home"/> names it.</param>
     /// <param name="install">Velopack's manager when this copy keeps the install up to date; null for any other.</param>
@@ -94,11 +99,7 @@ internal sealed class Session : IAsyncDisposable
         Language = AppLanguage.Resolve(Settings.Language, windows);
         Clock = new MatchClock(time);
         Schedule = new CallSchedule(Clock, Settings.Events, Settings.Lead);
-        Caller = new Caller(
-            Schedule,
-            () => CanCall,
-            RenderAsync,
-            frames => Target is { } target ? Connection.WhisperAsync(frames, target) : Task.FromResult(false));
+        Caller = new Caller(Schedule, () => CanCall, RenderAsync, WhisperAsync);
         SoundChanged();
         _watch = _store.Watch(() => Interlocked.Exchange(ref _touched, 1));
     }
@@ -152,10 +153,17 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>Whether a call can go out now: connected, with someone to hear it.</summary>
     public bool CanCall => Target is not null && Connection.State.Status == ConnectionStatus.Connected;
 
+    /// <summary>
+    /// Whether the server said the last call reached nobody. It holds until a whisper gets through,
+    /// or the connection or the listeners change: it was about them.
+    /// </summary>
+    public bool NobodyHeard =>
+        _unheard is { } unheard && unheard.Target == Target && ReferenceEquals(unheard.On, Connection.State);
+
     /// <summary>Whether Connect would start a new connection: none is up, or a field changed since this one began.</summary>
     public bool OffersConnect => OffersConnectFor(Connection.State.Status, ConnectedWith, Login.Of(Settings, Password));
 
-    public StatusLine Status => StatusLine.Of(Connection.State, ConnectedWith?.Server, Settings, Language, Clock.Time.Now);
+    public StatusLine Status => StatusLine.Of(Connection.State, ConnectedWith?.Server, Settings, Language, Clock.Time.Now, NobodyHeard);
 
     public StatusLine SettingsStatus => StatusLine.InSettings(Connection.State, ConnectedWith?.Server, Settings, Clock.Time.Now);
 
@@ -169,6 +177,11 @@ internal sealed class Session : IAsyncDisposable
     public void Tick()
     {
         Caller.Tick();
+        // Forgotten once it no longer holds, so the first listeners chosen again don't bring it back.
+        if (_unheard is not null && !NobodyHeard)
+        {
+            _unheard = null;
+        }
         _ = Updates.Tick();
         var status = Connection.State.Status;
         if (status == ConnectionStatus.Connected && _seen != ConnectionStatus.Connected)
@@ -297,6 +310,21 @@ internal sealed class Session : IAsyncDisposable
         await Connection.DisposeAsync();
     }
 
+    /// <summary>
+    /// Takes in how a whisper to <paramref name="target"/> went, sent while the connection stood at
+    /// <paramref name="on"/>, and says whether anyone may have heard it.
+    /// </summary>
+    internal bool Whispered(WhisperTarget target, ConnectionState on, WhisperResult result)
+    {
+        _unheard = result switch
+        {
+            WhisperResult.ReachedNobody => (target, on),
+            WhisperResult.Sent => null,
+            _ => _unheard,
+        };
+        return result == WhisperResult.Sent;
+    }
+
     /// <summary>Takes in the settings file as it is on disk now, after an edit.</summary>
     internal void Reload()
     {
@@ -362,6 +390,17 @@ internal sealed class Session : IAsyncDisposable
         settings.Voice == AppSettings.Gong ? new CallSound.Gong() : new CallSound.Speech(text, settings.Voice);
 
     private Task<CallClip> Render(MatchEvent? matchEvent) => _audio.RenderAsync(SoundOf(Settings, matchEvent, Language), Language);
+
+    // A call goes out to the listeners chosen now, on the connection as it stands now.
+    private async Task<bool> WhisperAsync(IReadOnlyList<byte[]> frames)
+    {
+        if (Target is not { } target)
+        {
+            return false;
+        }
+        var on = Connection.State;
+        return Whispered(target, on, await Connection.WhisperAsync(frames, target));
+    }
 
     // A call asks for its sound as it is now: its event's own, or Settings' for the rest and Test call.
     private Task<CallClip> RenderAsync(MatchEvent? matchEvent)

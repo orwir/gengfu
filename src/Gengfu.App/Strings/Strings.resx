@@ -88,6 +88,10 @@
     <value>Connected · choose who hears the calls</value>
     <comment>Status line: connected, but no group or channel chosen. Followed by a Settings link.</comment>
   </data>
+  <data name="StatusNobodyHeard" xml:space="preserve">
+    <value>Connected · nobody heard the last call</value>
+    <comment>Status line: connected, but the server said the last call reached nobody. No Settings link: the fix is on the server or in the game.</comment>
+  </data>
   <data name="StatusConnecting" xml:space="preserve">
     <value>Connecting to {0}…</value>
     <comment>Status line. {0}: the server address.</comment>
@@ -210,7 +214,7 @@
   </data>
   <data name="NotSent" xml:space="preserve">
     <value>Not sent</value>
-    <comment>A call's row: it came due while Gengfu couldn't whisper.</comment>
+    <comment>A call's row: nobody heard it. It came due while Gengfu couldn't whisper, or the server said it reached nobody, or the clock was moved past its spawn first.</comment>
   </data>
   <data name="ServerAddress" xml:space="preserve">
     <value>Server address</value>
@@ -379,6 +383,14 @@
   <data name="UseText" xml:space="preserve">
     <value>Use text instead</value>
     <comment>Link in Settings › Calls while a sound file is chosen.</comment>
+  </data>
+  <data name="NobodyHeardGroup" xml:space="preserve">
+    <value>Nobody heard the last call. Either no one in the group is online, or the server doesn’t allow the bot to whisper to them.</value>
+    <comment>Caution under Test call in Settings › Calls once the server said the last call reached nobody, with a server group chosen.</comment>
+  </data>
+  <data name="NobodyHeardChannels" xml:space="preserve">
+    <value>Nobody heard the last call. Either no one is in the chosen channels, or the server doesn’t allow the bot to whisper to them.</value>
+    <comment>The same caution, with channels chosen.</comment>
   </data>
   <data name="ChooseSoundFile" xml:space="preserve">
     <value>Choose a sound file</value>

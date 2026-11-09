@@ -95,6 +95,7 @@ internal partial class SettingsView : UserControl
         ShowConnection();
         ShowListeners();
         ShowSound();
+        ShowNobodyHeard();
         TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
         TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
         var updateLine = Copy.UpdateLine(_session.Updates.State);
@@ -172,6 +173,12 @@ internal partial class SettingsView : UserControl
         // A hint about the other kind of sound is left over from before a switch: the render runs behind.
         var problem = _session.Clip?.Problem ?? CallProblem.None;
         ShowHint(problem == CallProblem.FileUnreadable == (file is not null) ? problem : CallProblem.None);
+    }
+
+    private void ShowNobodyHeard()
+    {
+        NobodyHeardBar.Visibility = _session.NobodyHeard ? Visibility.Visible : Visibility.Collapsed;
+        NobodyHeardText.Text = _session.Settings.Listeners == ListenerKind.Group ? Strings.NobodyHeardGroup : Strings.NobodyHeardChannels;
     }
 
     private void ShowHint(CallProblem problem)

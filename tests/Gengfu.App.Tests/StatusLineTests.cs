@@ -57,6 +57,25 @@ public sealed class StatusLineTests : IDisposable
     }
 
     [Fact]
+    public void Connected_after_a_call_nobody_heard_it_says_so_with_no_link_to_Settings()
+    {
+        _settings.Group = new Named(1625, "GvG");
+
+        Assert.Equal(
+            new StatusLine(StatusTone.Caution, "Connected · nobody heard the last call", false),
+            StatusLine.Of(Connected, Server, _settings, English, Now, nobodyHeard: true));
+        // Until the connection is up, its own line comes first.
+        Assert.Equal(
+            "Connecting to ts.example.com…",
+            StatusLine.Of(new ConnectionState(ConnectionStatus.Connecting), Server, _settings, English, Now, nobodyHeard: true).Text);
+
+        using var russian = new UiCulture("ru-RU");
+        Assert.Equal(
+            "Подключено · последнее объявление никто не услышал",
+            StatusLine.Of(Connected, Server, _settings, Russian, Now, nobodyHeard: true).Text);
+    }
+
+    [Fact]
     public void Connected_with_nobody_chosen_it_sends_the_user_to_Settings()
     {
         var expected = new StatusLine(StatusTone.Caution, "Connected · choose who hears the calls", true);

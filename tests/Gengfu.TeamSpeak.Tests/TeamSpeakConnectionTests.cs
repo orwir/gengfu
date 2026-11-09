@@ -159,7 +159,30 @@ public sealed class TeamSpeakConnectionTests
     {
         await using var connection = new TeamSpeakConnection(null, _time);
 
-        Assert.False(await connection.WhisperAsync([[1, 2, 3]], new WhisperTarget.ServerGroup(12)));
+        Assert.Equal(WhisperResult.NotSent, await connection.WhisperAsync([[1, 2, 3]], new WhisperTarget.ServerGroup(12)));
+    }
+
+    [Fact]
+    public async Task Each_whisper_says_whether_the_server_said_it_reached_nobody()
+    {
+        // TS3 and TS6 answer a whisper nobody can hear with error 1804, and say nothing while anyone hears it.
+        using var server = new LocalTsServer("") { RefusesWhispers = true };
+        await using var connection = new TeamSpeakConnection(null, _time);
+        var states = Watch(connection);
+        await connection.ConnectAsync(server.Address, "Gengfu", "");
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        var up = connection.State;
+        // A tenth of a second: shorter than the server may take to answer, so the whisper waits for it.
+        IReadOnlyList<byte[]> frames = [.. Enumerable.Repeat(new byte[] { 1, 2, 3 }, 5)];
+        var squad = new WhisperTarget.ServerGroup(12);
+
+        Assert.Equal(WhisperResult.ReachedNobody, await connection.WhisperAsync(frames, squad).WaitAsync(Patience));
+
+        server.RefusesWhispers = false;
+        Assert.Equal(WhisperResult.Sent, await connection.WhisperAsync(frames, squad).WaitAsync(Patience));
+        // The App tells one connection from the next by its state, so whispers leave it as it stands.
+        Assert.Same(up, connection.State);
     }
 
     [Fact]

@@ -69,6 +69,9 @@
   <data name="StatusNoListeners" xml:space="preserve">
     <value>Подключено · выберите, кто слышит</value>
   </data>
+  <data name="StatusNobodyHeard" xml:space="preserve">
+    <value>Подключено · последнее объявление никто не услышал</value>
+  </data>
   <data name="StatusConnecting" xml:space="preserve">
     <value>Подключение к {0}…</value>
   </data>
@@ -287,6 +290,12 @@
   </data>
   <data name="UseText" xml:space="preserve">
     <value>Озвучивать текст</value>
+  </data>
+  <data name="NobodyHeardGroup" xml:space="preserve">
+    <value>Последнее объявление никто не услышал. Либо никого из группы нет в сети, либо сервер не разрешает боту им шептать.</value>
+  </data>
+  <data name="NobodyHeardChannels" xml:space="preserve">
+    <value>Последнее объявление никто не услышал. Либо в выбранных каналах никого нет, либо сервер не разрешает боту шептать в них.</value>
   </data>
   <data name="ChooseSoundFile" xml:space="preserve">
     <value>Выберите звуковой файл</value>

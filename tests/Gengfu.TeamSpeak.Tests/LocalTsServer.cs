@@ -15,12 +15,20 @@ namespace Gengfu.TeamSpeak.Tests;
 /// the handshake's opening steps, as TSLib's own server side does (TsCrypt.ProcessInit1). An error
 /// line refuses the attempt there, as a real server answers clientinit. Any other line lets the bot
 /// in, through the key exchange TSLib keeps for older servers (initivexpand), and is then sent to it,
-/// as a server sends the notice that the bot was kicked; an empty line lets the bot stay.
+/// as a server sends the notice that the bot was kicked; an empty line lets the bot stay. While
+/// <see cref="RefusesWhispers"/> is set, it answers the bot's whispers as a server does when nobody
+/// can hear them.
 /// </summary>
 internal sealed class LocalTsServer : IDisposable
 {
     /// <summary>The client id the server gives the bot.</summary>
     public const int BotId = 2;
+
+    // What TS3 3.13.7 and TS6 send while a whisper reaches nobody: the first about a quarter of a
+    // second into it, then about three a second.
+    private const string NoWhisperTargets = @"error id=1804 msg=no\swhisper\stargets\sfound";
+    private static readonly TimeSpan NoTargetsAfter = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan NoTargetsEvery = TimeSpan.FromMilliseconds(330);
 
     // A client's packet: an 8-byte MAC, its id, the client id and its type, then the data. An
     // Init1 packet's data opens with a 4-byte version, then the handshake's step; the last step
@@ -46,6 +54,7 @@ internal sealed class LocalTsServer : IDisposable
     private readonly Dictionary<IPEndPoint, Attempt> _attempts = [];
     private readonly string[] _lines;
     private int _attemptCount;
+    private volatile bool _refusesWhispers;
 
     /// <param name="lines">The line for each attempt in turn; the last one answers every later attempt.</param>
     public LocalTsServer(params string[] lines)
@@ -58,6 +67,16 @@ internal sealed class LocalTsServer : IDisposable
 
     /// <summary>How many attempts have reached the server.</summary>
     public int Attempts => Volatile.Read(ref _attemptCount);
+
+    /// <summary>
+    /// Whether it answers the bot's whispers as TS3 and TS6 answer one that reaches nobody; otherwise
+    /// it says nothing, as they do while anyone hears it.
+    /// </summary>
+    public bool RefusesWhispers
+    {
+        get => _refusesWhispers;
+        set => _refusesWhispers = value;
+    }
 
     public void Dispose() => _udp.Dispose();
 
@@ -101,15 +120,36 @@ internal sealed class LocalTsServer : IDisposable
                     Interlocked.Increment(ref _attemptCount);
                 }
                 return Handshake(packet, attempt);
-            case PacketType.Command when _attempts.TryGetValue(client, out var joining) && joining.Mac is { } mac && !joining.Joined:
+            case PacketType.Command when _attempts.TryGetValue(client, out var joining) && joining.Mac is not null && !joining.Joined:
                 // The client's first command, clientinit, shows it has the keys: only now does it
                 // take packets that carry the MAC made from them.
                 joining.Joined = true;
                 return joining.Line.Length == 0
-                    ? [Command(1, mac, InitServer)]
-                    : [Command(1, mac, InitServer), Command(2, mac, joining.Line)];
+                    ? [joining.Next(InitServer)]
+                    : [joining.Next(InitServer), joining.Next(joining.Line)];
+            case PacketType.VoiceWhisper when RefusesWhispers && _attempts.TryGetValue(client, out var whispering) && whispering.Joined:
+                var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                if (whispering.NoTargetsAt is not { } last || now - last >= NoTargetsEvery)
+                {
+                    whispering.NoTargetsAt = now;
+                    _ = SendLaterAsync(whispering.Next(NoWhisperTargets), client);
+                }
+                return [];
             default:
                 return [];
+        }
+    }
+
+    private async Task SendLaterAsync(byte[] packet, IPEndPoint client)
+    {
+        await Task.Delay(NoTargetsAfter);
+        try
+        {
+            await _udp.SendAsync(packet, client);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The test ended meanwhile.
         }
     }
 
@@ -191,11 +231,19 @@ internal sealed class LocalTsServer : IDisposable
 
     private sealed class Attempt(string line)
     {
+        private int _commands;
+
         public string Line { get; } = line;
 
         /// <summary>The MAC of the server's packets once the keys are agreed.</summary>
         public byte[]? Mac { get; set; }
 
         public bool Joined { get; set; }
+
+        /// <summary>When the server last said a whisper reached nobody, on <see cref="Environment.TickCount64"/>.</summary>
+        public TimeSpan? NoTargetsAt { get; set; }
+
+        /// <summary>The server's next command to this client: its ids count up from 1.</summary>
+        public byte[] Next(string line) => Command(++_commands, Mac!, line);
     }
 }

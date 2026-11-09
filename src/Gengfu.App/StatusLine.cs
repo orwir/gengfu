@@ -19,15 +19,19 @@ internal enum StatusTone
 
 /// <summary>
 /// What the main window's status line says about TeamSpeak: the dot, the words, and whether a Settings
-/// link follows, which it does only when the user has to act.
+/// link follows, which it does only when the fix is in Settings.
 /// </summary>
 internal sealed record StatusLine(StatusTone Tone, string Text, bool LinksToSettings)
 {
     /// <param name="server">The server Gengfu is connected or connecting to; null when it has none.</param>
     /// <param name="now">The time on the clock the connection's next attempt is set on.</param>
-    public static StatusLine Of(ConnectionState state, string? server, AppSettings settings, CultureInfo language, TimeSpan now) =>
+    /// <param name="nobodyHeard">Whether the server said the last call reached nobody.</param>
+    public static StatusLine Of(
+        ConnectionState state, string? server, AppSettings settings, CultureInfo language, TimeSpan now, bool nobodyHeard = false) =>
         state.Status switch
         {
+            // Its fix is on the server or in the game, so no Settings link.
+            ConnectionStatus.Connected when nobodyHeard => new(StatusTone.Caution, Strings.StatusNobodyHeard, false),
             ConnectionStatus.Connected => Listening(settings, language),
             ConnectionStatus.Connecting => Trying(state, server ?? settings.Server, now),
             _ => NotConnected(state, server is null && string.IsNullOrWhiteSpace(settings.Server)),

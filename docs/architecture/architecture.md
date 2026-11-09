@@ -32,6 +32,7 @@ v0.2) plugs in without touching it.
 4. TeamSpeak sends the frames in real time as a whisper to the chosen listeners — a server group
    or chosen channels — then an empty frame to end the talk. A call that can't go out, with Gengfu
    off the server or nobody chosen, is marked not sent at once, so the list never shows it calling.
+   One the server says reached nobody is marked not sent once it has played.
 
 ## The App
 
@@ -49,7 +50,8 @@ v0.2) plugs in without touching it.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
-  line's words.
+  line's words. When the server says a call reached nobody, `Session` keeps that for the status line
+  and Settings until a whisper gets through, the connection is new, or other listeners are chosen.
 - `MainWindow` draws its own title bar: Settings' way back sits in it, and maximize is left out.
   Its surface is flat, with no Mica backdrop: under a Mica frame Windows draws its own caption
   buttons too. Windows 11 rounds the corners on request.
@@ -76,8 +78,8 @@ timer up, as the display does.
 A call fires once while the clock is between its game time and its spawn, and shows as calling
 for 3 s: on time as the clock counts down, or late when a correction lands the clock in that
 window, since a late call still helps. After the spawn it never fires — the mob is already farmed
-— and shows as not sent, as does a call that couldn't go out. A correction back above its game
-time re-arms it; a changed lead moves every call but never makes one twice.
+— and shows as not sent, as does a call that couldn't go out or that nobody heard. A correction
+back above its game time re-arms it; a changed lead moves every call but never makes one twice.
 
 ## Call audio
 
@@ -189,6 +191,13 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
   client silent for about 20 s. TSLib's own 30 s is patched down
   ([lib/README.md](../../lib/README.md)); with it, a dead connection shows as connected for half
   a minute while every whisper is lost.
+- While a whisper reaches nobody, TS3 3.13.7 and TS6 6.0 beta both send `1804 no whisper targets
+  found`, about three times a second, the first a quarter of a second into the whisper; while
+  anyone hears it, nothing. Nobody hears when nobody in the group or channels is online, when the
+  group or channel is gone, or when every listener needs more whisper power than the bot has; the
+  error doesn't say which. It names no whisper either, so the connection counts it for the one on
+  air, from its first frame, and says how a whisper went once it has played, waiting at least 1 s
+  from that frame for the word of a far server.
 - The server sends its group list a moment after the connection is up; group ids come from the
   book's keys, because TSLib leaves the group's own `Id` at 0.
 - The bot's identity is created once and kept, so a server group can be assigned to it; its

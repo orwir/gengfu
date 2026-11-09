@@ -58,7 +58,8 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   clears the choice.
 - **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
   default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
-  use a sound file instead. **Test call** whispers the call once, now.
+  use a sound file instead. **Test call** whispers the call once, now. If the server says nobody
+  heard it, a note under Test call says why that may be.
 - **Language.** English, Russian, or the same as Windows.
 - **Theme.** Light, dark, or the same as Windows.
 
@@ -68,7 +69,8 @@ Gengfu joins as an ordinary TeamSpeak client, so a server that takes ordinary cl
 stricter server asks its admin for three things:
 
 - **Whisper power.** The bot's server group needs at least the whisper power the listeners' groups
-  ask for (`i_client_whisper_power` against `i_client_needed_whisper_power`).
+  ask for (`i_client_whisper_power` against `i_client_needed_whisper_power`). Without it the server
+  tells Gengfu that nobody heard the calls, and Gengfu says so.
 - **No idle limit.** Between matches the bot stays silent. When the server's own idle limit
   (`i_client_max_idletime`) kicks it, Gengfu is back within a second, but a call due that moment
   is lost. An admin bot that kicks idle clients stops Gengfu, as a person's kick does. So exempt
@@ -113,8 +115,14 @@ gets it pastes it over the `events` in their own file through **Open settings fi
 
 The calls list has every call of the match: the next one with the time left until it, a check once
 a call went out, and ✕ *Not sent* when nobody heard it: Gengfu was off the server, nobody was
-chosen to hear the calls, the whisper failed, or the clock was moved past the spawn first. When
-there are more calls than fit, the list scrolls to keep the next one in view.
+chosen to hear the calls, the whisper failed, the server said it reached nobody, or the clock was
+moved past the spawn first. When there are more calls than fit, the list scrolls to keep the next
+one in view.
+
+When the server says a call or a Test call reached nobody, the line at the top of the main window
+says so until a call gets through, Gengfu connects anew, or you choose other listeners. The server
+can't tell why: nobody who should hear it is online, or the server doesn't let the bot whisper to
+them.
 
 Under the clock, a line asks you to match the in-game timer until the last call; while a call goes
 out, it says what the squads hear instead.

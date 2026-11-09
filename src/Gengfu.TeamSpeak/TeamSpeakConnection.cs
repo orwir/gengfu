@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Gengfu.Core;
 using TSLib;
@@ -51,9 +52,10 @@ public enum ConnectionProblem
 }
 
 /// <summary>
-/// The connection at one moment. It is replaced whole, so a reader on any thread sees one state.
-/// <paramref name="RetryAt"/> is when the next attempt starts, on the time source the connection was
-/// given; null while an attempt runs, and once the connection has stopped trying.
+/// The connection at one moment. It is replaced whole, so a reader on any thread sees one state, and
+/// only when it changes: while a connection lasts, its Connected state stands, and the App takes a new
+/// one for a new connection. <paramref name="RetryAt"/> is when the next attempt starts, on the time
+/// source the connection was given; null while an attempt runs, and once it has stopped trying.
 /// </summary>
 public sealed record ConnectionState(
     ConnectionStatus Status, ConnectionProblem Problem = ConnectionProblem.None, string? Detail = null, TimeSpan? RetryAt = null);
@@ -63,6 +65,22 @@ public sealed record ServerGroupInfo(ulong Id, string Name);
 
 /// <summary>A channel, listed in the server's tree order; <paramref name="Depth"/> counts its parents.</summary>
 public sealed record ChannelInfo(ulong Id, string Name, int Depth);
+
+/// <summary>How a whisper went, once it has played.</summary>
+public enum WhisperResult
+{
+    /// <summary>Gengfu wasn't connected, so nothing went out.</summary>
+    NotSent,
+
+    /// <summary>It went out, and the server said nothing against it, as it does while anyone can hear it.</summary>
+    Sent,
+
+    /// <summary>
+    /// It went out, and the server said it reached nobody: nobody in the group or channels is online,
+    /// the group or channel is gone, or every listener needs more whisper power than the bot has.
+    /// </summary>
+    ReachedNobody,
+}
 
 /// <summary>
 /// Gengfu's seat on a TeamSpeak server. It connects as a normal client and keeps the connection up:
@@ -88,6 +106,10 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
     private static readonly TimeSpan RefusedDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan FloodDelay = TimeSpan.FromMinutes(5);
 
+    // TS3 and TS6 say a whisper reaches nobody within a quarter of a second of its first frame, and a
+    // far server adds its round trip. A shorter whisper waits out the rest before it says how it went.
+    private static readonly TimeSpan NoTargetsWithin = TimeSpan.FromSeconds(1);
+
     private readonly ITimeSource _time;
     private readonly TsAddress _address;
     private readonly DedicatedTaskScheduler _scheduler = new(Id.Null);
@@ -101,6 +123,9 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
     private TaskCompletionSource<DisconnectEventArgs>? _ended;
     private ClientId? _kicker;
     private volatile ConnectionState _state = new(ConnectionStatus.Disconnected);
+
+    // How often the server has said a whisper reached nobody: TSLib's thread counts, a whisper compares.
+    private long _noTargets;
 
     /// <param name="identity">The bot's identity as <see cref="Identity"/> gave it; null or unreadable makes a new one.</param>
     /// <param name="time">The clock its states' <see cref="ConnectionState.RetryAt"/> is on: the App's own.</param>
@@ -126,6 +151,15 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             foreach (var leave in leaves.Where(leave => leave.ClientId == _client.ClientId))
             {
                 _kicker = leave.InvokerId;
+            }
+        };
+        // While a whisper reaches nobody the server says so about three times a second, and while
+        // anyone hears it, never. The error names no whisper, so it counts for the one on air.
+        _client.OnErrorEvent += (_, error) =>
+        {
+            if (error.Id == TsErrorCode.whisper_no_targets)
+            {
+                Interlocked.Increment(ref _noTargets);
             }
         };
     }
@@ -173,15 +207,34 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             _client.Book.Channels.Select(channel =>
                 (channel.Key.Value, channel.Value.Name, channel.Value.Parent.Value, channel.Value.Order.Value))));
 
-    /// <summary>Whispers a call, frame by frame. Returns false, having sent nothing, when not connected.</summary>
-    public async Task<bool> WhisperAsync(IReadOnlyList<byte[]> frames, WhisperTarget target)
+    /// <summary>
+    /// Whispers a call, frame by frame, and once it has played says how it went: whether the server
+    /// said it reached nobody. Sends nothing when not connected.
+    /// </summary>
+    public async Task<WhisperResult> WhisperAsync(IReadOnlyList<byte[]> frames, WhisperTarget target)
     {
         if (_state.Status != ConnectionStatus.Connected)
         {
-            return false;
+            return WhisperResult.NotSent;
         }
-        await _voice.PlayAsync(frames, frame => target.Send(_client, frame));
-        return true;
+        // Counted from the whisper's own first frame: one queued behind another isn't on air yet.
+        var onAir = false;
+        var since = 0L;
+        var before = 0L;
+        await _voice.PlayAsync(frames, frame =>
+        {
+            if (!onAir)
+            {
+                (onAir, since, before) = (true, Stopwatch.GetTimestamp(), Interlocked.Read(ref _noTargets));
+            }
+            target.Send(_client, frame);
+        });
+        var left = NoTargetsWithin - Stopwatch.GetElapsedTime(since);
+        if (left > TimeSpan.Zero)
+        {
+            await Task.Delay(left);
+        }
+        return Interlocked.Read(ref _noTargets) == before ? WhisperResult.Sent : WhisperResult.ReachedNobody;
     }
 
     public async ValueTask DisposeAsync()
