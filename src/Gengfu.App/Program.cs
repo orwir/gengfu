@@ -16,6 +16,8 @@ internal static class Program
     /// exits here, and an update downloaded earlier is applied before the window opens. Only the
     /// first Gengfu on the user's own folder applies one, since Velopack's updater closes every copy
     /// it finds running; a second start on the same folder brings the first one's window forward.
+    /// That first Gengfu alone writes the folder's log, made before the app and the session so a
+    /// failure in either is in it.
     /// </summary>
     [STAThread]
     private static void Main()
@@ -28,9 +30,11 @@ internal static class Program
             single.ShowRunning();
             return;
         }
+        var log = new Log(home.Folder);
+        using var escapes = LogEscapes(log);
         var app = new App();
         app.InitializeComponent();
-        var session = new Session(CultureInfo.CurrentUICulture, new SystemTimeSource(), new CallAudio(), home.Folder, Install(home, Updates.Installed));
+        var session = new Session(CultureInfo.CurrentUICulture, new SystemTimeSource(), new CallAudio(), home.Folder, log, Install(home, Updates.Installed));
         var window = new MainWindow(session);
         single.Mark(new WindowInteropHelper(window).EnsureHandle());
         app.Run(window);
@@ -41,6 +45,39 @@ internal static class Program
 
     /// <summary>Velopack's manager for the installed copy; null for a copy that leaves the install alone.</summary>
     internal static UpdateManager? Install(Home home, Func<UpdateManager?> installed) => home.Isolated ? null : installed();
+
+    /// <summary>
+    /// Sends the log, until disposed, an exception nothing caught on any thread and a task that
+    /// failed with nothing waiting on it.
+    /// </summary>
+    internal static IDisposable LogEscapes(Log log)
+    {
+        UnhandledExceptionEventHandler escaped = (_, e) => Escaped(log, e.ExceptionObject);
+        EventHandler<UnobservedTaskExceptionEventArgs> unobserved = (_, e) => Unobserved(log, e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += escaped;
+        TaskScheduler.UnobservedTaskException += unobserved;
+        return new Undo(() =>
+        {
+            AppDomain.CurrentDomain.UnhandledException -= escaped;
+            TaskScheduler.UnobservedTaskException -= unobserved;
+        });
+    }
+
+    /// <summary>
+    /// An exception nothing caught, on any thread. Gengfu then closes: its state is unknown, and a
+    /// Gengfu that looks fine but no longer calls would be worse.
+    /// </summary>
+    internal static void Escaped(Log log, object exception) =>
+        log.Write("Gengfu closed after an error nothing caught:" + Environment.NewLine + exception);
+
+    /// <summary>A task that failed with nothing waiting on it: Gengfu carries on, since nothing needed its result.</summary>
+    internal static void Unobserved(Log log, Exception exception) =>
+        log.Write("A task failed with nothing waiting on it; Gengfu carries on:" + Environment.NewLine + exception);
+
+    private sealed class Undo(Action undo) : IDisposable
+    {
+        public void Dispose() => undo();
+    }
 }
 
 /// <summary>

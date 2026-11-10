@@ -140,6 +140,47 @@ public class MatchClockTests
     }
 
     [Fact]
+    public void Start_Stop_and_each_correction_say_what_they_did_to_the_game_time()
+    {
+        List<ClockChange> changes = [];
+        _clock.Changed += (_, change) => changes.Add(change);
+        _clock.Stop();
+        _clock.Move(TimeSpan.FromSeconds(5));
+
+        _clock.Start();
+        _time.Advance(TimeSpan.FromMinutes(10));
+        _clock.Move(TimeSpan.FromSeconds(3));
+        var firstKeystroke = _time.Now;
+        _time.Advance(TimeSpan.FromSeconds(2));
+        _clock.Anchor(firstKeystroke, TimeSpan.FromMinutes(22));
+        _clock.Stop();
+        _clock.Stop();
+
+        Assert.Equal(
+            [
+                new ClockChange(ClockChangeKind.Started, MatchClock.MatchLength, MatchClock.MatchLength),
+                new ClockChange(ClockChangeKind.Corrected, TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(25, 3)),
+                new ClockChange(ClockChangeKind.Corrected, TimeSpan.FromMinutes(25, 1), TimeSpan.FromMinutes(21, 58)),
+                new ClockChange(ClockChangeKind.Stopped, TimeSpan.FromMinutes(21, 58), MatchClock.MatchLength),
+            ],
+            changes);
+    }
+
+    [Fact]
+    public void Corrections_after_the_end_change_nothing_and_say_nothing()
+    {
+        _clock.Start();
+        _time.Advance(MatchClock.MatchLength);
+        List<ClockChange> changes = [];
+        _clock.Changed += (_, change) => changes.Add(change);
+
+        _clock.Move(TimeSpan.FromSeconds(10));
+        _clock.Anchor(_time.Now, TimeSpan.FromMinutes(1));
+
+        Assert.Empty(changes);
+    }
+
+    [Fact]
     public void Start_after_the_end_begins_a_new_match()
     {
         _clock.Start();

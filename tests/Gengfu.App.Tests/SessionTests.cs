@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using Gengfu.App.Speech;
 using Gengfu.Core;
@@ -12,7 +13,7 @@ namespace Gengfu.App.Tests;
 
 // The connection's TSLib thread keeps the test host alive until the connection is disposed. The
 // settings file and the secrets are real files, in a folder of the test's own.
-public sealed class SessionTests : IAsyncLifetime
+public sealed partial class SessionTests : IAsyncLifetime
 {
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
 
@@ -196,7 +197,8 @@ public sealed class SessionTests : IAsyncLifetime
             English,
             _time,
             new CallAudio(() => [new Voice("zira", "Microsoft Zira", "en-US")], (_, _) => Speech.Sound.Wav(Speech.Sound.Tone(300, 0.5, 16000), 16000), (_, _) => throw new InvalidOperationException()),
-            _folder);
+            _folder,
+            new Log(_folder));
 
         _session.SetSoundFile(0, Path.Combine(_folder, "jungle.mp3"));
         var jungle = _session.Settings.Events[0];
@@ -204,6 +206,7 @@ public sealed class SessionTests : IAsyncLifetime
 
         Assert.Equal(CallProblem.FileMissing, _session.ClipOf(jungle)!.Problem);
         Assert.Equal("Jungle in thirty seconds", _session.HeardFor([jungle]));
+        Assert.Equal("“Jungle in thirty seconds”, since jungle.mp3 isn't on this PC", (await _session.RenderAsync([jungle])).Plays);
     }
 
     [Fact]
@@ -235,10 +238,11 @@ public sealed class SessionTests : IAsyncLifetime
             new() { Name = "Supply", Spawns = [spawn] },
         ];
 
-        var frames = await _session.RenderAsync(together);
+        var call = await _session.RenderAsync(together);
 
         var parts = await Task.WhenAll(new[] { "Jungle and Supply in thirty seconds", "Boss soon" }.Select(words => audio.RenderAsync(new CallSound.Speech(words), English)));
-        Assert.Equal(CallAudio.Join([.. parts.Select(part => part.Frames)]), frames);
+        Assert.Equal(CallAudio.Join([.. parts.Select(part => part.Frames)]), call.Frames);
+        Assert.Equal("“Jungle and Supply in thirty seconds” · “Boss soon”", call.Plays);
     }
 
     [Fact]
@@ -268,6 +272,22 @@ public sealed class SessionTests : IAsyncLifetime
 
         Assert.False(_session.CanCall);
         Assert.Equal(CallState.NotSent, _session.Schedule.StateOf(_session.Schedule.Calls[0]));
+        Assert.Equal("Call for 25:00 at 25:30: Jungle — not sent: not connected", Logged()[^1]);
+    }
+
+    [Fact]
+    public void A_call_can_t_go_out_off_the_server_or_with_nobody_chosen_and_a_whisper_says_how_it_went()
+    {
+        var group = new WhisperTarget.ServerGroup(1625);
+
+        Assert.Equal("not connected", Session.WhyNoCallFor(ConnectionStatus.Connecting, group));
+        Assert.Equal("nobody chosen to hear the calls", Session.WhyNoCallFor(ConnectionStatus.Connected, null));
+        Assert.Null(Session.WhyNoCallFor(ConnectionStatus.Connected, group));
+        Assert.Equal("not connected", _session.WhyNoCall);
+
+        Assert.Equal("sent to the ГВГ group", Session.HowItWent(WhisperResult.Sent, "the ГВГ group"));
+        Assert.Equal("nobody heard it: the server said it reached nobody in Пуш 1, Пуш 2", Session.HowItWent(WhisperResult.ReachedNobody, "Пуш 1, Пуш 2"));
+        Assert.Equal("not sent: not connected", Session.HowItWent(WhisperResult.NotSent, "the ГВГ group"));
     }
 
     [Fact]
@@ -855,6 +875,257 @@ public sealed class SessionTests : IAsyncLifetime
         Assert.Equal(new UpdateState.Ready("0.1.1"), _session.Updates.State);
     }
 
+    [Fact]
+    public async Task A_run_starts_its_log_with_the_version_Windows_the_language_and_the_time_zone_and_ends_it_closed()
+    {
+        await RestartAsync();
+
+        Assert.Matches(
+            $@"^Gengfu {Regex.Escape(AppVersion.Current)} started · Windows \d+\.\d+\.\d+\.\d+ · English · UTC[+-]\d\d:\d\d · updates off$",
+            Logged()[0]);
+        Assert.Equal("Gengfu closed", Logged()[1]);
+        Assert.StartsWith($"Gengfu {AppVersion.Current} started", Logged()[2], StringComparison.Ordinal);
+        Assert.DoesNotContain("updates off", Session.StartLine(English, updates: true), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_log_has_a_line_when_the_connection_changes_and_none_when_it_tries_again_for_the_same_reason()
+    {
+        _session.Settings.Server = "ts.example.com";
+        _session.Settings.Group = new Named(1625, "ГВГ");
+        var again = _time.Now + TimeSpan.FromSeconds(5);
+
+        foreach (var state in new ConnectionState[]
+        {
+            new(ConnectionStatus.Connecting),
+            new(ConnectionStatus.Connecting, ConnectionProblem.NoAnswer, null, again),
+            new(ConnectionStatus.Connecting, ConnectionProblem.NoAnswer),
+            new(ConnectionStatus.Connecting, ConnectionProblem.NoAnswer, null, again + TimeSpan.FromSeconds(5)),
+            new(ConnectionStatus.Connected),
+            new(ConnectionStatus.Disconnected, ConnectionProblem.Kicked),
+        })
+        {
+            _session.ConnectionReported(state);
+        }
+
+        Assert.Equal(
+            [
+                "Connecting to ts.example.com as Gengfu…",
+                "No answer from ts.example.com — trying again in 0:05",
+                "Connected · whispering to the ГВГ group",
+                "Not connected — kicked from the server",
+            ],
+            Logged()[1..]);
+    }
+
+    [Fact]
+    public void Each_connection_state_is_logged_in_the_status_line_s_words_with_what_the_line_leaves_out()
+    {
+        var settings = new AppSettings { Listeners = ListenerKind.Channels, Channels = [new Named(3977, "Пуш 1"), new Named(3978, "Пуш 2")] };
+        var now = TimeSpan.FromMinutes(1);
+        string Line(ConnectionState state) => Session.ConnectionLine(state, "ts.example.com", "Gengfu", settings, now);
+        ConnectionState Trying(ConnectionProblem problem, string? detail = null) => new(ConnectionStatus.Connecting, problem, detail, now + TimeSpan.FromSeconds(30));
+
+        Assert.Equal("Connected · whispering to Пуш 1, Пуш 2", Line(new(ConnectionStatus.Connected)));
+        Assert.Equal("Connected · choose who hears the calls", Session.ConnectionLine(new(ConnectionStatus.Connected), "ts.example.com", "Gengfu", new AppSettings(), now));
+        Assert.Equal("Connecting to ts.example.com as Gengfu…", Line(new(ConnectionStatus.Connecting)));
+        Assert.Equal("Raising the bot's security level to 25 — can take minutes", Line(new(ConnectionStatus.Connecting, ConnectionProblem.IdentityTooWeak, "25")));
+        Assert.Equal("Can't find ts.example.com — trying again in 0:30", Line(Trying(ConnectionProblem.AddressNotFound)));
+        Assert.Equal("The server shut down — trying again in 0:30", Line(Trying(ConnectionProblem.ServerShutdown)));
+        Assert.Equal("The server kicked the bot — trying again in 0:30", Line(Trying(ConnectionProblem.KickedByServer)));
+        Assert.Equal("The server is full — trying again in 0:30", Line(Trying(ConnectionProblem.ServerFull)));
+        Assert.Equal("The server is limiting connections — trying again in 0:30", Line(Trying(ConnectionProblem.FloodProtection)));
+        Assert.Equal("The server refused: invalid serverID — trying again in 0:30", Line(Trying(ConnectionProblem.Refused, "invalid serverID")));
+        Assert.Equal("No answer from ts.example.com (Socket closed) — trying again…", Line(new(ConnectionStatus.Connecting, ConnectionProblem.NoAnswer, "Socket closed")));
+        Assert.Equal("Not connected — wrong server password", Line(new(ConnectionStatus.Disconnected, ConnectionProblem.WrongPassword)));
+        Assert.Equal("Not connected — kicked from the server", Line(new(ConnectionStatus.Disconnected, ConnectionProblem.Kicked)));
+        Assert.Equal("Not connected — banned from the server", Line(new(ConnectionStatus.Disconnected, ConnectionProblem.Banned)));
+        Assert.Equal("Not connected — server wants security level 40", Line(new(ConnectionStatus.Disconnected, ConnectionProblem.IdentityTooWeak, "40")));
+        Assert.Equal("Not connected", Line(new(ConnectionStatus.Disconnected)));
+    }
+
+    [Fact]
+    public async Task The_log_has_a_line_when_the_settings_file_s_error_is_found_and_when_it_is_gone()
+    {
+        Settle();
+        File.WriteAllText(SettingsFile, "{ \"lead\": 7 }");
+        _session.Reload();
+        File.WriteAllText(SettingsFile, "{ \"lead\": 7, }");
+        _session.Reload();
+        File.WriteAllText(SettingsFile, "{ }");
+        _session.Reload();
+        await RestartAsync(() => File.WriteAllText(SettingsFile, "{ \"server\": }"));
+
+        Assert.Equal(
+            [
+                "settings.json has an error on line 1 (lead). Until it's fixed, Gengfu works with the settings it has and saves nothing",
+                "settings.json reads without an error again",
+                "Gengfu closed",
+                "settings.json has an error on line 1 (server). Until it's fixed, Gengfu works with the settings it has and saves nothing",
+            ],
+            Logged().Where(line => !line.StartsWith("Gengfu ", StringComparison.Ordinal) || line == "Gengfu closed"));
+        Assert.Equal("settings.json has an error on line 3. Until it's fixed, Gengfu works with the settings it has and saves nothing", Session.FileErrorLine(new SettingsError(3, null)));
+        Assert.Equal("Windows won't let Gengfu read settings.json. Until it can, Gengfu works with the settings it has and saves nothing", Session.FileErrorLine(new SettingsError(null, null)));
+    }
+
+    [Fact]
+    public async Task The_log_says_when_the_bot_starts_with_a_new_identity_since_its_secrets_file_can_t_be_read()
+    {
+        _session.Password = "gvgnight";
+        Settle();
+        var secretsFile = Path.Combine(_folder, "secrets.bin");
+
+        FileStream? held = null;
+        await RestartAsync(() => held = new FileStream(secretsFile, FileMode.Open, FileAccess.Read, FileShare.None));
+        held!.Dispose();
+        await RestartAsync(() => File.WriteAllBytes(secretsFile, [1, 2, 3]));
+
+        Assert.Equal(
+            [
+                "Windows won't let Gengfu read secrets.bin: this run the bot has a new identity, and the file stays as it is",
+                "secrets.bin doesn't open for this Windows user, as when another user or PC saved it: the bot has a new identity and no server password",
+            ],
+            Logged().Where(line => line.Contains("secrets.bin", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void The_log_says_when_Windows_won_t_let_Gengfu_save_its_settings_and_when_a_save_gets_through_again()
+    {
+        Settle();
+        _session.Settings.Nickname = "Gengfu 2";
+        // Another program reads the file and lets others read it too, but not replace it.
+        using (new FileStream(SettingsFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            Settle();
+            _time.Advance(TimeSpan.FromSeconds(2));
+            _session.Tick();
+        }
+
+        // Saved with an error once it lets go, the file is never written over: no save gets through.
+        File.WriteAllText(SettingsFile, "{ \"lead\": 7 }");
+        _session.Reload();
+        _time.Advance(TimeSpan.FromSeconds(2));
+        _session.Tick();
+        File.WriteAllText(SettingsFile, "{ \"nickname\": \"Gengfu 3\" }");
+        _session.Reload();
+        _session.Settings.Nickname = "Gengfu 4";
+        Settle();
+
+        Assert.Equal(
+            [
+                "Windows won't let Gengfu save its settings; it tries again every 2 s",
+                "settings.json has an error on line 1 (lead). Until it's fixed, Gengfu works with the settings it has and saves nothing",
+                "settings.json reads without an error again",
+                "Gengfu saves its settings again",
+            ],
+            Logged()[1..]);
+    }
+
+    [Fact]
+    public void Start_Stop_and_each_correction_of_the_clock_are_logged_in_game_time()
+    {
+        _session.Clock.Start();
+        _time.Advance(TimeSpan.FromSeconds(48));
+        _session.Clock.Move(TimeSpan.FromSeconds(-19));
+        _session.Clock.Anchor(_time.Now, TimeSpan.FromMinutes(34));
+        _session.Clock.Stop();
+
+        Assert.Equal(
+            ["Clock started at 35:00", "Clock set to 33:53, from 34:12", "Clock set to 34:00, from 33:53", "Clock stopped at 34:00"],
+            Logged()[1..]);
+    }
+
+    [Fact]
+    public void The_log_has_how_the_server_took_a_privilege_key_never_the_key()
+    {
+        _session.TypeKey("v2Rk+Qc8XyT1aZ9mBf3LwN0pHs7uJd5EgKoYiC4");
+
+        foreach (var answer in new KeyResult[]
+        {
+            new(KeyOutcome.Unknown),
+            new(KeyOutcome.NotAllowed),
+            new(KeyOutcome.Refused, "database empty result set"),
+            new(KeyOutcome.NoAnswer),
+            new(KeyOutcome.Taken, "Callers"),
+            new(KeyOutcome.Taken),
+        })
+        {
+            _session.KeyUsed(answer);
+        }
+
+        Assert.Equal(
+            [
+                "Privilege key refused: the server doesn't know it, as when it's used already or mistyped",
+                "Privilege key refused: the server doesn't let the bot use privilege keys",
+                "Privilege key refused: database empty result set",
+                "Privilege key: the connection dropped before the server answered",
+                "Privilege key used: the bot is in Callers now",
+                "Privilege key used: the server gave the bot the key's group",
+            ],
+            Logged()[1..]);
+    }
+
+    [Fact]
+    public void The_log_says_what_each_part_of_a_call_played_and_why_a_part_isn_t_what_it_was_given()
+    {
+        var russian = CultureInfo.GetCultureInfo("ru");
+        var file = new CallSound.AudioFile(@"C:\Sounds\boss.mp3", new CallSound.Speech("Boss"));
+        string Played(CallSound sound, CallClip clip) => Session.PlayedAs([sound], [clip], russian);
+
+        Assert.Equal("“Джунгли через тридцать секунд”", Played(new CallSound.Speech("Джунгли через тридцать секунд"), new CallClip([])));
+        Assert.Equal("the gong", Played(new CallSound.Gong(), new CallClip([])));
+        Assert.Equal("the gong, since no installed voice speaks Russian", Played(new CallSound.Speech("Джунгли"), new CallClip([], CallProblem.NoVoice)));
+        Assert.Equal("the gong, since there are no words to say", Played(new CallSound.Speech(" "), new CallClip([], CallProblem.NoText)));
+        Assert.Equal("the gong, since Windows couldn't speak “Boss”: The voice said nothing", Played(new CallSound.Speech("Boss"), new CallClip([], CallProblem.SpeechFailed, "The voice said nothing.")));
+        Assert.Equal("boss.mp3", Played(file, new CallClip([])));
+        Assert.Equal("“Boss”, since boss.mp3 isn't on this PC", Played(file, new CallClip([], CallProblem.FileMissing)));
+        Assert.Equal(
+            "the gong, since Windows can't play boss.mp3: The file is silent, and no installed voice speaks Russian",
+            Played(file, new CallClip([], CallProblem.FileUnreadable, "The file is silent.", CallProblem.NoVoice)));
+        Assert.Equal("the gong, since boss.mp3 isn't on this PC", Played(file with { Otherwise = new CallSound.Gong() }, new CallClip([], CallProblem.FileMissing)));
+        Assert.Equal(
+            "“Jungle and Boss in thirty seconds” · boss.mp3",
+            Session.PlayedAs([new CallSound.Speech("Jungle and Boss in thirty seconds"), file], [new CallClip([]), new CallClip([])], russian));
+    }
+
+    [Fact]
+    public async Task No_server_password_identity_or_privilege_key_reaches_the_log()
+    {
+        const string password = "pw-7Hq2-gvgnight";
+        const string key = "v2Rk+Qc8XyT1aZ9mBf3LwN0pHs7uJd5EgKoYiC4";
+        var identity = _session.Connection.Identity;
+        _session.Password = password;
+        _session.Settings.Group = new Named(1625, "GvG");
+        _session.TypeKey(key);
+
+        // Nothing answers on the discard port; the connection keeps trying until the test ends.
+        _session.Settings.Server = "127.0.0.1:9";
+        await _session.ConnectAsync();
+        _session.KeyUsed(new KeyResult(KeyOutcome.Refused, "insufficient client permissions"));
+        _session.ConnectionReported(new ConnectionState(ConnectionStatus.Disconnected, ConnectionProblem.WrongPassword));
+        _session.Clock.Start();
+        _time.Advance(MatchClock.MatchLength - _session.Schedule.Calls[0].At);
+        _session.Tick();
+        Settle();
+        await RestartAsync();
+
+        var log = string.Join(Environment.NewLine, Logged());
+        Assert.Contains("Connecting to 127.0.0.1:9 as Gengfu…", log, StringComparison.Ordinal);
+        Assert.Contains("Call for 25:00 at 25:30: Jungle — not sent: not connected", log, StringComparison.Ordinal);
+        Assert.Equal(password, _session.Password);
+        Assert.DoesNotContain(password, log, StringComparison.Ordinal);
+        Assert.DoesNotContain(key, log, StringComparison.Ordinal);
+        Assert.DoesNotContain(identity, log, StringComparison.Ordinal);
+        Assert.DoesNotContain(identity[(identity.IndexOf('V', StringComparison.Ordinal) + 1)..][..16], log, StringComparison.Ordinal);
+    }
+
+    // The log's entries so far, without their date and time.
+    private string[] Logged() =>
+        [.. File.ReadAllLines(Path.Combine(_folder, "gengfu.log")).Select(line => Stamp().IsMatch(line) ? line[25..] : line)];
+
+    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}  ")]
+    private static partial Regex Stamp();
+
     // No voices and no files: every call plays the gong, so nothing here depends on the machine.
     private Session NewSession(Velopack.UpdateManager? install = null) =>
         new(
@@ -862,6 +1133,7 @@ public sealed class SessionTests : IAsyncLifetime
             _time,
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
             _folder,
+            new Log(_folder),
             install);
 
     // A session whose voice speaks any text as a short tone, and the texts it was given.
@@ -877,7 +1149,7 @@ public sealed class SessionTests : IAsyncLifetime
                 return Speech.Sound.Wav(Speech.Sound.Tone(300, 0.5, 16000), 16000);
             },
             (_, _) => throw new InvalidOperationException());
-        _session = new Session(English, _time, audio, _folder);
+        _session = new Session(English, _time, audio, _folder, new Log(_folder));
         return (audio, spoken);
     }
 
@@ -911,7 +1183,8 @@ public sealed class SessionThemeTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             var modes = wpf.Invoke(() =>

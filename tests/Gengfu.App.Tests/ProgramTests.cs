@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Gengfu.App.Tests;
 
@@ -67,6 +68,78 @@ public sealed class ProgramTests
 
             Assert.False(home.Isolated);
             Assert.Equal(@"Local\Gengfu", home.Lock);
+        }
+    }
+
+    [Fact]
+    public void An_exception_that_escapes_or_fails_a_task_nothing_waits_on_lands_in_the_log_with_its_stack()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var log = new Log(folder);
+        try
+        {
+            Program.Escaped(log, Thrown(new InvalidOperationException("The clock broke.")));
+            Program.Unobserved(log, new AggregateException(Thrown(new TimeoutException("The lists never came."))));
+
+            var text = File.ReadAllText(log.FilePath);
+            Assert.Contains("Gengfu closed after an error nothing caught:" + Environment.NewLine + "System.InvalidOperationException: The clock broke." + Environment.NewLine + "   at ", text, StringComparison.Ordinal);
+            Assert.Contains("A task failed with nothing waiting on it; Gengfu carries on:", text, StringComparison.Ordinal);
+            Assert.Contains("System.TimeoutException: The lists never came." + Environment.NewLine + "   at ", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    // An exception nothing catches can't be raised here without ending the test run: a startup
+    // hook in the real Gengfu.exe checks that one.
+    [Fact]
+    public void A_task_that_fails_with_nothing_waiting_on_it_reaches_the_log_while_Gengfu_listens()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var log = new Log(folder);
+        try
+        {
+            using (Program.LogEscapes(log))
+            {
+                FailUnwatched("The groups never came.");
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+            FailUnwatched("The channels never came.");
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            var text = File.ReadAllText(log.FilePath);
+            Assert.Contains("A task failed with nothing waiting on it; Gengfu carries on:", text, StringComparison.Ordinal);
+            Assert.Contains("System.InvalidOperationException: The groups never came.", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("The channels never came.", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    // A task that fails and that nothing waits on, gone by the time this returns.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void FailUnwatched(string message)
+    {
+        var task = Task.Run(() => throw new InvalidOperationException(message));
+        SpinWait.SpinUntil(() => task.IsCompleted);
+    }
+
+    // Thrown, so it carries the stack it was thrown from.
+    private static Exception Thrown(Exception exception)
+    {
+        try
+        {
+            throw exception;
+        }
+        catch (Exception thrown)
+        {
+            return thrown;
         }
     }
 }

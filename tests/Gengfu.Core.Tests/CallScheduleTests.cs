@@ -27,6 +27,7 @@ public class CallScheduleTests
         Assert.Equal(
             new[] { "25:30", "20:30", "15:30", "10:30", "05:30" },
             _schedule.Calls.Select(call => MatchClock.Format(call.At)));
+        Assert.Same(_clock, _schedule.Clock);
     }
 
     [Fact]

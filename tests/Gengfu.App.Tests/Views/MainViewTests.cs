@@ -143,7 +143,8 @@ public sealed class MainViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             var offsets = wpf.Invoke(() =>
@@ -227,7 +228,8 @@ public sealed class MainViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             time,
             audio ?? new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             wpf.Invoke(() =>

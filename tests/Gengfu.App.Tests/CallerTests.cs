@@ -10,6 +10,7 @@ public sealed class CallerTests
     private readonly IReadOnlyList<byte[]> _frames = [[1], [2], [3]];
     private readonly List<IReadOnlyList<byte[]>> _whispered = [];
     private readonly List<IReadOnlyList<MatchEvent>> _rendered = [];
+    private readonly List<string> _logged = [];
     private CallSchedule _schedule;
     private bool _canSend = true;
     private Func<IReadOnlyList<byte[]>, Task<bool>> _whisper;
@@ -93,6 +94,58 @@ public sealed class CallerTests
 
         Assert.Equal(new[] { new[] { boss }, new[] { MatchEvent.Jungle } }, _rendered);
         Assert.Equal(2, _whispered.Count);
+        // Late, so the log gives the game time each went out at.
+        Assert.Equal(
+            [
+                "Call for 25:10 at 25:20: Boss — played “Boss” — sent to the GvG group",
+                "Call for 25:00 at 25:20: Jungle — played “Jungle” — sent to the GvG group",
+            ],
+            _logged);
+    }
+
+    [Fact]
+    public async Task Each_call_leaves_a_line_in_the_log_saying_what_it_played_and_how_it_went()
+    {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25)] };
+        _schedule = new CallSchedule(_clock, [MatchEvent.Jungle, boss], CallSchedule.DefaultLead);
+        var caller = NewCaller();
+        _clock.Start();
+        RunTo(First.At);
+        await Task.WhenAll(caller.Tick());
+
+        _whisper = _ => Task.FromResult(false);
+        RunTo(TimeSpan.FromSeconds((20 * 60) + 30));
+        await Task.WhenAll(caller.Tick());
+        await caller.TestAsync(boss);
+
+        Assert.Equal(
+            [
+                "Call for 25:00 at 25:30: Jungle, Boss — played “Jungle and Boss” — sent to the GvG group",
+                "Call for 20:00 at 20:30: Jungle — played “Jungle” — nobody heard it",
+                "Test call: Boss — played “Boss” — nobody heard it",
+            ],
+            _logged);
+    }
+
+    [Fact]
+    public async Task A_call_that_can_t_go_out_says_why_in_the_log_and_one_that_fails_leaves_its_error()
+    {
+        _canSend = false;
+        var caller = NewCaller();
+        _clock.Start();
+        RunTo(First.At);
+        caller.Tick();
+
+        _canSend = true;
+        _whisper = _ => throw new InvalidOperationException("The connection dropped.");
+        RunTo(TimeSpan.FromSeconds((20 * 60) + 30));
+        await Task.WhenAll(caller.Tick());
+
+        Assert.Equal("Call for 25:00 at 25:30: Jungle — not sent: not connected", _logged[0]);
+        var failed = _logged[1].Split(Environment.NewLine);
+        Assert.Equal("Call for 20:00 at 20:30: Jungle — not sent, after an error:", failed[0]);
+        Assert.Equal("System.InvalidOperationException: The connection dropped.", failed[1]);
+        Assert.StartsWith("   at ", failed[2], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -192,19 +245,25 @@ public sealed class CallerTests
         Assert.Empty(_whispered);
     }
 
+    // Each call plays its events' names; a whisper heard went to the GvG group.
     private Caller NewCaller() =>
         new(
             _schedule,
-            () => _canSend,
+            _logged.Add,
+            () => _canSend ? null : "not connected",
             events =>
             {
                 _rendered.Add(events);
-                return Task.FromResult(_frames);
+                return Task.FromResult(new CallRender(_frames, $"“{string.Join(" and ", events.Select(matchEvent => matchEvent.Name ?? "Jungle"))}”"));
             },
             frames =>
             {
                 _whispered.Add(frames);
-                return _whisper(frames);
+                // Called here, so a whisper that throws as it starts still throws to the caller.
+                return Went(_whisper(frames));
+
+                static async Task<CallWhisper> Went(Task<bool> heard) =>
+                    await heard ? new CallWhisper(true, "sent to the GvG group") : new CallWhisper(false, "nobody heard it");
             });
 
     // Lets the running clock count down, uncorrected, until it shows the given game time.

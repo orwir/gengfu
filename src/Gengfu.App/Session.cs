@@ -22,8 +22,10 @@ internal sealed record EventsUndo(IReadOnlyList<MatchEvent> Events, MatchEvent? 
 
 /// <summary>
 /// One running Gengfu: what Settings holds, kept in the settings file, the match clock and its calls,
-/// the calls' sound, the seat on TeamSpeak, and its updates. The window drives it from its tick, on
-/// the UI thread.
+/// the calls' sound, the seat on TeamSpeak, its updates and its log. The window drives it from its
+/// tick, on the UI thread. Only the connection's states come in on TSLib's thread, one at a time, for
+/// the log: <see cref="ConnectionReported"/> reads the login and the settings there, which the UI
+/// thread replaces whole and never changes in place.
 /// </summary>
 internal sealed class Session : IAsyncDisposable
 {
@@ -43,6 +45,7 @@ internal sealed class Session : IAsyncDisposable
 
     private readonly CultureInfo _windows;
     private readonly CallAudio _audio;
+    private readonly Log _log;
     private readonly SettingsStore _store;
     private readonly Secrets _secrets;
     private readonly IDisposable _watch;
@@ -70,14 +73,21 @@ internal sealed class Session : IAsyncDisposable
 
     private bool _usingKey;
 
+    // What the last connection line said: a retry of the same problem adds none, so a server down
+    // for an hour is one line, not one every 5 s. The connection reports one state at a time.
+    private (string Server, ConnectionStatus, ConnectionProblem, string?) _connectionSaid;
+
+    private bool _saveRefused;
+
     /// <param name="windows">Windows' display language, for "Same as Windows".</param>
     /// <param name="folder">Where the settings file and the secrets live: <see cref="Home"/> names it.</param>
+    /// <param name="log">Gengfu's log; this run's first line is the start.</param>
     /// <param name="install">Velopack's manager when this copy keeps the install up to date; null for any other.</param>
-    internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, string folder, Velopack.UpdateManager? install = null)
+    internal Session(CultureInfo windows, ITimeSource time, CallAudio audio, string folder, Log log, Velopack.UpdateManager? install = null)
     {
-        Updates = new Updates(time, install);
         _windows = windows;
         _audio = audio;
+        _log = log;
         _store = new SettingsStore(Path.Combine(folder, "settings.json"));
         _secrets = new Secrets(Path.Combine(folder, "secrets.bin"));
         switch (_store.Load())
@@ -100,13 +110,27 @@ internal sealed class Session : IAsyncDisposable
         var kept = _secrets.Load();
         _secretsUnread = kept is null;
         string? identity;
-        (Password, identity) = kept ?? ("", null);
+        bool lost;
+        (Password, identity, lost) = kept ?? ("", null, false);
         _secretsWritten = (Password, identity);
-        Connection = new TeamSpeakConnection(identity, time);
         Language = AppLanguage.Resolve(Settings.Language, windows);
+        _log.Write(StartLine(Language, updates: install is not null));
+        FileErrorSaid(was: null);
+        if (_secretsUnread)
+        {
+            _log.Write("Windows won't let Gengfu read secrets.bin: this run the bot has a new identity, and the file stays as it is");
+        }
+        else if (lost)
+        {
+            _log.Write("secrets.bin doesn't open for this Windows user, as when another user or PC saved it: the bot has a new identity and no server password");
+        }
+        Updates = new Updates(time, install, log.Write);
         Clock = new MatchClock(time);
+        Clock.Changed += (_, change) => _log.Write(ClockLine(change));
+        Connection = new TeamSpeakConnection(identity, time);
+        Connection.StateChanged += (_, state) => ConnectionReported(state);
         Schedule = new CallSchedule(Clock, Settings.Events, Settings.Lead);
-        Caller = new Caller(Schedule, () => CanCall, RenderAsync, WhisperAsync);
+        Caller = new Caller(Schedule, log.Write, () => WhyNoCall, RenderAsync, WhisperAsync);
         SoundChanged();
         _watch = _store.Watch(() => Interlocked.Exchange(ref _touched, 1));
     }
@@ -147,15 +171,13 @@ internal sealed class Session : IAsyncDisposable
     public IReadOnlyList<ChannelInfo> Channels { get; private set; } = [];
 
     /// <summary>Who hears the calls; null until a group or a channel is chosen.</summary>
-    public WhisperTarget? Target => Settings.Listeners switch
-    {
-        ListenerKind.Group when Settings.Group is { } group => new WhisperTarget.ServerGroup(group.Id),
-        ListenerKind.Channels when Settings.Channels.Count > 0 => new WhisperTarget.Channels([.. Settings.Channels.Select(channel => channel.Id)]),
-        _ => null,
-    };
+    public WhisperTarget? Target => TargetOf(Settings);
 
     /// <summary>Whether a call can go out now: connected, with someone to hear it.</summary>
-    public bool CanCall => Target is not null && Connection.State.Status == ConnectionStatus.Connected;
+    public bool CanCall => WhyNoCall is null;
+
+    /// <summary>Why no call can go out now, in the log's words; null when one can.</summary>
+    internal string? WhyNoCall => WhyNoCallFor(Connection.State.Status, Target);
 
     /// <summary>Whether a Test call can go out now: a call can, none is playing, and there is an event to call.</summary>
     public bool CanTest => CanTestFor(CanCall, Caller.Testing, Settings.Events.Count);
@@ -445,6 +467,7 @@ internal sealed class Session : IAsyncDisposable
         _watch.Dispose();
         Save(flush: true);
         await Connection.DisposeAsync();
+        _log.Write("Gengfu closed");
     }
 
     /// <summary>
@@ -466,15 +489,30 @@ internal sealed class Session : IAsyncDisposable
     internal void KeyUsed(KeyResult answer)
     {
         KeyAnswer = answer;
+        _log.Write(KeyLine(answer));
         if (answer.Outcome == KeyOutcome.Taken)
         {
             PrivilegeKey = "";
         }
     }
 
+    /// <summary>Takes in a state the connection reports, and logs it when it says something new.</summary>
+    internal void ConnectionReported(ConnectionState state)
+    {
+        // The login's password stays here: a record prints every field.
+        var (server, nickname, _) = ConnectedWith ?? Login.Of(Settings, "");
+        var said = (server, state.Status, state.Problem, state.Detail);
+        if (said != _connectionSaid)
+        {
+            _connectionSaid = said;
+            _log.Write(ConnectionLine(state, server, nickname, Settings, Clock.Time.Now));
+        }
+    }
+
     /// <summary>Takes in the settings file as it is on disk now, after an edit.</summary>
     internal void Reload()
     {
+        var was = FileError;
         var load = _store.Load();
         _readRefused = load is SettingsLoad.Unreadable;
         switch (load)
@@ -502,17 +540,21 @@ internal sealed class Session : IAsyncDisposable
                 FileError = null;
                 break;
         }
+        FileErrorSaid(was);
     }
 
     /// <summary>
     /// The frames of one call of <paramref name="events"/>, at one spawn time, its parts as they sound
-    /// now, a sound two share once. All are asked for before any is awaited, so the clips are written
-    /// only on the caller's thread.
+    /// now, a sound two share once, and what they play. All are asked for before any is awaited, so
+    /// the clips are written only on the caller's thread.
     /// </summary>
-    internal async Task<IReadOnlyList<byte[]>> RenderAsync(IReadOnlyList<MatchEvent> events)
+    internal async Task<CallRender> RenderAsync(IReadOnlyList<MatchEvent> events)
     {
-        var parts = SoundsOf(Settings, events, Language).Select(sound => _clips[sound] = _audio.RenderAsync(sound, Language)).ToList();
-        return CallAudio.Join([.. (await Task.WhenAll(parts)).Select(clip => clip.Frames)]);
+        var language = Language;
+        var sounds = SoundsOf(Settings, events, language);
+        var parts = sounds.Select(sound => _clips[sound] = _audio.RenderAsync(sound, language)).ToList();
+        var clips = await Task.WhenAll(parts);
+        return new CallRender(CallAudio.Join([.. clips.Select(clip => clip.Frames)]), PlayedAs(sounds, clips, language));
     }
 
     /// <summary>The group drop-down's list: the server's groups once they are in, until then the group already chosen.</summary>
@@ -529,6 +571,26 @@ internal sealed class Session : IAsyncDisposable
         !sending && key.Trim().Length > 0 && status == ConnectionStatus.Connected;
 
     internal static bool CanTestFor(bool canCall, bool testing, int events) => canCall && !testing && events > 0;
+
+    internal static WhisperTarget? TargetOf(AppSettings settings) => settings.Listeners switch
+    {
+        ListenerKind.Group when settings.Group is { } group => new WhisperTarget.ServerGroup(group.Id),
+        ListenerKind.Channels when settings.Channels.Count > 0 => new WhisperTarget.Channels([.. settings.Channels.Select(channel => channel.Id)]),
+        _ => null,
+    };
+
+    internal static string? WhyNoCallFor(ConnectionStatus status, WhisperTarget? target) =>
+        status != ConnectionStatus.Connected ? "not connected"
+        : target is null ? "nobody chosen to hear the calls"
+        : null;
+
+    /// <summary>How a whisper to <paramref name="whom"/> went, in the log's words.</summary>
+    internal static string HowItWent(WhisperResult result, string whom) => result switch
+    {
+        WhisperResult.Sent => "sent to " + whom,
+        WhisperResult.ReachedNobody => "nobody heard it: the server said it reached nobody in " + whom,
+        _ => "not sent: not connected",
+    };
 
     /// <summary>
     /// The voice to keep on a switch to <paramref name="language"/>. The events' words follow the
@@ -581,6 +643,77 @@ internal sealed class Session : IAsyncDisposable
     internal static string HeardAs(AppSettings settings, IReadOnlyList<MatchEvent> events, CultureInfo language, Func<CallSound, CallClip?> clipOf) =>
         string.Join(" · ", SoundsOf(settings, events, language).Select(sound => HeardAs(sound, clipOf(sound))).Distinct());
 
+    /// <summary>
+    /// What one call played, part by part, in the log: the words, a file's name, or the gong, and
+    /// why a part isn't what it was given when it isn't.
+    /// </summary>
+    internal static string PlayedAs(IReadOnlyList<CallSound> sounds, IReadOnlyList<CallClip> clips, CultureInfo language) =>
+        string.Join(" · ", sounds.Zip(clips, (sound, clip) => PlayedAs(sound, clip, language)).Distinct());
+
+    /// <summary>A run's first line in the log: what places the rest, the version first.</summary>
+    internal static string StartLine(CultureInfo language, bool updates)
+    {
+        var offset = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now);
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"Gengfu {AppVersion.Current} started · Windows {Environment.OSVersion.Version} · {language.EnglishName} · UTC{(offset < TimeSpan.Zero ? "-" : "+")}{offset:hh\\:mm}{(updates ? "" : " · updates off")}");
+    }
+
+    /// <summary>The connection's state in the log: the status line's words, with what the line leaves out.</summary>
+    /// <param name="now">The time on the clock the connection's next attempt is set on.</param>
+    internal static string ConnectionLine(ConnectionState state, string server, string nickname, AppSettings settings, TimeSpan now)
+    {
+        var again = state.RetryAt is { } at && at > now ? "trying again in " + Copy.Span(at - now) : "trying again…";
+        return state switch
+        {
+            { Status: ConnectionStatus.Connected } => TargetOf(settings) is { } target ? "Connected · whispering to " + Whom(target, settings) : "Connected · choose who hears the calls",
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.None } => $"Connecting to {server} as {nickname}…",
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.IdentityTooWeak } => $"Raising the bot's security level to {state.Detail} — can take minutes",
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.AddressNotFound } => $"Can't find {server} — {again}",
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.ServerShutdown } => "The server shut down — " + again,
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.KickedByServer } => "The server kicked the bot — " + again,
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.ServerFull } => "The server is full — " + again,
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.FloodProtection } => "The server is limiting connections — " + again,
+            { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.Refused } => $"The server refused: {state.Detail} — {again}",
+            // The status line leaves out the error an attempt failed on.
+            { Status: ConnectionStatus.Connecting, Detail: { } error } => $"No answer from {server} ({error}) — {again}",
+            { Status: ConnectionStatus.Connecting } => $"No answer from {server} — {again}",
+            { Problem: ConnectionProblem.WrongPassword } => "Not connected — wrong server password",
+            { Problem: ConnectionProblem.Kicked } => "Not connected — kicked from the server",
+            { Problem: ConnectionProblem.Banned } => "Not connected — banned from the server",
+            { Problem: ConnectionProblem.IdentityTooWeak } => $"Not connected — server wants security level {state.Detail}",
+            _ => "Not connected",
+        };
+    }
+
+    /// <summary>How the server took a privilege key, in the log; never the key.</summary>
+    internal static string KeyLine(KeyResult answer) => answer switch
+    {
+        { Outcome: KeyOutcome.Taken, Detail: { } group } => $"Privilege key used: the bot is in {group} now",
+        { Outcome: KeyOutcome.Taken } => "Privilege key used: the server gave the bot the key's group",
+        { Outcome: KeyOutcome.Unknown } => "Privilege key refused: the server doesn't know it, as when it's used already or mistyped",
+        { Outcome: KeyOutcome.NotAllowed } => "Privilege key refused: the server doesn't let the bot use privilege keys",
+        { Outcome: KeyOutcome.Refused } => "Privilege key refused: " + answer.Detail,
+        _ => "Privilege key: the connection dropped before the server answered",
+    };
+
+    /// <summary>A Start, a Stop or a correction of the clock, in the log, its times as the game shows them.</summary>
+    internal static string ClockLine(ClockChange change) => change.Kind switch
+    {
+        ClockChangeKind.Started => "Clock started at " + MatchClock.Format(change.To),
+        ClockChangeKind.Stopped => "Clock stopped at " + MatchClock.Format(change.From),
+        _ => $"Clock set to {MatchClock.Format(change.To)}, from {MatchClock.Format(change.From)}",
+    };
+
+    /// <summary>The settings file's error in the log, as Settings' bar says it; with none, that the file reads cleanly again.</summary>
+    internal static string FileErrorLine(SettingsError? error) => error switch
+    {
+        null => "settings.json reads without an error again",
+        { Line: { } line, Setting: { } setting } => $"settings.json has an error on line {line} ({setting}). Until it's fixed, Gengfu works with the settings it has and saves nothing",
+        { Line: { } line } => $"settings.json has an error on line {line}. Until it's fixed, Gengfu works with the settings it has and saves nothing",
+        _ => "Windows won't let Gengfu read settings.json. Until it can, Gengfu works with the settings it has and saves nothing",
+    };
+
     /// <summary>The words, the file's name, or the gong: whichever the part plays, chosen or not.</summary>
     private static string HeardAs(CallSound sound, CallClip? clip)
     {
@@ -597,6 +730,45 @@ internal sealed class Session : IAsyncDisposable
             };
     }
 
+    private static string PlayedAs(CallSound sound, CallClip clip, CultureInfo language) => sound switch
+    {
+        CallSound.Speech speech when clip.Problem == CallProblem.None => Quoted(speech.Text),
+        CallSound.Speech speech => "the gong, since " + Unspoken(clip.Problem, speech.Text, clip.Detail, language),
+        CallSound.AudioFile file when clip.Problem == CallProblem.None => Path.GetFileName(file.Path),
+        CallSound.AudioFile file => InPlaceOf(file, clip, language),
+        _ => "the gong",
+    };
+
+    // What played in place of a file that couldn't: its words, or the gong when they couldn't either.
+    private static string InPlaceOf(CallSound.AudioFile file, CallClip clip, CultureInfo language)
+    {
+        var name = Path.GetFileName(file.Path);
+        var why = clip.Problem == CallProblem.FileMissing ? name + " isn't on this PC" : $"Windows can't play {name}: {clip.Detail?.TrimEnd('.')}";
+        return file.Otherwise switch
+        {
+            CallSound.Speech words when clip.Instead == CallProblem.None => $"{Quoted(words.Text)}, since {why}",
+            CallSound.Speech words => $"the gong, since {why}, and {Unspoken(clip.Instead, words.Text, null, language)}",
+            _ => "the gong, since " + why,
+        };
+    }
+
+    // Why words played the gong in their place.
+    private static string Unspoken(CallProblem problem, string words, string? detail, CultureInfo language) => problem switch
+    {
+        CallProblem.NoVoice => "no installed voice speaks " + language.EnglishName,
+        CallProblem.NoText => "there are no words to say",
+        _ => $"Windows couldn't speak {Quoted(words)}" + (detail is null ? "" : ": " + detail.TrimEnd('.')),
+    };
+
+    private static string Quoted(string words) => $"“{words.Trim()}”";
+
+    // The listeners a target made from these settings reaches, in the log's words. It only names
+    // them: whether a call goes out is the target's to say.
+    private static string Whom(WhisperTarget target, AppSettings settings) =>
+        target is WhisperTarget.ServerGroup
+            ? $"the {settings.Group?.Name} group"
+            : string.Join(", ", settings.Channels.Select(channel => channel.Name));
+
     private static bool SaysItsName(MatchEvent matchEvent) => matchEvent.Text is null && matchEvent.SoundFile is null;
 
     // Words in the chosen voice, or the gong chosen in its place.
@@ -604,14 +776,15 @@ internal sealed class Session : IAsyncDisposable
         settings.Voice == AppSettings.Gong ? new CallSound.Gong() : new CallSound.Speech(words, settings.Voice);
 
     // A call goes out to the listeners chosen now, on the connection as it stands now.
-    private async Task<bool> WhisperAsync(IReadOnlyList<byte[]> frames)
+    private async Task<CallWhisper> WhisperAsync(IReadOnlyList<byte[]> frames)
     {
         if (Target is not { } target)
         {
-            return false;
+            return new CallWhisper(false, "not sent: nobody chosen to hear the calls");
         }
-        var on = Connection.State;
-        return Whispered(target, on, await Connection.WhisperAsync(frames, target));
+        var (on, whom) = (Connection.State, Whom(target, Settings));
+        var result = await Connection.WhisperAsync(frames, target);
+        return new CallWhisper(Whispered(target, on, result), HowItWent(result, whom));
     }
 
     private CallClip? ClipFor(CallSound sound) =>
@@ -687,7 +860,7 @@ internal sealed class Session : IAsyncDisposable
         {
             return;
         }
-        var refused = false;
+        var (refused, saved) = (false, false);
         // Never over a file Gengfu couldn't read: the edit in it would be lost.
         if (FileError is null && settings != _settingsWritten)
         {
@@ -695,6 +868,7 @@ internal sealed class Session : IAsyncDisposable
             {
                 _settingsWritten = settings;
                 _oldFile = false;
+                saved = true;
             }
             else
             {
@@ -706,6 +880,7 @@ internal sealed class Session : IAsyncDisposable
             if (_secrets.Save(Password, Connection.Identity))
             {
                 _secretsWritten = secrets;
+                saved = true;
             }
             else
             {
@@ -715,6 +890,21 @@ internal sealed class Session : IAsyncDisposable
         if (refused)
         {
             _saveAt = now + TryAgainAfter;
+        }
+        // A line when Windows starts refusing, and one when a save gets through again.
+        if (refused ? !_saveRefused : _saveRefused && saved)
+        {
+            _saveRefused = refused;
+            _log.Write(refused ? "Windows won't let Gengfu save its settings; it tries again every 2 s" : "Gengfu saves its settings again");
+        }
+    }
+
+    // A line whenever the settings file's error changes: found, another found, or gone.
+    private void FileErrorSaid(SettingsError? was)
+    {
+        if (FileError != was)
+        {
+            _log.Write(FileErrorLine(FileError));
         }
     }
 

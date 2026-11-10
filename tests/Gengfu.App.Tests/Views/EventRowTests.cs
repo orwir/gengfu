@@ -121,7 +121,8 @@ public sealed class EventRowTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             session.SetSoundFile(0, Path.Combine(folder, "jungle.mp3"));
@@ -160,7 +161,8 @@ public sealed class EventRowTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             wpf.Invoke(() =>

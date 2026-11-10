@@ -10,6 +10,17 @@ public enum ClockState
     Over,
 }
 
+/// <summary>What the user did to the clock.</summary>
+public enum ClockChangeKind
+{
+    Started,
+    Stopped,
+    Corrected,
+}
+
+/// <summary>A Start, a Stop or a correction, with the game time the clock read just before and just after it.</summary>
+public sealed record ClockChange(ClockChangeKind Kind, TimeSpan From, TimeSpan To);
+
 /// <summary>
 /// The match clock, mirroring the in-game GvG timer from 35:00 down to 00:00. It keeps one anchor,
 /// "at instant t the game showed r", so the game time now is r − (now − t). Start and every
@@ -33,13 +44,30 @@ public sealed class MatchClock(ITimeSource time)
     /// <summary>The game time as the game shows it, such as "34:59".</summary>
     public string Display => Format(GameTime);
 
+    /// <summary>
+    /// Raised after a Start, a Stop of a started clock, or a correction of a running one, on the
+    /// thread that made it. Every way of setting the clock comes through here, so this is the one
+    /// place to see them all.
+    /// </summary>
+    public event EventHandler<ClockChange>? Changed;
+
     public void Start()
     {
+        var from = GameTime;
         _started = true;
         SetAnchor(Time.Now, MatchLength);
+        Changed?.Invoke(this, new ClockChange(ClockChangeKind.Started, from, GameTime));
     }
 
-    public void Stop() => _started = false;
+    public void Stop()
+    {
+        if (_started)
+        {
+            var from = GameTime;
+            _started = false;
+            Changed?.Invoke(this, new ClockChange(ClockChangeKind.Stopped, from, GameTime));
+        }
+    }
 
     /// <summary>Shifts the game time; a positive shift leaves more of the match to play.</summary>
     public void Move(TimeSpan by)
@@ -47,16 +75,17 @@ public sealed class MatchClock(ITimeSource time)
         var now = Time.Now;
         if (StateAt(now) == ClockState.Running)
         {
-            SetAnchor(now, GameTimeAt(now) + by);
+            Correct(now, now, GameTimeAt(now) + by);
         }
     }
 
     /// <summary>Takes "at <paramref name="instant"/> the game showed <paramref name="gameTime"/>" as the anchor.</summary>
     public void Anchor(TimeSpan instant, TimeSpan gameTime)
     {
-        if (State == ClockState.Running)
+        var now = Time.Now;
+        if (StateAt(now) == ClockState.Running)
         {
-            SetAnchor(instant, gameTime);
+            Correct(now, instant, gameTime);
         }
     }
 
@@ -92,6 +121,13 @@ public sealed class MatchClock(ITimeSource time)
         !_started ? ClockState.Idle
         : GameTimeAt(now) > TimeSpan.Zero ? ClockState.Running
         : ClockState.Over;
+
+    private void Correct(TimeSpan now, TimeSpan instant, TimeSpan gameTime)
+    {
+        var from = GameTimeAt(now);
+        SetAnchor(instant, gameTime);
+        Changed?.Invoke(this, new ClockChange(ClockChangeKind.Corrected, from, GameTimeAt(now)));
+    }
 
     // The game timer never reads above 35:00 or below 00:00, so a correction past either end stops there.
     private void SetAnchor(TimeSpan instant, TimeSpan gameTime)

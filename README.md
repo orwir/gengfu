@@ -168,6 +168,20 @@ it drifts from the game's timer, match it while the match runs:
 
 Values the game can't show, such as 75 seconds, are ignored. **Stop** ends the match.
 
+## The log
+
+When a call goes missing, Gengfu's log says why. It is `gengfu.log` in `%AppData%\Gengfu`: paste
+that folder into File Explorer's address bar to open it. The log is plain text in English. It
+records when Gengfu started and closed, each change in the connection, and each call and Test call,
+with what it played and whether anyone heard it, or why it didn't go out. It also records the
+clock's Start, Stop and corrections, errors in the settings file, updates, and any error that
+closed Gengfu.
+
+It holds your server's address, the bot's nickname, the names of your groups, channels and events,
+your Windows version, Gengfu's language and your time zone, but never the server password, the
+bot's identity or a privilege key. Once it reaches 1 MB, Gengfu starts it afresh and keeps the full
+one as `gengfu.old.log`.
+
 ## Build from source
 
 Needs the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).

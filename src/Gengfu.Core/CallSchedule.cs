@@ -66,6 +66,9 @@ public sealed class CallSchedule
 
     public TimeSpan Lead { get; private set; }
 
+    /// <summary>The clock the calls are timed on.</summary>
+    public MatchClock Clock => _clock;
+
     public IReadOnlyList<Call> Calls { get; private set; }
 
     /// <summary>

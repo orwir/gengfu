@@ -22,7 +22,8 @@ public sealed class SettingsViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         session.Settings.Theme = Theme.Light;
         try
         {
@@ -67,7 +68,8 @@ public sealed class SettingsViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         session.Settings.Group = new Named(1625, "GvG");
         try
         {
@@ -111,7 +113,8 @@ public sealed class SettingsViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             var (tabOrder, closed, opened, offline, taken, typedAgain, unknown) = wpf.Invoke(() =>
@@ -164,7 +167,8 @@ public sealed class SettingsViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             var (typed, answered) = wpf.Invoke(() =>
@@ -295,7 +299,8 @@ public sealed class SettingsViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         session.SetSoundFile(0, @"C:\Sounds\jungle.mp3");
         try
         {
@@ -345,7 +350,8 @@ public sealed class SettingsViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         session.Settings.Group = new Named(1625, "GvG");
         // A second event with nothing to say, for its bar, and a third removed, for Undo's.
         session.AddEvent();
@@ -412,7 +418,8 @@ public sealed class SettingsViewTests(WpfApp wpf)
             CultureInfo.GetCultureInfo("en-US"),
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder);
+            folder,
+            new Log(folder));
         try
         {
             wpf.Invoke(() =>

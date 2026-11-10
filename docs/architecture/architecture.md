@@ -10,7 +10,7 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model and file; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
-| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; hotkeys (*planned*). Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
+| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; the log; hotkeys (*planned*). Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
@@ -67,6 +67,20 @@ server, and another transport would plug in without touching it.
   It holds a privilege key typed in Settings, in memory only, uses it through the connection, and
   keeps the server's answer for Settings until another key is typed or Connect is pressed: the
   connection's own reconnects leave the bot's group as it was.
+- `Log` keeps what Gengfu did, for a player to attach to feedback, in plain English whatever the
+  app's language: each run's start, with the version, Windows and the time zone, and its close; the
+  connection's changes in the status line's words, once per reason however often it retries; each
+  call and Test call, with what it played and how it went or why it didn't go out; the clock's
+  Starts, Stops and corrections, which `MatchClock` raises as one event whichever control made them;
+  the settings file's errors, a `secrets.bin` Gengfu can't read, and saves Windows refused; the
+  server's answers to privilege keys; and what update looks found.
+- `Program.Main` makes the log before the App and the `Session`, so a failure in either is in it,
+  and writes to it an exception that escapes on any thread, with its stack; Gengfu then closes,
+  since its state is unknown. A task that fails with nothing waiting on it goes to the log too, and
+  Gengfu carries on.
+  Each line is built from states, names, the server's own words and exception text, so the server
+  password, the bot's identity and a privilege key never reach it; the Windows user's profile
+  folder shows as `%USERPROFILE%`.
 - `MainWindow` draws its own title bar: Settings' way back sits in it, and maximize is left out.
   Its surface is flat, with no Mica backdrop: under a Mica frame Windows draws its own caption
   buttons too. Windows 11 rounds the corners on request.
@@ -154,10 +168,14 @@ look for updates runs there too, and the tick reads where it stands.
 The settings file's watcher only marks the file touched; the tick reads it once it has been
 still for 250 ms, and writes the settings once they have stood still for 500 ms.
 TSLib runs the connection on its own scheduler thread: the connection's events fire there, and its
-data book is read only there. Voice frames go out from the voice sender's own thread, each up to
-60 ms before it plays, so Windows' coarse sleep still keeps listeners fed; calls play one at a
-time. The UI thread never blocks on the network, except as Gengfu closes, when it waits up to 3 s
-for the connection to leave the server.
+data book is read only there. The log alone handles the connection's state changes, as the
+connection reports them one at a time on that thread: there it reads the login and the settings,
+which the UI thread replaces whole and never changes in place. The log takes lines from the UI
+thread, TSLib's thread and the thread pool alike; each goes to disk under a lock before `Write`
+returns, so a crash right after keeps it. Voice frames go out from the voice sender's own thread,
+each up to 60 ms before it plays, so Windows' coarse sleep still keeps listeners fed; calls play
+one at a time. The UI thread never blocks on the network, except as Gengfu closes, when it waits
+up to 3 s for the connection to leave the server.
 
 ## Configuration
 
@@ -181,6 +199,11 @@ it opens with them moved into its events, the text into the jungle's and the fil
 without words of its own, and its next save writes them there. Open settings file writes it so
 before it opens it: read again with a preset's events pasted in, the old text and file would go to
 them too.
+
+Gengfu's folder also holds the log, `gengfu.log` ([The App](#the-app)). Once the file would pass
+1 MB, hundreds of matches' worth, the log starts afresh and keeps the full one as `gengfu.old.log`,
+so it never takes more than 2 MB. A line Windows won't let Gengfu write is lost rather than stop a
+call.
 
 The server password and the bot's identity stay out of the file, so it can be shared; a privilege
 key is kept nowhere, since a used one is worthless. `Secrets`
