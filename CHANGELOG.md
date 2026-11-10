@@ -5,6 +5,8 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-10
+
 ### Added
 
 - Gengfu reconnects when the server itself kicks it, as an idle limit does (#13)

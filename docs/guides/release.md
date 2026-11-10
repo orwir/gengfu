@@ -66,7 +66,7 @@ its SDK knows, so a patch release after a monthly .NET update brings it to playe
 
 ## Signing
 
-v0.1 releases are unsigned, so Windows warns about an unknown publisher, and Smart App Control
+Releases are unsigned so far, so Windows warns about an unknown publisher, and Smart App Control
 blocks Gengfu. When signing is added, record here where the certificate lives and how it rotates.
 
 ## Checking a release

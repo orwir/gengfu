@@ -118,7 +118,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 - Never commit secrets: server passwords, the bot identity, tokens, signing material. Local test settings live in git-ignored `*.local.*` files.
 - Never log or print the server password or the identity's private key — log the server address and nickname instead, and refer to secrets by name only.
 - New CI workflows declare least-privilege `permissions:` blocks.
-- v0.1 releases are unsigned. When code signing is added, document the certificate's location and rotation in `docs/guides/release.md`.
+- Releases are unsigned so far. When code signing is added, document the certificate's location and rotation in `docs/guides/release.md`.
 
 ## Executing actions
 
