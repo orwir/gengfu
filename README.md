@@ -136,6 +136,11 @@ chosen to hear the calls, the whisper failed, the server said it reached nobody,
 moved past the spawn first. When there are more calls than fit, the list scrolls to keep the next
 one in view. With no events, or none with spawn times, the list says so.
 
+Calls for the same spawn time go out as one call, so none comes late. Events that say their name
+and the lead say them together, such as "Jungle and Boss in thirty seconds"; events with words or a
+sound file of their own play them in turn in that call, and a sound file they share plays once.
+Their rows show the call together, and when nobody heard it, every one of them says *Not sent*.
+
 When the server says a call or a Test call reached nobody, the line at the top of the main window
 says so until a call gets through, Gengfu connects anew, or you choose other listeners. The server
 can't tell why: nobody who should hear it is online, or the server doesn't let the bot whisper to

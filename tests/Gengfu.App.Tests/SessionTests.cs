@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -202,7 +203,42 @@ public sealed class SessionTests : IAsyncLifetime
         Assert.True(SpinWait.SpinUntil(() => _session.ClipOf(jungle) is not null, TimeSpan.FromSeconds(10)));
 
         Assert.Equal(CallProblem.FileMissing, _session.ClipOf(jungle)!.Problem);
-        Assert.Equal("Jungle in thirty seconds", _session.HeardFor(jungle));
+        Assert.Equal("Jungle in thirty seconds", _session.HeardFor([jungle]));
+    }
+
+    [Fact]
+    public async Task Events_that_come_to_share_a_spawn_time_have_their_call_rendered_ahead_so_it_goes_out_on_time()
+    {
+        var (_, spoken) = await SpeakingSessionAsync();
+
+        _session.AddEvent();
+        _session.RenameEvent(1, "Boss");
+        _session.SetSpawns(1, [TimeSpan.FromMinutes(25)]);
+        Assert.True(SpinWait.SpinUntil(() => spoken.Contains("Jungle and Boss in thirty seconds"), TimeSpan.FromSeconds(10)));
+
+        _session.AddEvent();
+        _session.RenameEvent(2, "Supply");
+        _session.SetSpawns(2, [TimeSpan.FromMinutes(25)]);
+        _session.RemoveEvent(1);
+        Assert.True(SpinWait.SpinUntil(() => spoken.Contains("Jungle and Supply in thirty seconds"), TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
+    public async Task A_call_of_events_at_one_spawn_time_plays_its_parts_in_turn()
+    {
+        var (audio, _) = await SpeakingSessionAsync();
+        var spawn = TimeSpan.FromMinutes(25);
+        IReadOnlyList<MatchEvent> together =
+        [
+            MatchEvent.Jungle,
+            new() { Name = "Boss", Spawns = [spawn], Text = "Boss soon" },
+            new() { Name = "Supply", Spawns = [spawn] },
+        ];
+
+        var frames = await _session.RenderAsync(together);
+
+        var parts = await Task.WhenAll(new[] { "Jungle and Supply in thirty seconds", "Boss soon" }.Select(words => audio.RenderAsync(new CallSound.Speech(words), English)));
+        Assert.Equal(CallAudio.Join([.. parts.Select(part => part.Frames)]), frames);
     }
 
     [Fact]
@@ -381,6 +417,37 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Events_at_one_spawn_time_say_their_names_in_one_sentence_where_the_first_stands_and_the_rest_play_in_their_order()
+    {
+        var settings = new AppSettings { Voice = "zira" };
+        var spawn = TimeSpan.FromMinutes(25);
+        var boss = new MatchEvent { Name = "Boss", Spawns = [spawn] };
+        var supply = new MatchEvent { Name = "Supply", Spawns = [spawn] };
+        var bossSoon = boss with { Text = "Boss soon" };
+        var bossFile = boss with { SoundFile = @"C:\Sounds\boss.mp3" };
+
+        Assert.Equal(
+            new[] { new CallSound.Speech("Jungle and Boss in thirty seconds", "zira") },
+            Session.SoundsOf(settings, [MatchEvent.Jungle, boss], English));
+        Assert.Equal(
+            new[] { new CallSound.Speech("Jungle and Supply in thirty seconds", "zira"), new CallSound.Speech("Boss soon", "zira") },
+            Session.SoundsOf(settings, [MatchEvent.Jungle, bossSoon, supply], English));
+        Assert.Equal(
+            new[] { new CallSound.Speech("Boss soon", "zira"), new CallSound.Speech("Jungle in thirty seconds", "zira") },
+            Session.SoundsOf(settings, [bossSoon, MatchEvent.Jungle], English));
+        // A file's event keeps its own words behind the file.
+        Assert.Equal(
+            new CallSound[] { new CallSound.Speech("Jungle in thirty seconds", "zira"), new CallSound.AudioFile(@"C:\Sounds\boss.mp3", new CallSound.Speech("Boss in thirty seconds", "zira")) },
+            Session.SoundsOf(settings, [MatchEvent.Jungle, bossFile], English));
+        // A part two events share plays once: the same words, or the gong in place of any.
+        Assert.Equal(new[] { new CallSound.Speech("Boss soon", "zira") }, Session.SoundsOf(settings, [bossSoon, supply with { Text = "Boss soon" }], English));
+        Assert.Equal(new[] { new CallSound.Speech("Лес и Босс через тридцать секунд", "zira") }, Session.SoundsOf(settings, [MatchEvent.Jungle, boss with { Name = "Босс" }], CultureInfo.GetCultureInfo("ru-RU")));
+
+        settings.Voice = AppSettings.Gong;
+        Assert.Equal(new[] { new CallSound.Gong() }, Session.SoundsOf(settings, [MatchEvent.Jungle, bossSoon, supply], English));
+    }
+
+    [Fact]
     public void The_line_under_the_clock_names_what_listeners_hear()
     {
         using var english = new UiCulture("en-US");
@@ -388,19 +455,43 @@ public sealed class SessionTests : IAsyncLifetime
         var settings = new AppSettings();
         var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(12)], Text = "Boss, go go go" };
         var withFile = boss with { SoundFile = @"C:\Sounds\boss.mp3" };
+        string Heard(MatchEvent matchEvent, CallClip clip) => Session.HeardAs(settings, [matchEvent], English, _ => clip);
 
-        Assert.Equal("Jungle in thirty seconds", Session.HeardAs(settings, MatchEvent.Jungle, English, played));
-        Assert.Equal("Boss, go go go", Session.HeardAs(settings, boss, English, played));
-        Assert.Equal("the gong", Session.HeardAs(settings, boss, English, new CallClip([[1]], CallProblem.NoVoice)));
-        Assert.Equal("boss.mp3", Session.HeardAs(settings, withFile, English, played));
+        Assert.Equal("Jungle in thirty seconds", Heard(MatchEvent.Jungle, played));
+        Assert.Equal("Boss, go go go", Heard(boss, played));
+        Assert.Equal("the gong", Heard(boss, new CallClip([[1]], CallProblem.NoVoice)));
+        Assert.Equal("boss.mp3", Heard(withFile, played));
         // A file that can't play gives way to the words, and to the gong when they can't be spoken either.
-        Assert.Equal("Boss, go go go", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileMissing)));
-        Assert.Equal("the gong", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileMissing, Instead: CallProblem.NoVoice)));
+        Assert.Equal("Boss, go go go", Heard(withFile, new CallClip([[1]], CallProblem.FileMissing)));
+        Assert.Equal("the gong", Heard(withFile, new CallClip([[1]], CallProblem.FileMissing, Instead: CallProblem.NoVoice)));
 
         settings.Voice = AppSettings.Gong;
-        Assert.Equal("the gong", Session.HeardAs(settings, MatchEvent.Jungle, English, played));
-        Assert.Equal("boss.mp3", Session.HeardAs(settings, withFile, English, played));
-        Assert.Equal("the gong", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileUnreadable)));
+        Assert.Equal("the gong", Heard(MatchEvent.Jungle, played));
+        Assert.Equal("boss.mp3", Heard(withFile, played));
+        Assert.Equal("the gong", Heard(withFile, new CallClip([[1]], CallProblem.FileUnreadable)));
+    }
+
+    [Fact]
+    public void The_line_under_the_clock_says_a_call_of_events_at_one_spawn_time_part_by_part()
+    {
+        using var english = new UiCulture("en-US");
+        var settings = new AppSettings();
+        var spawn = TimeSpan.FromMinutes(25);
+        var bossSoon = new MatchEvent { Name = "Boss", Spawns = [spawn], Text = "Boss soon" };
+        var supply = new MatchEvent { Name = "Supply", Spawns = [spawn] };
+        var supplyFile = supply with { SoundFile = @"C:\Sounds\supply.mp3" };
+        var missing = new CallClip([[1]], CallProblem.FileMissing);
+
+        Assert.Equal("Jungle and Supply in thirty seconds · Boss soon", Session.HeardAs(settings, [MatchEvent.Jungle, bossSoon, supply], English, _ => null));
+        // Each part as it plays: here the file isn't on this PC, so its words play in its place.
+        Assert.Equal(
+            "Jungle in thirty seconds · Supply in thirty seconds",
+            Session.HeardAs(settings, [MatchEvent.Jungle, supplyFile], English, sound => sound is CallSound.AudioFile ? missing : null));
+        // A sound the parts share plays once, and the line names it once: a file two events play,
+        // or the gong in place of words no voice can speak.
+        var bossFile = bossSoon with { Text = null, SoundFile = supplyFile.SoundFile };
+        Assert.Equal("Jungle in thirty seconds · supply.mp3", Session.HeardAs(settings, [MatchEvent.Jungle, bossFile, supplyFile], English, _ => null));
+        Assert.Equal("the gong", Session.HeardAs(settings, [MatchEvent.Jungle, bossSoon], English, _ => new CallClip([[1]], CallProblem.NoVoice)));
     }
 
     [Fact]
@@ -772,6 +863,23 @@ public sealed class SessionTests : IAsyncLifetime
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
             _folder,
             install);
+
+    // A session whose voice speaks any text as a short tone, and the texts it was given.
+    private async Task<(CallAudio Audio, ConcurrentQueue<string> Spoken)> SpeakingSessionAsync()
+    {
+        await _session.DisposeAsync();
+        var spoken = new ConcurrentQueue<string>();
+        var audio = new CallAudio(
+            () => [new Voice("zira", "Microsoft Zira", "en-US")],
+            (text, _) =>
+            {
+                spoken.Enqueue(text);
+                return Speech.Sound.Wav(Speech.Sound.Tone(300, 0.5, 16000), 16000);
+            },
+            (_, _) => throw new InvalidOperationException());
+        _session = new Session(English, _time, audio, _folder);
+        return (audio, spoken);
+    }
 
     // Lets whatever changed stand still long enough to be written.
     private void Settle()

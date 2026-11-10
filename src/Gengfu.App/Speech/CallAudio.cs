@@ -60,13 +60,17 @@ public sealed record CallClip(IReadOnlyList<byte[]> Frames, CallProblem Problem 
 /// </summary>
 public sealed class CallAudio
 {
-    /// <summary>Text past this is never spoken: the call would be cut at <see cref="Pcm.MaxLength"/> anyway.</summary>
+    /// <summary>Text past this is never spoken: its sound would be cut at <see cref="Pcm.MaxLength"/> anyway.</summary>
     private const int MaxTextLength = 500;
 
     // A match uses a sound or two; a cache that outgrows this is cleared rather than tracked.
     private const int MaxClips = 32;
 
     private const int Bitrate = 48000;
+
+    // With each part's own lead-in, about the pause Windows' voices leave between two sentences, so
+    // the parts of a call don't run together.
+    private static readonly Lazy<IReadOnlyList<byte[]>> Pause = new(() => Encode(new short[Pcm.Rate * 7 / 10 * 2]));
 
     private readonly Func<IReadOnlyList<Voice>> _voices;
     private readonly Func<string, string, byte[]> _speak;
@@ -101,6 +105,24 @@ public sealed class CallAudio
         {
             _rendering.Release();
         }
+    }
+
+    /// <summary>
+    /// One call of several parts, each as rendered, one after another with a pause between. Parts
+    /// that sound the same, such as a file two events share or the gong in place of words, play
+    /// once. Each part starts and ends in silence, so the frames of one follow the other's cleanly.
+    /// </summary>
+    public static IReadOnlyList<byte[]> Join(IReadOnlyList<IReadOnlyList<byte[]>> parts)
+    {
+        List<IReadOnlyList<byte[]>> heard = [];
+        foreach (var part in parts)
+        {
+            if (!heard.Any(earlier => SoundsAlike(earlier, part)))
+            {
+                heard.Add(part);
+            }
+        }
+        return heard.Count == 1 ? heard[0] : [.. heard.SelectMany((part, index) => index == 0 ? part : Pause.Value.Concat(part))];
     }
 
     /// <summary>20 ms Opus frames of interleaved 48 kHz stereo, which comes in whole frames.</summary>
@@ -184,6 +206,10 @@ public sealed class CallAudio
         var otherwise = sound.Otherwise is null ? new CallClip(GongFrames()) : Render(sound.Otherwise, language);
         return otherwise with { Problem = problem, Detail = detail, Instead = otherwise.Problem };
     }
+
+    // The encoder gives the same sound the same frames, however often it is rendered.
+    private static bool SoundsAlike(IReadOnlyList<byte[]> one, IReadOnlyList<byte[]> other) =>
+        ReferenceEquals(one, other) || (one.Count == other.Count && one.Zip(other).All(frames => frames.First.AsSpan().SequenceEqual(frames.Second)));
 
     private IReadOnlyList<byte[]> GongFrames() => Keep("gong", () => Pcm.Shape(Gong.Render(), 1)!);
 

@@ -131,9 +131,9 @@ internal partial class MainView : UserControl
         {
             ShowLine(Strings.MatchOver, "");
         }
-        else if (schedule.Calls.FirstOrDefault(call => schedule.StateOf(call) == CallState.Calling) is { } calling)
+        else if (Caller.Joined(schedule.Calls.Where(call => schedule.StateOf(call) == CallState.Calling)).FirstOrDefault() is { } calling)
         {
-            ShowLine(Strings.CallingNow, _session.HeardFor(calling.Event));
+            ShowLine(Strings.CallingNow, _session.HeardFor([.. calling.Select(call => call.Event)]));
         }
         else if (schedule.Calls.Any(call => schedule.StateOf(call) == CallState.Next))
         {

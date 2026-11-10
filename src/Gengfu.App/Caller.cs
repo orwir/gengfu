@@ -1,28 +1,34 @@
-using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
 
 namespace Gengfu.App;
 
 /// <summary>
-/// Makes the calls. Each call the schedule finds due goes out as a whisper. One that can't is marked
-/// not sent at once, so the list never shows it calling, and one nobody heard once it has played. A
-/// test call goes out the same way, outside the schedule.
+/// Makes the calls. The calls the schedule finds due for one spawn time go out as one call, in one
+/// whisper. One that can't is marked not sent at once, so the list never shows it calling, and one
+/// nobody heard once it has played. A test call goes out the same way, outside the schedule.
 /// </summary>
 /// <param name="canSend">Whether a whisper can go out now: connected, with someone to hear it.</param>
-/// <param name="render">A call of the event as it sounds now.</param>
+/// <param name="render">The frames of one call of the events, at one spawn time, as it sounds now.</param>
 /// <param name="whisper">Sends the frames; false when they couldn't go out, or the server said they reached nobody.</param>
 internal sealed class Caller(
     CallSchedule schedule,
     Func<bool> canSend,
-    Func<MatchEvent, Task<CallClip>> render,
+    Func<IReadOnlyList<MatchEvent>, Task<IReadOnlyList<byte[]>>> render,
     Func<IReadOnlyList<byte[]>, Task<bool>> whisper)
 {
     /// <summary>Whether a test call is playing.</summary>
     public bool Testing { get; private set; }
 
+    /// <summary>
+    /// The calls as they go out: those for one spawn time together, in their order, so none waits
+    /// behind another for the same spawn.
+    /// </summary>
+    public static IEnumerable<IReadOnlyList<Call>> Joined(IEnumerable<Call> calls) =>
+        calls.GroupBy(call => call.Spawn).Select(together => together.ToList());
+
     /// <summary>Makes the calls due now. Call it on every tick, before reading any call's state.</summary>
-    public IReadOnlyList<Task> Tick() => [.. schedule.TakeDue().Select(SendAsync)];
+    public IReadOnlyList<Task> Tick() => [.. Joined(schedule.TakeDue()).Select(SendAsync)];
 
     /// <summary>Whispers the event's call once, now; false when it couldn't go out, or the server said it reached nobody.</summary>
     public async Task<bool> TestAsync(MatchEvent matchEvent)
@@ -34,7 +40,7 @@ internal sealed class Caller(
         Testing = true;
         try
         {
-            return await TrySendAsync(matchEvent);
+            return await TrySendAsync([matchEvent]);
         }
         finally
         {
@@ -42,20 +48,23 @@ internal sealed class Caller(
         }
     }
 
-    private async Task SendAsync(Call call)
+    private async Task SendAsync(IReadOnlyList<Call> calls)
     {
-        if (!canSend() || !await TrySendAsync(call.Event))
+        if (!canSend() || !await TrySendAsync([.. calls.Select(call => call.Event)]))
         {
-            schedule.MarkNotSent(call);
+            foreach (var call in calls)
+            {
+                schedule.MarkNotSent(call);
+            }
         }
     }
 
     // A send that fails, however it fails, is a call nobody heard.
-    private async Task<bool> TrySendAsync(MatchEvent matchEvent)
+    private async Task<bool> TrySendAsync(IReadOnlyList<MatchEvent> events)
     {
         try
         {
-            return await whisper((await render(matchEvent)).Frames);
+            return await whisper(await render(events));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {

@@ -11,12 +11,22 @@ namespace Gengfu.App;
 internal static class Copy
 {
     /// <summary>An event's default words for a lead Settings offers: its name and the lead, such as "Boss in thirty seconds".</summary>
-    public static string DefaultWords(MatchEvent matchEvent, TimeSpan lead, CultureInfo language) =>
-        string.Format(
-            language,
-            Strings.ResourceManager.GetString(string.Create(CultureInfo.InvariantCulture, $"CallText{lead.TotalSeconds:0}"), language)
-                ?? throw new ArgumentOutOfRangeException(nameof(lead), lead, "Settings offers no such lead."),
-            EventName(matchEvent, language));
+    public static string DefaultWords(MatchEvent matchEvent, TimeSpan lead, CultureInfo language) => DefaultWords([matchEvent], lead, language);
+
+    /// <summary>
+    /// The default words of events called together, at one spawn time: their names, each once, then
+    /// the lead, such as "Jungle and Boss in thirty seconds" or "Jungle, Boss and Supply in thirty seconds".
+    /// </summary>
+    public static string DefaultWords(IReadOnlyList<MatchEvent> events, TimeSpan lead, CultureInfo language)
+    {
+        var format = Strings.ResourceManager.GetString(string.Create(CultureInfo.InvariantCulture, $"CallText{lead.TotalSeconds:0}"), language)
+            ?? throw new ArgumentOutOfRangeException(nameof(lead), lead, "Settings offers no such lead.");
+        var names = events.Select(matchEvent => EventName(matchEvent, language)).Distinct().ToList();
+        var named = names.Count < 2
+            ? string.Concat(names)
+            : string.Format(language, Strings.ResourceManager.GetString(nameof(Strings.NamesAnd), language)!, string.Join(", ", names[..^1]), names[^1]);
+        return string.Format(language, format, named);
+    }
 
     /// <summary>"3 channels", "21 канал": the count with the noun in the language's plural form.</summary>
     public static string ChannelCount(int count, CultureInfo language)

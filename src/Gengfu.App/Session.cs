@@ -48,7 +48,7 @@ internal sealed class Session : IAsyncDisposable
     private readonly IDisposable _watch;
     private readonly bool _secretsUnread;
 
-    // The events' calls, by what they play.
+    // The parts of the calls, by what they play: each event's call, and the words of events called together.
     private readonly Dictionary<CallSound, Task<CallClip>> _clips = [];
     private ConnectionStatus _seen;
     private int _touched;
@@ -312,7 +312,12 @@ internal sealed class Session : IAsyncDisposable
             Name = string.IsNullOrWhiteSpace(name) || name == Copy.EventName(MatchEvent.Jungle, Language) ? null : name,
         });
 
-    public void SetSpawns(int index, IReadOnlyList<TimeSpan> spawns) => EditEvent(index, matchEvent => matchEvent with { Spawns = spawns });
+    /// <summary>Takes the event's spawn times; the calls it now shares a spawn time with are rendered together.</summary>
+    public void SetSpawns(int index, IReadOnlyList<TimeSpan> spawns)
+    {
+        EditEvent(index, matchEvent => matchEvent with { Spawns = spawns });
+        SoundChanged();
+    }
 
     /// <summary>Takes the typed words. The default words are kept as "the default", so they follow the name, the lead and the language.</summary>
     public void SetWords(int index, string words) =>
@@ -340,6 +345,7 @@ internal sealed class Session : IAsyncDisposable
         var left = was.Where((_, i) => i != index).ToList();
         ChangeEvents(left, left);
         Undo = new EventsUndo(was, was[index]);
+        SoundChanged();
     }
 
     /// <summary>
@@ -396,25 +402,30 @@ internal sealed class Session : IAsyncDisposable
         AppTheme.Apply(choice);
     }
 
-    /// <summary>Renders the events' calls again, after words, the voice or a file changed, or a voice was added to Windows.</summary>
+    /// <summary>
+    /// Renders the calls again, each event's and those of events at one spawn time, after words, the
+    /// voice, a file or spawn times changed, or a voice was added to Windows.
+    /// </summary>
     public void SoundChanged()
     {
         _clips.Clear();
-        foreach (var sound in Settings.Events.Select(matchEvent => SoundOf(Settings, matchEvent, Language)).Distinct())
+        var sounds = Settings.Events
+            .Select(matchEvent => SoundOf(Settings, matchEvent, Language))
+            .Concat(Caller.Joined(Schedule.Calls).SelectMany(calls => SoundsOf(Settings, [.. calls.Select(call => call.Event)], Language)));
+        foreach (var sound in sounds.Distinct())
         {
             _clips[sound] = _audio.RenderAsync(sound, Language);
         }
     }
 
     /// <summary>The event's call as last rendered, with why it isn't what it was given when it isn't; null until a render ends.</summary>
-    public CallClip? ClipOf(MatchEvent matchEvent) =>
-        _clips.GetValueOrDefault(SoundOf(Settings, matchEvent, Language)) is { IsCompletedSuccessfully: true } clip ? clip.Result : null;
+    public CallClip? ClipOf(MatchEvent matchEvent) => ClipFor(SoundOf(Settings, matchEvent, Language));
 
     /// <summary>The words a call of the event says: its own, or its name and the lead in the app's language.</summary>
     public string WordsOf(MatchEvent matchEvent) => WordsOf(Settings, matchEvent, Language);
 
-    /// <summary>What listeners hear from a call of <paramref name="matchEvent"/>, in words, for the line under the clock.</summary>
-    public string HeardFor(MatchEvent matchEvent) => HeardAs(Settings, matchEvent, Language, ClipOf(matchEvent));
+    /// <summary>What listeners hear from one call of <paramref name="events"/>, at one spawn time, in words, for the line under the clock.</summary>
+    public string HeardFor(IReadOnlyList<MatchEvent> events) => HeardAs(Settings, events, Language, ClipFor);
 
     /// <summary>
     /// Writes what changed at once, so the file opened in an editor holds it. A file from before 0.3
@@ -493,6 +504,17 @@ internal sealed class Session : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// The frames of one call of <paramref name="events"/>, at one spawn time, its parts as they sound
+    /// now, a sound two share once. All are asked for before any is awaited, so the clips are written
+    /// only on the caller's thread.
+    /// </summary>
+    internal async Task<IReadOnlyList<byte[]>> RenderAsync(IReadOnlyList<MatchEvent> events)
+    {
+        var parts = SoundsOf(Settings, events, Language).Select(sound => _clips[sound] = _audio.RenderAsync(sound, Language)).ToList();
+        return CallAudio.Join([.. (await Task.WhenAll(parts)).Select(clip => clip.Frames)]);
+    }
+
     /// <summary>The group drop-down's list: the server's groups once they are in, until then the group already chosen.</summary>
     internal static IReadOnlyList<Named> GroupChoices(bool connected, IReadOnlyList<ServerGroupInfo> groups, Named? chosen) =>
         connected && groups.Count > 0 ? [.. groups.Select(group => new Named(group.Id, group.Name))]
@@ -528,16 +550,40 @@ internal sealed class Session : IAsyncDisposable
     /// </summary>
     internal static CallSound SoundOf(AppSettings settings, MatchEvent matchEvent, CultureInfo language)
     {
-        var words = settings.Voice == AppSettings.Gong
-            ? (CallSound)new CallSound.Gong()
-            : new CallSound.Speech(WordsOf(settings, matchEvent, language), settings.Voice);
+        var words = Spoken(settings, WordsOf(settings, matchEvent, language));
         return matchEvent.SoundFile is { } file ? new CallSound.AudioFile(file, words) : words;
     }
 
-    /// <summary>The words, the file's name, or the gong: whichever the call plays, chosen or not.</summary>
-    internal static string HeardAs(AppSettings settings, MatchEvent matchEvent, CultureInfo language, CallClip? clip)
+    /// <summary>
+    /// What one call of <paramref name="events"/>, at one spawn time, plays, part by part. Those that
+    /// say their name and the lead say them in one sentence, "Jungle and Boss in thirty seconds", in
+    /// the place of the first of them; the rest play their own words or sound file, in their order.
+    /// A part two of them share plays once.
+    /// </summary>
+    internal static IReadOnlyList<CallSound> SoundsOf(AppSettings settings, IReadOnlyList<MatchEvent> events, CultureInfo language)
     {
-        var sound = SoundOf(settings, matchEvent, language);
+        var named = events.Where(SaysItsName).ToList();
+        return
+        [
+            .. events
+                .Select(matchEvent => SaysItsName(matchEvent)
+                    ? Spoken(settings, Copy.DefaultWords(named, settings.Lead, language))
+                    : SoundOf(settings, matchEvent, language))
+                .Distinct(),
+        ];
+    }
+
+    /// <summary>
+    /// What listeners hear from one call of <paramref name="events"/>, part by part: the words, a
+    /// file's name, or the gong, each once, as the call plays a sound its parts share once.
+    /// </summary>
+    /// <param name="clipOf">A part as last rendered; null until a render ends.</param>
+    internal static string HeardAs(AppSettings settings, IReadOnlyList<MatchEvent> events, CultureInfo language, Func<CallSound, CallClip?> clipOf) =>
+        string.Join(" · ", SoundsOf(settings, events, language).Select(sound => HeardAs(sound, clipOf(sound))).Distinct());
+
+    /// <summary>The words, the file's name, or the gong: whichever the part plays, chosen or not.</summary>
+    private static string HeardAs(CallSound sound, CallClip? clip)
+    {
         if (sound is CallSound.AudioFile { Otherwise: { } otherwise } && clip?.Problem is CallProblem.FileMissing or CallProblem.FileUnreadable)
         {
             sound = clip.Instead == CallProblem.None ? otherwise : new CallSound.Gong();
@@ -551,6 +597,12 @@ internal sealed class Session : IAsyncDisposable
             };
     }
 
+    private static bool SaysItsName(MatchEvent matchEvent) => matchEvent.Text is null && matchEvent.SoundFile is null;
+
+    // Words in the chosen voice, or the gong chosen in its place.
+    private static CallSound Spoken(AppSettings settings, string words) =>
+        settings.Voice == AppSettings.Gong ? new CallSound.Gong() : new CallSound.Speech(words, settings.Voice);
+
     // A call goes out to the listeners chosen now, on the connection as it stands now.
     private async Task<bool> WhisperAsync(IReadOnlyList<byte[]> frames)
     {
@@ -562,12 +614,8 @@ internal sealed class Session : IAsyncDisposable
         return Whispered(target, on, await Connection.WhisperAsync(frames, target));
     }
 
-    // A call asks for its sound as it is now.
-    private Task<CallClip> RenderAsync(MatchEvent matchEvent)
-    {
-        var sound = SoundOf(Settings, matchEvent, Language);
-        return _clips[sound] = _audio.RenderAsync(sound, Language);
-    }
+    private CallClip? ClipFor(CallSound sound) =>
+        _clips.GetValueOrDefault(sound) is { IsCompletedSuccessfully: true } clip ? clip.Result : null;
 
     private void EditEvent(int index, Func<MatchEvent, MatchEvent> edit)
     {

@@ -1,4 +1,3 @@
-using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
 
@@ -8,9 +7,9 @@ public sealed class CallerTests
 {
     private readonly FakeTimeSource _time = new();
     private readonly MatchClock _clock;
-    private readonly CallClip _clip = new([[1], [2], [3]]);
+    private readonly IReadOnlyList<byte[]> _frames = [[1], [2], [3]];
     private readonly List<IReadOnlyList<byte[]>> _whispered = [];
-    private readonly List<MatchEvent> _rendered = [];
+    private readonly List<IReadOnlyList<MatchEvent>> _rendered = [];
     private CallSchedule _schedule;
     private bool _canSend = true;
     private Func<IReadOnlyList<byte[]>, Task<bool>> _whisper;
@@ -33,8 +32,67 @@ public sealed class CallerTests
 
         await Task.WhenAll(caller.Tick());
 
-        Assert.Equal(new[] { _clip.Frames }, _whispered);
+        Assert.Equal(new[] { _frames }, _whispered);
         Assert.Equal(CallState.Calling, _schedule.StateOf(First));
+    }
+
+    [Fact]
+    public async Task Calls_for_one_spawn_time_go_out_as_one_whisper_on_the_tick_they_come_due()
+    {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25)] };
+        _schedule = new CallSchedule(_clock, [MatchEvent.Jungle, boss], CallSchedule.DefaultLead);
+        var caller = NewCaller();
+        _clock.Start();
+        RunTo(First.At);
+
+        var sends = caller.Tick();
+
+        // Whispered within the tick: nothing waits behind it.
+        Assert.Equal(new[] { _frames }, _whispered);
+        Assert.Equal(new[] { new[] { MatchEvent.Jungle, boss } }, _rendered);
+        await Task.WhenAll(sends);
+        var together = _schedule.Calls.Where(call => call.Spawn == TimeSpan.FromMinutes(25)).ToList();
+        Assert.Equal(2, together.Count);
+        Assert.All(together, call => Assert.Equal(CallState.Calling, _schedule.StateOf(call)));
+
+        _time.Advance(CallSchedule.CallingFor);
+        Assert.All(together, call => Assert.Equal(CallState.Called, _schedule.StateOf(call)));
+    }
+
+    [Fact]
+    public async Task A_call_nobody_heard_or_that_couldn_t_go_out_marks_every_event_s_call_in_it_not_sent()
+    {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25)] };
+        foreach (var canSend in new[] { true, false })
+        {
+            _canSend = canSend;
+            _whisper = _ => Task.FromResult(false);
+            _schedule = new CallSchedule(_clock, [MatchEvent.Jungle, boss], CallSchedule.DefaultLead);
+            var caller = NewCaller();
+            _clock.Start();
+            RunTo(First.At);
+
+            await Task.WhenAll(caller.Tick());
+
+            Assert.Equal(new[] { CallState.NotSent, CallState.NotSent }, _schedule.Calls.Take(2).Select(_schedule.StateOf));
+            _clock.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task Calls_for_other_spawn_times_due_on_one_tick_go_out_one_after_another()
+    {
+        // The first tick finds the clock at 25:20, inside the calls of 25:10 and of 25:00, as after a correction.
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromSeconds((25 * 60) + 10)] };
+        _schedule = new CallSchedule(_clock, [MatchEvent.Jungle, boss], CallSchedule.DefaultLead);
+        var caller = NewCaller();
+        _clock.Start();
+        RunTo(TimeSpan.FromSeconds((25 * 60) + 20));
+
+        await Task.WhenAll(caller.Tick());
+
+        Assert.Equal(new[] { new[] { boss }, new[] { MatchEvent.Jungle } }, _rendered);
+        Assert.Equal(2, _whispered.Count);
     }
 
     [Fact]
@@ -88,7 +146,7 @@ public sealed class CallerTests
         await Task.WhenAll(caller.Tick());
         await caller.TestAsync(MatchEvent.Jungle);
 
-        Assert.Equal(new[] { boss, MatchEvent.Jungle }, _rendered);
+        Assert.Equal(new[] { new[] { boss }, new[] { MatchEvent.Jungle } }, _rendered);
     }
 
     [Fact]
@@ -138,10 +196,10 @@ public sealed class CallerTests
         new(
             _schedule,
             () => _canSend,
-            matchEvent =>
+            events =>
             {
-                _rendered.Add(matchEvent);
-                return Task.FromResult(_clip);
+                _rendered.Add(events);
+                return Task.FromResult(_frames);
             },
             frames =>
             {

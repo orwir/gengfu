@@ -291,6 +291,9 @@
   <data name="CallText60" xml:space="preserve">
     <value>{0} через минуту</value>
   </data>
+  <data name="NamesAnd" xml:space="preserve">
+    <value>{0} и {1}</value>
+  </data>
   <data name="Voice" xml:space="preserve">
     <value>Голос</value>
   </data>

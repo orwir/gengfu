@@ -73,8 +73,9 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   Disabled until Start.
 - **Line under the clock:** centred secondary body text: "Press Start when the match begins"
   before Start; "Match the in-game timer" while a call is next, since the list shows the call;
-  "Calling now:" and what listeners hear (the text, the file's name or the gong) in accent
-  Semibold while one plays; "No more calls this match" after the last; "Match over" at 00:00.
+  "Calling now:" and what listeners hear (the text, the file's name or the gong; for a call of
+  several events at one spawn time, each sound once, in turn, apart by " · ") in accent Semibold
+  while one plays; "No more calls this match" after the last; "Match over" at 00:00.
 - **Calls list:** one row per call: its time, its event's name and spawn, and how it stands —
   called (secondary, check), not sent (secondary, critical ✕ "Not sent"), calling (accent,
   speaker, tinted), next (accent, "in m:ss", tinted), later (primary). A call is not sent when

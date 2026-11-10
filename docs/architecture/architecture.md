@@ -28,12 +28,16 @@ server, and another transport would plug in without touching it.
 3. The App renders each event's call when Gengfu starts and whenever it changes, and keeps it: the
    event's words, by default its name and the lead, in the voice Settings sets, or a sound file of
    its own. Words go through a Windows voice, or an audio file is read, to 48 kHz stereo, then to
-   20 ms Opus frames ([Call audio](#call-audio)). Each call asks for its sound again, and gets the
-   kept one unless a voice was added to Windows meanwhile.
+   20 ms Opus frames ([Call audio](#call-audio)). Calls for one spawn time go out as one call,
+   rendered ahead the same way, so none waits behind another: the events that say their name and
+   the lead say them in one sentence, "Jungle and Boss in thirty seconds", in the place of the
+   first of them, and the rest play their own words or files, all in the events' order. Each call
+   asks for its sound again, and gets the kept one unless a voice was added to Windows meanwhile.
 4. TeamSpeak sends the frames in real time as a whisper to the chosen listeners — a server group
    or chosen channels — then an empty frame to end the talk. A call that can't go out, with Gengfu
    off the server or nobody chosen, is marked not sent at once, so the list never shows it calling.
-   One the server says reached nobody is marked not sent once it has played.
+   One the server says reached nobody is marked not sent once it has played. Either way, so is
+   every event's call that went out in it.
 
 ## The App
 
@@ -105,12 +109,18 @@ events still say what they are.
   text is the user's to match. The voice list is read afresh each time, so a voice added in
   Windows counts without a restart. Windows adds a language's voices from that language's options
   under Language & region; Speech › Add voices can fail silently.
-- **Shape.** Silence is trimmed; a call stops after 10 s of sound, counted from where its sound
+- **Shape.** Silence is trimmed; an event's sound stops after 10 s, counted from where its sound
   starts, and fades out, so a wrong file can't hold the whisper; its loudest 400 ms sit at
   −16 LUFS with peaks 1 dB under full scale; 100 ms of silence lead it, so its start is never
   clipped.
 - **Encoding.** 20 ms Opus frames at 48 kbps, in managed code. A rendered call is kept until its
   text, its voice or its file changes.
+- **One call of several parts.** A call for several events plays its parts in turn, each as kept,
+  with 0.7 s of silence between them: with each part's lead-in, about the pause Windows' voices
+  leave between two sentences. The frames are joined as encoded; every part starts and ends in
+  silence, so listeners' decoders pass from one to the next without a click. Parts that sound the
+  same play once: a file two events share, or the gong in place of words no voice can speak. Each
+  part keeps its own 10 s, so a call of three events runs up to about 30 s.
 - **Windows parts.** Speech uses Windows.Media.SpeechSynthesis (Windows 10 and later) and is
   resampled by Gengfu; files use Media Foundation, which Windows N editions lack until the Media
   Feature Pack is added. Both are called directly, with nothing extra shipped

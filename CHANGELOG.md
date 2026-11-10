@@ -25,6 +25,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 ### Fixed
 
 - A named event without words of its own says its name and the lead, such as "Boss in thirty seconds", not the jungle's (#38)
+- Calls for the same spawn time go out as one call, such as "Jungle and Boss in thirty seconds", none late (#39)
 
 ## [0.2.0] - 2026-11-10
 

@@ -297,6 +297,49 @@ public sealed class CallAudioTests : IDisposable
     }
 
     [Fact]
+    public async Task The_parts_of_one_call_play_in_turn_a_sentence_s_pause_apart_with_nothing_heard_between()
+    {
+        _speak = (text, _) => Sound.Wav(Sound.Tone(text == "one" ? 300 : 600, 0.5, 16000), 16000);
+        var one = (await _audio.RenderAsync(new CallSound.Speech("one"), English)).Frames;
+        var two = (await _audio.RenderAsync(new CallSound.Speech("two"), English)).Frames;
+
+        var call = CallAudio.Join([one, two]);
+
+        Assert.Same(one, CallAudio.Join([one]));
+        var pause = call.Count - one.Count - two.Count;
+        Assert.Equal(TimeSpan.FromSeconds(0.7), pause * TeamSpeak.VoiceSender.FrameLength);
+        var heard = Sound.Left(Sound.Decode(call));
+        var frame = heard.Length / call.Count;
+        Assert.True(Sound.Strength(heard[..(one.Count * frame)], 300, 48000) > 0.1);
+        Assert.True(Sound.Strength(heard[((one.Count + pause) * frame)..], 600, 48000) > 0.1);
+        // Where one's frames meet the other's, the first part's ending only fades, as the decoder
+        // lets it out a moment late; then silence through the pause and the next part's lead-in.
+        var end = one.Count * frame;
+        Assert.True(Sound.Peak(heard[end..(end + frame)]) <= Sound.Peak(heard[(end - (frame / 4))..end]));
+        Assert.InRange(Sound.Peak(heard[(end + frame)..((one.Count + pause + 4) * frame)]), 0, 0.001);
+    }
+
+    [Fact]
+    public async Task Parts_of_one_call_that_sound_the_same_play_once()
+    {
+        var path = Touch("boss.mp3");
+        var words = (await _audio.RenderAsync(new CallSound.Speech("Jungle in thirty seconds"), English)).Frames;
+        var file = (await _audio.RenderAsync(new CallSound.AudioFile(path, new CallSound.Speech("Boss in thirty seconds")), English)).Frames;
+        // The same file for another event at the spawn time, rendered afresh: other frames, the same sound.
+        File.SetLastWriteTimeUtc(path, File.GetLastWriteTimeUtc(path).AddMinutes(1));
+        var again = (await _audio.RenderAsync(new CallSound.AudioFile(path, new CallSound.Speech("Supply in thirty seconds")), English)).Frames;
+        Assert.NotSame(file, again);
+
+        Assert.Equal(CallAudio.Join([words, file]), CallAudio.Join([words, file, again]));
+
+        // With no voice, the gong plays in place of each part's words: once.
+        _voices.Clear();
+        var gongs = await Task.WhenAll(new[] { "Jungle and Boss in thirty seconds", "Boss soon" }.Select(text => _audio.RenderAsync(new CallSound.Speech(text), English)));
+        Assert.All(gongs, clip => Assert.Equal(CallProblem.NoVoice, clip.Problem));
+        Assert.Equal(await GongFrames(), CallAudio.Join([.. gongs.Select(clip => clip.Frames)]));
+    }
+
+    [Fact]
     public void Frames_decode_back_to_the_sound_at_the_shared_loudness()
     {
         var pcm = Pcm.Shape(Sound.Tone(440, 1, 48000), 1)!;

@@ -28,6 +28,22 @@ public sealed class CopyTests
     }
 
     [Fact]
+    public void Events_called_together_say_each_name_once_joined_then_the_lead_in_both_languages()
+    {
+        var thirty = TimeSpan.FromSeconds(30);
+        var boss = new MatchEvent { Name = "Boss", Spawns = [] };
+        var supply = new MatchEvent { Name = "Supply", Spawns = [] };
+
+        Assert.Equal("Jungle and Boss in thirty seconds", Copy.DefaultWords([MatchEvent.Jungle, boss], thirty, English));
+        Assert.Equal("Jungle, Boss and Supply in thirty seconds", Copy.DefaultWords([MatchEvent.Jungle, boss, supply], thirty, English));
+        Assert.Equal("Лес и Босс через тридцать секунд", Copy.DefaultWords([MatchEvent.Jungle, boss with { Name = "Босс" }], thirty, Russian));
+        Assert.Equal(
+            "Лес, Босс и Снабжение через минуту",
+            Copy.DefaultWords([MatchEvent.Jungle, boss with { Name = "Босс" }, supply with { Name = "Снабжение" }], TimeSpan.FromMinutes(1), Russian));
+        Assert.Equal("Boss and Jungle in thirty seconds", Copy.DefaultWords([boss, MatchEvent.Jungle, boss with { Text = "" }], thirty, English));
+    }
+
+    [Fact]
     public void A_closed_event_shows_its_spawn_times_and_its_file_or_what_is_wrong_with_it()
     {
         using var english = new UiCulture("en-US");

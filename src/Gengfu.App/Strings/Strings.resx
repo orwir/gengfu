@@ -366,7 +366,7 @@
   </data>
   <data name="CallText15" xml:space="preserve">
     <value>{0} in fifteen seconds</value>
-    <comment>An event's default words with a 15 s lead, {0} being its name; spoken by a Windows voice.</comment>
+    <comment>An event's default words with a 15 s lead, {0} being its name, or the names of events called together, such as "Jungle and Boss"; spoken by a Windows voice.</comment>
   </data>
   <data name="CallText20" xml:space="preserve">
     <value>{0} in twenty seconds</value>
@@ -383,6 +383,10 @@
   <data name="CallText60" xml:space="preserve">
     <value>{0} in one minute</value>
     <comment>An event's default words with a 60 s lead.</comment>
+  </data>
+  <data name="NamesAnd" xml:space="preserve">
+    <value>{0} and {1}</value>
+    <comment>Events whose calls go out together, named in one call's default words: {0} is the names before the last, comma-separated; {1} the last. Such as "Jungle, Boss and Supply in thirty seconds".</comment>
   </data>
   <data name="Voice" xml:space="preserve">
     <value>Voice</value>

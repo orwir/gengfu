@@ -78,6 +78,26 @@ public sealed class MainViewTests(WpfApp wpf)
         });
 
     [Fact]
+    public Task While_events_at_one_spawn_time_are_called_the_line_under_the_clock_says_their_one_call() =>
+        OnView(
+            (session, time, view) =>
+            {
+                session.AddEvent();
+                session.RenameEvent(1, "Boss");
+                session.SetSpawns(1, [TimeSpan.FromMinutes(25)]);
+                session.Clock.Start();
+                // 25:29, in the window of both calls for 25:00.
+                time.Advance(TimeSpan.FromSeconds(571));
+                Assert.Equal(2, session.Schedule.TakeDue().Count);
+                view.Refresh();
+                Assert.Equal(("Calling now:", "Jungle and Boss in thirty seconds"), Line(view));
+            },
+            new CallAudio(
+                () => [new Voice("zira", "Microsoft Zira", "en-US")],
+                (_, _) => Speech.Sound.Wav(Speech.Sound.Tone(300, 0.5, 16000), 16000),
+                (_, _) => throw new InvalidOperationException()));
+
+    [Fact]
     public Task The_calls_list_follows_the_events_as_Settings_edits_them_mid_match_too() =>
         OnView((session, time, view) =>
         {
@@ -198,14 +218,15 @@ public sealed class MainViewTests(WpfApp wpf)
 
     // A view in English, on a session in a folder of its own and a clock that moves only when the
     // check moves it. The view reads its strings in its thread's language, Windows' own unless set.
-    private async Task OnView(Action<Session, FakeTimeSource, MainView> check)
+    // Without a voice, the calls play the gong unless a check gives them one.
+    private async Task OnView(Action<Session, FakeTimeSource, MainView> check, CallAudio? audio = null)
     {
         var time = new FakeTimeSource();
         var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
         var session = new Session(
             CultureInfo.GetCultureInfo("en-US"),
             time,
-            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            audio ?? new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
             folder);
         try
         {
