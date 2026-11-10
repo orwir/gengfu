@@ -87,6 +87,20 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public void A_voice_that_can_t_speak_a_newly_chosen_language_gives_way_to_the_language_s_own()
+    {
+        IReadOnlyList<Voice> installed = [new("zira", "Microsoft Zira", "en-US"), new("irina", "Microsoft Irina", "ru-RU")];
+        var russian = CultureInfo.GetCultureInfo("ru");
+
+        Assert.Null(Session.VoiceAfterSwitch("zira", installed, russian));
+        Assert.Null(Session.VoiceAfterSwitch("irina", installed, English));
+        Assert.Equal("irina", Session.VoiceAfterSwitch("irina", installed, russian));
+        Assert.Equal(AppSettings.Gong, Session.VoiceAfterSwitch(AppSettings.Gong, installed, russian));
+        Assert.Null(Session.VoiceAfterSwitch(null, installed, russian));
+        Assert.Equal("pavel", Session.VoiceAfterSwitch("pavel", installed, russian));
+    }
+
+    [Fact]
     public void A_Test_call_goes_out_only_when_a_call_can_none_is_playing_and_there_is_an_event_to_call()
     {
         Assert.True(Session.CanTestFor(canCall: true, testing: false, events: 1));

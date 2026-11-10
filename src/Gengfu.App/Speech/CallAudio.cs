@@ -86,6 +86,9 @@ public sealed class CallAudio
         _read = read;
     }
 
+    /// <summary>The installed voices, as the calls are spoken with them.</summary>
+    public IReadOnlyList<Voice> InstalledVoices() => _voices();
+
     /// <summary>The call's frames, rendered now or kept from before; a voice picked by <paramref name="language"/> when none is chosen.</summary>
     public async Task<CallClip> RenderAsync(CallSound sound, CultureInfo language)
     {

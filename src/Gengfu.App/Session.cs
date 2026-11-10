@@ -381,6 +381,7 @@ internal sealed class Session : IAsyncDisposable
         Settings.Language = choice;
         Language = AppLanguage.Resolve(choice, _windows);
         AppLanguage.Apply(Language);
+        Settings.Voice = VoiceAfterSwitch(Settings.Voice, _audio.InstalledVoices(), Language);
         SoundChanged();
     }
 
@@ -502,6 +503,14 @@ internal sealed class Session : IAsyncDisposable
         !sending && key.Trim().Length > 0 && status == ConnectionStatus.Connected;
 
     internal static bool CanTestFor(bool canCall, bool testing, int events) => canCall && !testing && events > 0;
+
+    /// <summary>
+    /// The voice to keep on a switch to <paramref name="language"/>. The events' words follow the
+    /// language, so a chosen voice that can't speak it gives way to the language's own. The gong
+    /// stays, and so does a voice that isn't installed, which speaks nothing anyway.
+    /// </summary>
+    internal static string? VoiceAfterSwitch(string? chosen, IReadOnlyList<Voice> installed, CultureInfo language) =>
+        installed.FirstOrDefault(voice => voice.Id == chosen) is { } voice && !Voices.Speaks(voice, language) ? null : chosen;
 
     // The Test call of Calls and of the main window plays the first event's call; an event's own, its call.
     internal static MatchEvent? TestedEvent(IReadOnlyList<MatchEvent> events, MatchEvent? pressed) => pressed ?? events.FirstOrDefault();

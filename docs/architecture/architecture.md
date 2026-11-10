@@ -179,7 +179,7 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Server address, bot nickname, server password | none, "Gengfu", none |
 | Who hears the calls | a server group, none chosen; or chosen channels. Cleared on connecting to another server, where the same ids name other groups or channels |
 | Call ahead | 30 s; 15, 20, 30, 45 or 60 |
-| Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen; it speaks every event's words |
+| Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen; it speaks every event's words. A language chosen in Settings drops a chosen voice that can't speak it |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
 | Theme | the same as Windows, following it when it switches; or light or dark |
 | Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00, set in Settings › Events or the file. Each event has its spawns, and may have a name, words and a sound file of its own; without a name it is the jungle, named in the app's language |

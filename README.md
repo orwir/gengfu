@@ -69,7 +69,8 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   removes one, and **Back to default** puts the jungle alone back; Undo puts back what they took,
   until you change the events again or leave Settings. Every edit applies at once, mid-match too,
   and an event you rename or give other times keeps the calls it already made.
-- **Language.** English, Russian, or the same as Windows.
+- **Language.** English, Russian, or the same as Windows. The events' default words follow it, so a
+  voice you chose that can't speak the new language gives way to one that can.
 - **Theme.** Light, dark, or the same as Windows.
 
 ## On a strict server

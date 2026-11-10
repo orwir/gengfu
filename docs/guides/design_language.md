@@ -153,7 +153,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   settings shown and saves nothing until then, and links to Open settings file. The main window
   doesn't change for it.
 - **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
-  (the language in its own tongue), the app language's first. Any voice may be picked.
+  (the language in its own tongue), the app language's first. Any voice may be picked; a new
+  language chosen in General drops one that can't speak it, for the language's own.
 - **No-voice hint:** when no voice speaks the app's language, Voice shows the gong and an
   info bar under it says so: accent info icon, caption text naming the way in (Language &
   region › the language › Language options), and a link that opens Language & region.
