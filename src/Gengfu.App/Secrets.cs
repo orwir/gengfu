@@ -16,10 +16,11 @@ internal sealed class Secrets(string path)
 
     /// <summary>
     /// The password and the identity as last saved, or none when there is no file this user can
-    /// decrypt. Null when Windows wouldn't let Gengfu read the file, perhaps for another program
-    /// holding it: the identity in it is still the bot's, so the file is left as it is.
+    /// decrypt; <c>Lost</c> says there was one, as another Windows user or PC saves it. Null when
+    /// Windows wouldn't let Gengfu read the file, perhaps for another program holding it: the
+    /// identity in it is still the bot's, so the file is left as it is.
     /// </summary>
-    public (string Password, string? Identity)? Load()
+    public (string Password, string? Identity, bool Lost)? Load()
     {
         byte[] encrypted;
         try
@@ -28,7 +29,7 @@ internal sealed class Secrets(string path)
         }
         catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
         {
-            return ("", null);
+            return ("", null, false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -37,11 +38,11 @@ internal sealed class Secrets(string path)
         try
         {
             var kept = JsonSerializer.Deserialize<Kept>(ProtectedData.Unprotect(encrypted, Entropy, DataProtectionScope.CurrentUser));
-            return (kept?.Password ?? "", kept?.Identity);
+            return (kept?.Password ?? "", kept?.Identity, false);
         }
         catch (Exception exception) when (exception is CryptographicException or JsonException)
         {
-            return ("", null);
+            return ("", null, true);
         }
     }
 

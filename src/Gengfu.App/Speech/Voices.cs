@@ -37,6 +37,6 @@ public static class Voices
     public static IReadOnlyList<Voice> ForList(IReadOnlyList<Voice> installed, CultureInfo language) =>
         [.. installed.OrderBy(voice => Speaks(voice, language) ? 0 : 1)];
 
-    private static bool Speaks(Voice voice, CultureInfo language) =>
+    internal static bool Speaks(Voice voice, CultureInfo language) =>
         string.Equals(voice.Language.Split('-')[0], language.TwoLetterISOLanguageName, StringComparison.OrdinalIgnoreCase);
 }

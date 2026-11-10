@@ -168,6 +168,21 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
 
+        <!-- Settings: a field's label, over it. -->
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="LineHeight" Value="20" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+
+        <!-- Shown in an empty field or an empty drop-down, which WPF's own controls can't do. -->
+        <Style x:Key="Placeholder" TargetType="TextBlock">
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Margin" Value="11,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextControlPlaceholderForeground}" />
+        </Style>
+
         <!-- Hints under a setting: informational (the no-voice hint) or a caution (a call that plays the
              gong); and how a privilege key went, a success or an error. -->
         <Style x:Key="InfoBar" TargetType="Border">

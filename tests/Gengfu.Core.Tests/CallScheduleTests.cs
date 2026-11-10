@@ -27,6 +27,7 @@ public class CallScheduleTests
         Assert.Equal(
             new[] { "25:30", "20:30", "15:30", "10:30", "05:30" },
             _schedule.Calls.Select(call => MatchClock.Format(call.At)));
+        Assert.Same(_clock, _schedule.Clock);
     }
 
     [Fact]
@@ -276,6 +277,32 @@ public class CallScheduleTests
 
         Assert.Equal("Forest", First.Event.Name);
         Assert.Equal(new[] { First }, _schedule.TakeDue());
+    }
+
+    [Fact]
+    public void An_event_edited_in_Settings_keeps_its_calls_renamed_too_while_an_added_one_starts_afresh()
+    {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25)] };
+        var schedule = new CallSchedule(_clock, [MatchEvent.Jungle, boss], CallSchedule.DefaultLead);
+        _clock.Start();
+        RunTo(TimeSpan.FromMinutes(25, 30));
+        Assert.Equal(2, schedule.TakeDue().Count);
+
+        // The jungle renamed, Boss given another spawn, and a new event at the jungle's spawn.
+        var forest = MatchEvent.Jungle with { Name = "Forest" };
+        var bossMoved = boss with { Spawns = [TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(15)] };
+        var added = new MatchEvent { Name = "New event", Spawns = [TimeSpan.FromMinutes(25)] };
+        schedule.ChangeEvents([forest, bossMoved, added], [MatchEvent.Jungle, boss, null]);
+
+        Assert.Equal(new[] { added }, schedule.TakeDue().Select(call => call.Event));
+        Assert.Equal(
+            new (string?, CallState)[] { ("Forest", CallState.Calling), ("Boss", CallState.Calling), ("New event", CallState.Calling) },
+            schedule.Calls.Take(3).Select(call => (call.Event.Name, schedule.StateOf(call))));
+
+        // A removed event's calls go with it; the ones left keep how they stood.
+        schedule.ChangeEvents([bossMoved, added], [bossMoved, added]);
+        Assert.Empty(schedule.TakeDue());
+        Assert.Equal(new[] { "Boss", "New event", "Boss" }, schedule.Calls.Select(call => call.Event.Name));
     }
 
     [Fact]

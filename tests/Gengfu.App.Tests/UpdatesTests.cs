@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO;
 
 namespace Gengfu.App.Tests;
@@ -7,13 +8,14 @@ public sealed class UpdatesTests : IDisposable
 {
     private readonly FakeTimeSource _time = new();
     private readonly LocalFeed _feed = new();
+    private readonly ConcurrentQueue<string> _logged = new();
 
     public void Dispose() => _feed.Dispose();
 
     [Fact]
     public async Task A_copy_Setup_did_not_install_never_looks()
     {
-        var updates = new Updates(_time, null);
+        var updates = new Updates(_time, null, _logged.Enqueue);
 
         await updates.Tick();
 
@@ -26,7 +28,7 @@ public sealed class UpdatesTests : IDisposable
     {
         _feed.Publish("0.1.0");
         _feed.Hold = Held();
-        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
 
         var look = updates.Tick();
         Assert.IsType<UpdateState.Checking>(updates.State);
@@ -40,7 +42,7 @@ public sealed class UpdatesTests : IDisposable
     public async Task A_newer_version_downloads_quietly_and_waits_for_the_next_start()
     {
         _feed.Publish("0.1.0", "0.1.1");
-        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
 
         await updates.Tick();
 
@@ -56,7 +58,7 @@ public sealed class UpdatesTests : IDisposable
     {
         _feed.Publish("0.1.0", "0.1.1");
         _feed.HoldDownload = Held();
-        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
 
         var look = updates.Tick();
         for (var tries = 0; tries < 200 && updates.State is not UpdateState.Downloading; tries++)
@@ -74,7 +76,7 @@ public sealed class UpdatesTests : IDisposable
     public async Task It_looks_again_every_four_hours_and_shows_the_last_answer_meanwhile()
     {
         _feed.Publish("0.1.0");
-        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
         await updates.Tick();
         _feed.Publish("0.1.0", "0.1.1");
 
@@ -96,7 +98,7 @@ public sealed class UpdatesTests : IDisposable
     {
         _feed.Publish("0.1.0");
         _feed.Fails = true;
-        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
 
         await updates.Tick();
         Assert.IsType<UpdateState.Failed>(updates.State);
@@ -109,11 +111,42 @@ public sealed class UpdatesTests : IDisposable
     }
 
     [Fact]
+    public async Task The_log_has_what_a_look_found_when_it_is_news()
+    {
+        _feed.Publish("0.1.0");
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
+        await updates.Tick();
+        _time.Advance(TimeSpan.FromHours(4));
+        await updates.Tick();
+
+        _feed.Fails = true;
+        for (var look = 0; look < 2; look++)
+        {
+            _time.Advance(TimeSpan.FromHours(4));
+            await updates.Tick();
+        }
+
+        _feed.Fails = false;
+        _feed.Publish("0.1.0", "0.1.1");
+        _time.Advance(TimeSpan.FromHours(4));
+        await updates.Tick();
+
+        Assert.Equal(
+            [
+                "Updates: up to date",
+                "Updates: couldn't check — HttpRequestException: No connection.",
+                "Updates: downloading version 0.1.1",
+                "Updates: version 0.1.1 downloaded; it applies the next time Gengfu starts",
+            ],
+            _logged);
+    }
+
+    [Fact]
     public async Task A_look_under_way_is_never_joined_by_another()
     {
         _feed.Publish("0.1.0");
         _feed.Hold = Held();
-        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
 
         var look = updates.Tick();
         _time.Advance(TimeSpan.FromHours(5));
@@ -137,7 +170,7 @@ public sealed class UpdatesTests : IDisposable
     public async Task Restart_has_nothing_to_hand_over_until_a_version_is_ready()
     {
         _feed.Publish("0.1.0");
-        var updates = new Updates(_time, _feed.Manager("0.1.0"));
+        var updates = new Updates(_time, _feed.Manager("0.1.0"), _logged.Enqueue);
 
         await updates.Tick();
 

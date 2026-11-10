@@ -277,19 +277,22 @@
     <value>Текст</value>
   </data>
   <data name="CallText15" xml:space="preserve">
-    <value>Лес через пятнадцать секунд</value>
+    <value>{0} через пятнадцать секунд</value>
   </data>
   <data name="CallText20" xml:space="preserve">
-    <value>Лес через двадцать секунд</value>
+    <value>{0} через двадцать секунд</value>
   </data>
   <data name="CallText30" xml:space="preserve">
-    <value>Лес через тридцать секунд</value>
+    <value>{0} через тридцать секунд</value>
   </data>
   <data name="CallText45" xml:space="preserve">
-    <value>Лес через сорок пять секунд</value>
+    <value>{0} через сорок пять секунд</value>
   </data>
   <data name="CallText60" xml:space="preserve">
-    <value>Лес через минуту</value>
+    <value>{0} через минуту</value>
+  </data>
+  <data name="NamesAnd" xml:space="preserve">
+    <value>{0} и {1}</value>
   </data>
   <data name="Voice" xml:space="preserve">
     <value>Голос</value>
@@ -389,5 +392,83 @@
   </data>
   <data name="UpdateCheckFailed" xml:space="preserve">
     <value>Не удалось проверить обновления — попробую позже</value>
+  </data>
+  <data name="Events" xml:space="preserve">
+    <value>События</value>
+  </data>
+  <data name="EventNameLabel" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="SpawnTimes" xml:space="preserve">
+    <value>Время появления</value>
+  </data>
+  <data name="SpawnsPlaceholder" xml:space="preserve">
+    <value>Например, 25:00, 15:00</value>
+  </data>
+  <data name="RemoveEvent" xml:space="preserve">
+    <value>Удалить событие</value>
+  </data>
+  <data name="RemoveEventNamed" xml:space="preserve">
+    <value>Удалить событие «{0}»</value>
+  </data>
+  <data name="TestCallFor" xml:space="preserve">
+    <value>Проверить: {0}</value>
+  </data>
+  <data name="AddEvent" xml:space="preserve">
+    <value>Добавить событие</value>
+  </data>
+  <data name="BackToDefault" xml:space="preserve">
+    <value>Вернуть по умолчанию</value>
+  </data>
+  <data name="NoEvents" xml:space="preserve">
+    <value>Событий нет, поэтому объявлений не будет.</value>
+  </data>
+  <data name="NoEventsCalls" xml:space="preserve">
+    <value>Событий нет — объявлений не будет.</value>
+  </data>
+  <data name="NoSpawnsCalls" xml:space="preserve">
+    <value>Время появления не задано — объявлений не будет.</value>
+  </data>
+  <data name="Undo" xml:space="preserve">
+    <value>Отменить</value>
+  </data>
+  <data name="EventRemoved" xml:space="preserve">
+    <value>Событие «{0}» удалено.</value>
+  </data>
+  <data name="EventsReset" xml:space="preserve">
+    <value>Снова по умолчанию: только лес.</value>
+  </data>
+  <data name="NoSpawnTimes" xml:space="preserve">
+    <value>Время появления не задано</value>
+  </data>
+  <data name="NewEvent" xml:space="preserve">
+    <value>Новое событие</value>
+  </data>
+  <data name="SpawnsUnreadable" xml:space="preserve">
+    <value>Не могу прочитать «{0}»: пишите время как 25:00 или 25, не больше 35:00. Объявления пока идут по прежнему времени.</value>
+  </data>
+  <data name="SpawnsUnreadableShort" xml:space="preserve">
+    <value>Не могу прочитать время появления</value>
+  </data>
+  <data name="NoTextShort" xml:space="preserve">
+    <value>Текста нет: звучит гонг</value>
+  </data>
+  <data name="SpeechFailedShort" xml:space="preserve">
+    <value>Windows не удалось произнести текст</value>
+  </data>
+  <data name="FileUnreadableShort" xml:space="preserve">
+    <value>Windows не может воспроизвести {0}</value>
+  </data>
+  <data name="FileMissingShort" xml:space="preserve">
+    <value>Файла {0} нет на этом компьютере</value>
+  </data>
+  <data name="FileUnreadableSays" xml:space="preserve">
+    <value>Windows не может воспроизвести этот файл, поэтому объявления говорят: «{0}». Выберите другой, например MP3 или WAV.</value>
+  </data>
+  <data name="FileMissingSays" xml:space="preserve">
+    <value>Файла {0} нет на этом компьютере, поэтому объявления говорят: «{1}».</value>
+  </data>
+  <data name="FileMissing" xml:space="preserve">
+    <value>Файла {0} нет на этом компьютере, поэтому звучит гонг.</value>
   </data>
 </root>

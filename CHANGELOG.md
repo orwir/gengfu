@@ -5,6 +5,31 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-11
+
+### Added
+
+- Settings › Events adds, changes and removes the events whose spawns get calls, mid-match too (#38)
+- Spawn times can be typed in whole minutes, such as 25, and in any order (#38)
+- Each event has a Test call of its own in Settings (#38)
+- An event can play a sound file of its own in place of its words (#38)
+- Undo puts back an event removed, or the events Back to default replaced (#38)
+- With no events, or none with spawn times, the main window's calls list says so (#38)
+- Gengfu keeps a log of what it did, gengfu.log in %AppData%\Gengfu, which says why a call went missing (#44)
+
+### Changed
+
+- Test call plays the first event's call (#38)
+- The sound file is set per event in Settings › Events, no longer in Calls (#38)
+- An event's sound file that isn't on this PC, or that Windows can't play, gives way to its words (#38)
+- Open settings file first rewrites a settings file from before 0.3 in its new form (#38)
+- Choosing another language in Settings drops a chosen voice that can't speak it, for one that can (#38)
+
+### Fixed
+
+- A named event without words of its own says its name and the lead, such as "Boss in thirty seconds", not the jungle's (#38)
+- Calls for the same spawn time go out as one call, such as "Jungle and Boss in thirty seconds", none late (#39)
+
 ## [0.2.0] - 2026-11-10
 
 ### Added

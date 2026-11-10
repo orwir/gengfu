@@ -11,16 +11,75 @@ public sealed class CopyTests
     private static readonly CultureInfo Russian = CultureInfo.GetCultureInfo("ru");
 
     [Fact]
-    public void Every_lead_on_offer_has_its_own_default_text_in_both_languages()
+    public void An_event_s_default_words_are_its_name_and_the_lead_for_every_lead_in_both_languages()
     {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [] };
         foreach (var language in new[] { English, Russian })
         {
-            var texts = AppSettings.Leads.Select(lead => Copy.CallText(lead, language)).ToList();
-            Assert.Equal(texts.Count, texts.Distinct().Count());
+            var words = AppSettings.Leads.Select(lead => Copy.DefaultWords(boss, lead, language)).ToList();
+            Assert.Equal(words.Count, words.Distinct().Count());
+            Assert.All(words, said => Assert.StartsWith("Boss ", said, StringComparison.Ordinal));
         }
-        Assert.Equal("Jungle in thirty seconds", Copy.CallText(TimeSpan.FromSeconds(30), English));
-        Assert.Equal("Лес через тридцать секунд", Copy.CallText(TimeSpan.FromSeconds(30), Russian));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Copy.CallText(TimeSpan.FromSeconds(40), English));
+        Assert.Equal("Jungle in thirty seconds", Copy.DefaultWords(MatchEvent.Jungle, TimeSpan.FromSeconds(30), English));
+        Assert.Equal("Лес через тридцать секунд", Copy.DefaultWords(MatchEvent.Jungle, TimeSpan.FromSeconds(30), Russian));
+        Assert.Equal("Босс через минуту", Copy.DefaultWords(boss with { Name = "Босс" }, TimeSpan.FromMinutes(1), Russian));
+        Assert.Equal("Boss in forty-five seconds", Copy.DefaultWords(boss, TimeSpan.FromSeconds(45), English));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Copy.DefaultWords(boss, TimeSpan.FromSeconds(40), English));
+    }
+
+    [Fact]
+    public void Events_called_together_say_each_name_once_joined_then_the_lead_in_both_languages()
+    {
+        var thirty = TimeSpan.FromSeconds(30);
+        var boss = new MatchEvent { Name = "Boss", Spawns = [] };
+        var supply = new MatchEvent { Name = "Supply", Spawns = [] };
+
+        Assert.Equal("Jungle and Boss in thirty seconds", Copy.DefaultWords([MatchEvent.Jungle, boss], thirty, English));
+        Assert.Equal("Jungle, Boss and Supply in thirty seconds", Copy.DefaultWords([MatchEvent.Jungle, boss, supply], thirty, English));
+        Assert.Equal("Лес и Босс через тридцать секунд", Copy.DefaultWords([MatchEvent.Jungle, boss with { Name = "Босс" }], thirty, Russian));
+        Assert.Equal(
+            "Лес, Босс и Снабжение через минуту",
+            Copy.DefaultWords([MatchEvent.Jungle, boss with { Name = "Босс" }, supply with { Name = "Снабжение" }], TimeSpan.FromMinutes(1), Russian));
+        Assert.Equal("Boss and Jungle in thirty seconds", Copy.DefaultWords([boss, MatchEvent.Jungle, boss with { Text = "" }], thirty, English));
+    }
+
+    [Fact]
+    public void A_closed_event_shows_its_spawn_times_and_its_file_or_what_is_wrong_with_it()
+    {
+        using var english = new UiCulture("en-US");
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(15)] };
+        var withFile = boss with { SoundFile = @"C:\Sounds\boss.mp3" };
+
+        Assert.Equal(("25:00 · 15:00", false), Copy.EventSummary(boss, CallProblem.None, unreadable: false));
+        Assert.Equal(("25:00 · 15:00 · boss.mp3", false), Copy.EventSummary(withFile, CallProblem.None, unreadable: false));
+        Assert.Equal(("No spawn times yet", false), Copy.EventSummary(boss with { Spawns = [] }, CallProblem.None, unreadable: false));
+        // No voice is every event's trouble, so Calls says it, not each event.
+        Assert.Equal(("25:00 · 15:00", false), Copy.EventSummary(boss, CallProblem.NoVoice, unreadable: false));
+        Assert.Equal(("Nothing to say: its calls play a gong", true), Copy.EventSummary(boss, CallProblem.NoText, unreadable: false));
+        Assert.Equal(("Windows couldn’t speak the text", true), Copy.EventSummary(boss, CallProblem.SpeechFailed, unreadable: false));
+        Assert.Equal(("Windows can’t play boss.mp3", true), Copy.EventSummary(withFile, CallProblem.FileUnreadable, unreadable: false));
+        Assert.Equal(("boss.mp3 isn’t on this PC", true), Copy.EventSummary(withFile, CallProblem.FileMissing, unreadable: false));
+        Assert.Equal(("Can’t read the spawn times", true), Copy.EventSummary(withFile, CallProblem.FileMissing, unreadable: true));
+    }
+
+    [Fact]
+    public void A_file_that_can_t_play_says_why_and_what_its_calls_play_instead_in_both_languages()
+    {
+        using (new UiCulture("en-US"))
+        {
+            Assert.Equal("boss.mp3 isn’t on this PC, so its calls say “Boss in thirty seconds”.",
+                Copy.FileHint(CallProblem.FileMissing, "boss.mp3", "Boss in thirty seconds"));
+            Assert.Equal("boss.mp3 isn’t on this PC, so its calls play a gong.", Copy.FileHint(CallProblem.FileMissing, "boss.mp3", null));
+            Assert.Equal("Windows can’t play this file, so its calls say “Boss in thirty seconds”. Pick another, such as an MP3 or WAV.",
+                Copy.FileHint(CallProblem.FileUnreadable, "boss.mp3", "Boss in thirty seconds"));
+            Assert.Equal("Windows can’t play this file, so its calls play a gong. Pick another, such as an MP3 or WAV.",
+                Copy.FileHint(CallProblem.FileUnreadable, "boss.mp3", null));
+        }
+        using (new UiCulture("ru-RU"))
+        {
+            Assert.Equal("Файла босс.mp3 нет на этом компьютере, поэтому объявления говорят: «Босс через тридцать секунд».",
+                Copy.FileHint(CallProblem.FileMissing, "босс.mp3", "Босс через тридцать секунд"));
+        }
     }
 
     [Fact]

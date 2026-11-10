@@ -1,0 +1,5 @@
+# Findings gitleaks reports that are no secrets, by fingerprint, so a scan of the commits holding
+# them passes; a finding in any other commit still fails it.
+# e548af9: made-up values a test types in to check that they never reach the log (#44).
+e548af970d59d1af4ba5be16680d5e7c829a24d1:tests/Gengfu.App.Tests/SessionTests.cs:generic-api-key:1094
+e548af970d59d1af4ba5be16680d5e7c829a24d1:tests/Gengfu.App.Tests/SessionTests.cs:generic-api-key:1095

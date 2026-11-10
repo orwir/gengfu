@@ -93,3 +93,4 @@ gh api repos/orwir/gengfu/releases/tags/v<X.Y.Z> --jq '.assets[] | "\(.name): \(
 | Release | Setup | Delta + full | Counted |
 | --- | --- | --- | --- |
 | 0.1.0 | 1 | 0 + 2 | 2026-11-10 |
+| 0.2.0 | 2 | 3 + 2 | 2026-11-11 |

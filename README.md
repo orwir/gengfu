@@ -49,7 +49,7 @@ install and keeps your settings.
 Open Settings with the gear at the bottom right. Every change applies at once and is saved.
 
 - **TeamSpeak.** Enter the server address as your TeamSpeak client takes it, the server password
-  if it has one, and a nickname for the bot, then press **Connect**. Gengfu stays connected by
+  if it has one, and a nickname for the bot, then press **Connect** or Enter in a field. Gengfu stays connected by
   itself; the line at the top of the main window says how it stands, and while Gengfu waits to
   try again, how long until it does. A privilege key from the server's admin goes under **Use a
   privilege key** ([On a strict server](#on-a-strict-server)).
@@ -58,11 +58,22 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   is connected, and the server has to allow the bot to whisper. Connecting to another server
   clears the choice.
 - **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
-  default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
-  use a sound file instead. **Test call** whispers the call once, now. If the server says nobody
-  heard it, a note under Test call says why that may be.
-- **Language.** English, Russian, or the same as Windows.
-- **Theme.** Light, dark, or the same as Windows.
+  default. *Voice* is any Windows voice, or the gong, for every event. **Test call**, here or in the
+  main window, whispers the first event's call once, now. If the server says nobody heard it, a note under Test call says
+  why that may be.
+- **Events.** The events whose spawns get a call: out of the box, the GvG jungle alone. Open one to
+  change its name, its spawn times and what its calls say: its name and the lead by default, such
+  as "Boss in thirty seconds", or words of your own, or a sound file of its own. Type spawn times
+  as the game shows them or in whole minutes, such as `25:00, 15`; Enter or leaving the field
+  applies them, and a time Gengfu can't read changes nothing, with a note saying which. Each event has its own **Test call**. **Add event** adds one, the bin beside a name
+  removes one, and **Back to default** puts the jungle alone back at its five times, keeping its
+  words or sound file; Undo puts back what they took,
+  until you change the events again or leave Settings. Every edit applies at once, mid-match too,
+  and an event you rename or give other times keeps the calls it already made.
+- **Language.** English, Russian, or the same as Windows. The events' default words follow it, so a
+  voice you chose that can't speak the new language gives way to one that can.
+- **Theme.** Light, dark, or the same as Windows' app mode (Personalization › Colors), following it
+  when it switches.
 
 ## On a strict server
 
@@ -95,27 +106,28 @@ Gengfu keeps its settings in `%AppData%\Gengfu\settings.json`, saves each change
 connects by itself at start when a server is saved. **Open settings file** in Settings › General
 opens the file in the app Windows uses for .json files, or in Notepad. An edit you save there
 applies at once. If the file has an error, Settings says on which line, and Gengfu works with the
-settings it had, saving nothing, until you fix it.
+settings it had, or its defaults if it started that way, saving nothing, until you fix it.
 
 The server password and the bot's identity are not in that file. They sit beside it in
 `secrets.bin`, encrypted by Windows for your Windows user, so the settings file is safe to share.
 
 ### Events and presets
 
-The file's `events` say which spawns get a call. Out of the box there is one, the GvG jungle at
-25:00, 20:00, 15:00, 10:00 and 05:00. Each event lists its `spawns` as the game shows them, and may
-have a `name` for the calls list and a `text`, spoken in the chosen voice in place of the call's
-text from Settings. An event without a name is the jungle.
+The file's `events` are the ones Settings › Events shows. Each lists its `spawns` as the game shows
+them, and may have a `name` for the calls list, a `text` its calls say in place of its name and
+the lead, and a `soundFile` they play in place of the words. An event without a name is the jungle.
 
 ```json
 "events": [
-  { "name": null, "spawns": ["25:00", "20:00", "15:00", "10:00", "05:00"], "text": null },
-  { "name": "Boss", "spawns": ["28:00", "18:00"], "text": "Boss in thirty seconds" }
+  { "name": null, "spawns": ["25:00", "20:00", "15:00", "10:00", "05:00"], "text": null, "soundFile": null },
+  { "name": "Boss", "spawns": ["28:00", "18:00"], "text": "Boss soon", "soundFile": null }
 ]
 ```
 
 To share a preset, send the `events` part; the file holds no password or identity anyway. Whoever
-gets it pastes it over the `events` in their own file through **Open settings file**.
+gets it pastes it over the `events` in their own file through **Open settings file**. A sound file
+is a path on the PC that chose it: where it isn't, the event's calls say its words instead, and
+Settings says so.
 
 ## The calls
 
@@ -123,7 +135,12 @@ The calls list has every call of the match: the next one with the time left unti
 a call went out, and ✕ *Not sent* when nobody heard it: Gengfu was off the server, nobody was
 chosen to hear the calls, the whisper failed, the server said it reached nobody, or the clock was
 moved past the spawn first. When there are more calls than fit, the list scrolls to keep the next
-one in view.
+one in view. With no events, or none with spawn times, the list says so.
+
+Calls for the same spawn time go out as one call, so none comes late. Events that say their name
+and the lead say them together, such as "Jungle and Boss in thirty seconds"; events with words or a
+sound file of their own play them in turn in that call, and a sound file they share plays once.
+Their rows show the call together, and when nobody heard it, every one of them says *Not sent*.
 
 When the server says a call or a Test call reached nobody, the line at the top of the main window
 says so until a call gets through, Gengfu connects anew, or you choose other listeners. The server
@@ -150,6 +167,20 @@ it drifts from the game's timer, match it while the match runs:
   the field.
 
 Values the game can't show, such as 75 seconds, are ignored. **Stop** ends the match.
+
+## The log
+
+When a call goes missing, Gengfu's log says why. It is `gengfu.log` in `%AppData%\Gengfu`: paste
+that folder into File Explorer's address bar to open it. The log is plain text in English. It
+records when Gengfu started and closed, each change in the connection, and each call and Test call,
+with what it played and whether anyone heard it, or why it didn't go out. It also records the
+clock's Start, Stop and corrections, errors in the settings file, updates, and any error that
+closed Gengfu.
+
+It holds your server's address, the bot's nickname, the names of your groups, channels and events,
+your Windows version, Gengfu's language and your time zone, but never the server password, the
+bot's identity or a privilege key. Once it reaches 1 MB, Gengfu starts it afresh and keeps the full
+one as `gengfu.old.log`.
 
 ## Build from source
 

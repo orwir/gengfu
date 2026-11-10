@@ -75,12 +75,20 @@ bring those files to full fidelity instead of drawing beside them. The loop:
 2. **Draw.** Re-read the design file first: the maintainer may have edited it by hand. Draw the
    target look *and* every state the work needs at real scale — first run, errors, the longest
    locale, both themes — plus the foundations behind it (a states/components gallery), from the
-   shipped tokens rather than adjectives. Behaviour a frame cannot show goes in a note beside
-   it; competing variants sit side by side, or behind a toggle, until the maintainer picks.
+   shipped tokens rather than adjectives. What the round adds waits on a page of its own until
+   the close, and a note says only what the drawing can't (both below); the case for the design
+   goes in the conversation. Competing variants sit side by side, or behind a toggle, until the
+   maintainer picks. A prototype simulates only what is judged by feel — a timer, a sync, a
+   drag — and reaches every other state through a toggle that draws it: a prototype that
+   re-implements the app's logic has to be ported again at every close.
 3. **Review.** End the round with a short summary in the conversation: what changed on the
    canvas, and each open decision as a question with a recommended answer. The maintainer
    judges by eye on the canvas, corrects, and approves; nothing is built before the approval.
-   A picked variant collapses into the screen's one file.
+   A picked variant collapses into the screen's one file. Where the pick settled a genuine
+   fork — two defensible layouts for one region, two interaction models for one action — the
+   losing region stays beside the winner, labelled **NOT TAKEN**, with the trade-off and the
+   reason: it is what stops the option being proposed again in six months. Keep only the
+   region, as it stood at the pick; a whole-page variant with no fork in it still goes.
 4. **Build and reconcile.** The approved design is a **strong draft, not a spec**: reuse the
    *shipped* primitives over its near-duplicates, drop embellishments that fight the product,
    and let the platform overrule the drawing where it must — a control's real metrics, chrome
@@ -95,10 +103,12 @@ bring those files to full fidelity instead of drawing beside them. The loop:
    it draws. Two checks over that table are worth a test: every shipped screen has a row, so
    a screen cannot ship undrawn, and no two rows claim the same screen.
 6. **Close.** Once the change has landed, bring the design file to what shipped: redraw each
-   delta from the ledger, collapse each decided fork, fold in or delete every other file the
-   round made (a spec for work still open stays until it ships), bring the notes up to date,
-   and say so in one line. The design file claims to be the current screen, so a delta left
-   out is drift on the day it ships, and the next round on the screen starts from it.
+   delta from the ledger, collapse each decided fork (its NOT TAKEN region stays), move what
+   the round added to its surface's page, fold in or delete every other file the round made (a
+   spec for work still open stays until it ships), cut the notes back to what a note holds,
+   and say so in one line. A prototype takes only the deltas it simulates; logic with no look
+   or feel of its own stays in the code. The design file claims to be the current screen, so a
+   delta left out is drift on the day it ships, and the next round on the screen starts from it.
 
 A change you can state in one line skips the canvas: make it in the code, and close the screen
 once it lands. A change easier to judge by eye than to describe — redraw, look, redraw — is a
@@ -131,7 +141,20 @@ reviewed again when the two are finally merged. Scope belongs in the round, whic
 region it redraws, not in a file boundary. Two exceptions expire on their own — competing
 variants of one screen under review at the same time, which collapse when the maintainer
 picks, and a spec for unshipped work, which cannot merge into a file claiming to be the current
-state without making it lie, and folds in when the work ships.
+state without making it lie, and folds in when the work ships. A NOT TAKEN region is no
+exception: it is labelled, sits with its surface, and claims no screen.
+
+**Arrange the canvas by surface, never by round.** A round that adds its boards where the last
+one stopped files the canvas by history: one screen's states scatter across every round that
+touched it, and a board that grows shoves everything after it. Give each surface a page (a
+file, where the tool has no pages), with its states grouped by kind — connection, errors,
+updates — and the foundations a page of their own. What an open round adds waits on a page of
+its own, so the review sees the round alone; the close moves each board into its surface's
+group and removes the page. History lives in the canvas's versions and the tracker, never in
+the layout. A board per state that imports the surface's file shows states side by side at no
+upkeep, since it follows the file; toggles alone suit a surface whose combinations multiply
+(viewport × theme × role × locale). A new surface or platform gets a canvas of its own; split
+one only as it heads toward hundreds of boards.
 
 **A pairing with a stamp tells you when it went stale.** Hash each row's sources into the row
 when its design file closes; a script that recomputes the hash then names the design files
@@ -143,6 +166,40 @@ which is to say, long after the cheapest moment to fix it. Prefer reporting to f
 build: on most projects the code under a screen moves far more often than what the screen
 looks like, and a hard gate spends a redraw on changes that never altered the design. Read it
 on a trigger that already exists, such as release prep.
+
+**What a note holds.** One notes card per surface, six to nine short fields, each something a
+reader of the drawing would otherwise get wrong:
+
+- a decision that looks arbitrary: the call, and why it is load-bearing (would a competent
+  developer tidy it away?);
+- an absence that was chosen: what was considered, and why it lost;
+- what a value is of — its unit, window or source — where the drawing can't say;
+- what a failure looks like: which state is empty, which unavailable, and why they differ;
+- a gate: what arms it, and where it is enforced;
+- a caveat that is copy, not a tooltip;
+- how to reach the drawn states: which toggle shows which;
+- at most one **UNSETTLED** question, and only where its answer changes what ships.
+
+Behaviour, timings, formats and data shapes are the repo's to state: a note that needs one names
+the doc section or the issue, since a copy on the canvas goes stale on the next merge and no
+review sees it go. A note may say more while its round is open; the close cuts it back.
+
+**Keep no log beside the design.** The canvas's versions, the commits and the issues already
+hold the history, so a record of rounds kept beside them — in a file on the canvas, in its
+notes, in the assistant's memory — is a copy that grows every round and is never read whole.
+Keep the current state only: each surface's pairing and stamp, and any round still open. An
+index of design files names each file and its surface in one line, never a summary of what a
+page draws or decides: a summary kept in two places drifts.
+
+**Where this comes from.** Figma's own guidance files work by product surface, keeps longer
+documentation outside the design file, splits a file heading toward hundreds of frames per
+platform, and leaves arranging frames to the end — "any earlier and you'll re-organize with
+every iteration" ([Figma](https://www.figma.com/best-practices/team-file-organization/)).
+thoughtbot settled on one file mirroring production, with each ticket's work in a file of its
+own, after its lists of explorations and future designs "got out of hand"
+([thoughtbot](https://thoughtbot.com/blog/how-we-used-designops-and-figma-to-scale-our-team)).
+GitLab goes further than a notes card: notes "should be temporary in nature, and not need to
+persist" ([GitLab](https://design.gitlab.com/get-started/uik-annotation)).
 
 ### 3. Evolve — when the trigger fires
 

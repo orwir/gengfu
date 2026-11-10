@@ -10,7 +10,7 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model and file; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
-| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; hotkeys (*planned*). Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
+| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; the log; hotkeys (*planned*). Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
@@ -25,14 +25,19 @@ server, and another transport would plug in without touching it.
 2. The call schedule makes a call for every spawn of every event, and marks it due once the clock
    reaches its game time (spawn plus lead time) while the spawn is still ahead; the App asks it
    for due calls on every tick.
-3. The App renders the calls' sound when Gengfu starts and whenever it changes, and keeps it: the
-   sound Settings sets, and each event's own text. Text goes through a Windows voice, or an audio
-   file is read, to 48 kHz stereo, then to 20 ms Opus frames ([Call audio](#call-audio)). Each call
+3. The App renders each event's call when Gengfu starts and whenever it changes, and keeps it: the
+   event's words, by default its name and the lead, in the voice Settings sets, or a sound file of
+   its own. Words go through a Windows voice, or an audio file is read, to 48 kHz stereo, then to
+   20 ms Opus frames ([Call audio](#call-audio)). Calls for one spawn time go out as one call,
+   rendered ahead the same way, so none waits behind another: the events that say their name and
+   the lead say them in one sentence, "Jungle and Boss in thirty seconds", in the place of the
+   first of them, and the rest play their own words or files, all in the events' order. Each call
    asks for its sound again, and gets the kept one unless a voice was added to Windows meanwhile.
 4. TeamSpeak sends the frames in real time as a whisper to the chosen listeners — a server group
    or chosen channels — then an empty frame to end the talk. A call that can't go out, with Gengfu
    off the server or nobody chosen, is marked not sent at once, so the list never shows it calling.
-   One the server says reached nobody is marked not sent once it has played.
+   One the server says reached nobody is marked not sent once it has played. Either way, so is
+   every event's call that went out in it.
 
 ## The App
 
@@ -49,12 +54,33 @@ server, and another transport would plug in without touching it.
   user's Gengfu, close it or change its install.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
+  Settings edits the events through it, mid-match too. An edit tells the schedule which event each
+  new one was, so an event renamed or given other times keeps its calls, made stays made; an edit
+  of the file can't, so there a call is the one of an event of the same name at the same spawn.
+  Back to default puts the jungle alone back at its spawn times, keeping its words and sound file,
+  so the text and sound file an old file moved into it don't count as a change. It keeps the
+  events a Remove or Back to default took, for Undo, until the events change again or Settings
+  closes.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
   line's words. When the server says a call reached nobody, `Session` keeps that for the status line
   and Settings until a whisper gets through, the connection is new, or other listeners are chosen.
   It holds a privilege key typed in Settings, in memory only, uses it through the connection, and
   keeps the server's answer for Settings until another key is typed or Connect is pressed: the
   connection's own reconnects leave the bot's group as it was.
+- `Log` keeps what Gengfu did, for a player to attach to feedback, in plain English whatever the
+  app's language: each run's start, with the version, Windows and the time zone, and its close; the
+  connection's changes in the status line's words, once per reason however often it retries; each
+  call and Test call, with what it played and how it went or why it didn't go out; the clock's
+  Starts, Stops and corrections, which `MatchClock` raises as one event whichever control made them;
+  the settings file's errors, a `secrets.bin` Gengfu can't read, and saves Windows refused; the
+  server's answers to privilege keys; and what update looks found.
+- `Program.Main` makes the log before the App and the `Session`, so a failure in either is in it,
+  and writes to it an exception that escapes on any thread, with its stack; Gengfu then closes,
+  since its state is unknown. A task that fails with nothing waiting on it goes to the log too, and
+  Gengfu carries on.
+  Each line is built from states, names, the server's own words and exception text, so the server
+  password, the bot's identity and a privilege key never reach it; the Windows user's profile
+  folder shows as `%USERPROFILE%`.
 - `MainWindow` draws its own title bar: Settings' way back sits in it, and maximize is left out.
   Its surface is flat, with no Mica backdrop: under a Mica frame Windows draws its own caption
   buttons too. Windows 11 rounds the corners on request.
@@ -86,21 +112,30 @@ back above its game time re-arms it; a changed lead moves every call but never m
 
 ## Call audio
 
-A call plays text in a Windows voice, an audio file, or the gong: a small gong struck twice, made in
-code. It is never silent: text that can't be spoken and a file that can't be read play the gong,
-and the clip says why, for Settings to show.
+A call plays words in a Windows voice, an audio file, or the gong: a small gong struck twice, made
+in code. It is never silent: a file that can't play, missing on this PC or not something Windows
+plays, gives way to its event's words, and words that can't be spoken play the gong; the clip says
+why, for Settings to show. A preset made on another PC names files that aren't on this one, so its
+events still say what they are.
 
 - **Voice.** The chosen voice while it is installed, else the first in the app's language with
   Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
   text is the user's to match. The voice list is read afresh each time, so a voice added in
   Windows counts without a restart. Windows adds a language's voices from that language's options
-  under Language & region; Speech › Add voices can fail silently.
-- **Shape.** Silence is trimmed; a call stops after 10 s of sound, counted from where its sound
+  under Language & region; Speech › Add voices can fail silently: in testing it showed Russian at
+  0 MB, and Add did nothing.
+- **Shape.** Silence is trimmed; an event's sound stops after 10 s, counted from where its sound
   starts, and fades out, so a wrong file can't hold the whisper; its loudest 400 ms sit at
   −16 LUFS with peaks 1 dB under full scale; 100 ms of silence lead it, so its start is never
   clipped.
 - **Encoding.** 20 ms Opus frames at 48 kbps, in managed code. A rendered call is kept until its
   text, its voice or its file changes.
+- **One call of several parts.** A call for several events plays its parts in turn, each as kept,
+  with 0.7 s of silence between them: with each part's lead-in, about the pause Windows' voices
+  leave between two sentences. The frames are joined as encoded; every part starts and ends in
+  silence, so listeners' decoders pass from one to the next without a click. Parts that sound the
+  same play once: a file two events share, or the gong in place of words no voice can speak. Each
+  part keeps its own 10 s, so a call of three events runs up to about 30 s.
 - **Windows parts.** Speech uses Windows.Media.SpeechSynthesis (Windows 10 and later) and is
   resampled by Gengfu; files use Media Foundation, which Windows N editions lack until the Media
   Feature Pack is added. Both are called directly, with nothing extra shipped
@@ -133,10 +168,14 @@ look for updates runs there too, and the tick reads where it stands.
 The settings file's watcher only marks the file touched; the tick reads it once it has been
 still for 250 ms, and writes the settings once they have stood still for 500 ms.
 TSLib runs the connection on its own scheduler thread: the connection's events fire there, and its
-data book is read only there. Voice frames go out from the voice sender's own thread, each up to
-60 ms before it plays, so Windows' coarse sleep still keeps listeners fed; calls play one at a
-time. The UI thread never blocks on the network, except as Gengfu closes, when it waits up to 3 s
-for the connection to leave the server.
+data book is read only there. The log alone handles the connection's state changes, as the
+connection reports them one at a time on that thread: there it reads the login and the settings,
+which the UI thread replaces whole and never changes in place. The log takes lines from the UI
+thread, TSLib's thread and the thread pool alike; each goes to disk under a lock before `Write`
+returns, so a crash right after keeps it. Voice frames go out from the voice sender's own thread,
+each up to 60 ms before it plays, so Windows' coarse sleep still keeps listeners fed; calls play
+one at a time. The UI thread never blocks on the network, except as Gengfu closes, when it waits
+up to 3 s for the connection to leave the server.
 
 ## Configuration
 
@@ -153,7 +192,18 @@ stop for half a second. It writes only after a change in the app, so the comment
 file last until then, and never over a file it couldn't read, where the edit would be lost. It
 watches the file: an edit saved there applies at once, events, language and theme too, and calls
 already made stay made. A file with an error changes nothing, and Settings shows where the error is
-until it is fixed.
+until it is fixed; started with one, Gengfu runs on its defaults. A file Windows won't let Gengfu
+read or write is tried again every 2 s. A file written before 0.3 set a call's text and sound file
+(`callText`, `soundFile`) once for every event;
+it opens with them moved into its events, the text into the jungle's and the file into every event
+without words of its own, and its next save writes them there. Open settings file writes it so
+before it opens it: read again with a preset's events pasted in, the old text and file would go to
+them too.
+
+Gengfu's folder also holds the log, `gengfu.log` ([The App](#the-app)). Once the file would pass
+1 MB, hundreds of matches' worth, the log starts afresh and keeps the full one as `gengfu.old.log`,
+so it never takes more than 2 MB. A line Windows won't let Gengfu write is lost rather than stop a
+call.
 
 The server password and the bot's identity stay out of the file, so it can be shared; a privilege
 key is kept nowhere, since a used one is worthless. `Secrets`
@@ -167,12 +217,12 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Server address, bot nickname, server password | none, "Gengfu", none |
 | Who hears the calls | a server group, none chosen; or chosen channels. Cleared on connecting to another server, where the same ids name other groups or channels |
 | Call ahead | 30 s; 15, 20, 30, 45 or 60 |
-| Text | the default for the language and the lead, such as "Jungle in thirty seconds"; it follows them until edited |
-| Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen |
-| Sound file | none: the text is spoken |
+| Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen; it speaks every event's words. A language chosen in Settings drops a chosen voice that can't speak it |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
-| Theme | the same as Windows, following it when it switches; or light or dark |
-| Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00. Each event has its spawns, and may have a name and a text of its own; without them it is the jungle and says the text above. Set in the file only |
+| Theme | the same as Windows' app mode (Personalization › Colors), following it when it switches; or light or dark. In the file, `"theme"` is `null`, `"light"` or `"dark"` |
+| Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00, set in Settings › Events or the file. Each event has its spawns, and may have a name, words and a sound file of its own; without a name it is the jungle, named in the app's language |
+| An event's words | its name and the lead, such as "Boss in thirty seconds"; they follow the name, the lead and the language until edited. Empty, its calls play the gong |
+| An event's sound file | none: its words are spoken. One that can't play gives way to the words |
 
 ## TeamSpeak specifics
 
@@ -245,7 +295,7 @@ How a privilege key ends, the same on TS3 3.13.7 and TS6 6.0 beta:
 
 | The server | sends | and Settings says |
 | --- | --- | --- |
-| takes the key | the bot's new group, then `ok` | the group the bot is in now |
+| takes the key | the bot's new group, then `ok` | the group the bot is in now; for a channel group's key, that the server gave the key's group |
 | doesn't know it: made up, mistyped, or used already, since it deletes a used key | `3840 invalid privilege key` | it doesn't know the key |
 | won't let the bot's groups use keys | `2568 insufficient client permissions`, whatever the key | it doesn't let the bot use keys |
 | refuses for any other reason | its error | the server's words |

@@ -27,7 +27,8 @@ public abstract record SettingsLoad
     /// <summary>Windows wouldn't let Gengfu read the file, perhaps for another program holding it.</summary>
     public sealed record Unreadable : SettingsLoad;
 
-    public sealed record Loaded(AppSettings Settings) : SettingsLoad;
+    /// <param name="Old">Written before 0.3, with a call's text or sound file set once for every event.</param>
+    public sealed record Loaded(AppSettings Settings, bool Old = false) : SettingsLoad;
 
     public sealed record Broken(SettingsError Error) : SettingsLoad;
 }
@@ -139,7 +140,7 @@ public sealed class SettingsStore(string filePath)
         }
         return settings is null ? new SettingsLoad.Broken(new SettingsError(1, null))
             : NullElement(text) is { } error ? new SettingsLoad.Broken(error)
-            : new SettingsLoad.Loaded(settings);
+            : new SettingsLoad.Loaded(settings, settings.FromOldFile);
     }
 
     // The serializer lets a null element into a list whatever the list's type says, so the events
@@ -202,8 +203,8 @@ internal sealed class SpawnsConverter : JsonConverter<IReadOnlyList<TimeSpan>>
     public override void Write(Utf8JsonWriter writer, IReadOnlyList<TimeSpan> value, JsonSerializerOptions options) =>
         writer.WriteRawValue("[" + string.Join(", ", value.Select(spawn => "\"" + MatchClock.Format(spawn) + "\"")) + "]");
 
-    // "5:00" and "05:00" alike; the game's timer shows nothing above 35:00.
-    private static TimeSpan? Parse(string text) =>
+    /// <summary>"5:00" and "05:00" alike; the game's timer shows nothing above 35:00.</summary>
+    internal static TimeSpan? Parse(string text) =>
         text.Split(':') is [{ Length: 1 or 2 } minutesText, { Length: 2 } secondsText]
         && int.TryParse(minutesText, NumberStyles.None, CultureInfo.InvariantCulture, out var minutes)
         && int.TryParse(secondsText, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
@@ -258,8 +259,8 @@ internal sealed class ListenersConverter : JsonConverter<ListenerKind>
         writer.WriteStringValue(value == ListenerKind.Group ? "group" : "channels");
 }
 
-/// <summary>An event's name or text with something in it: a blank one would show or say nothing.</summary>
-internal sealed class WordsConverter : JsonConverter<string>
+/// <summary>An event's name or sound file with something in it: a blank one would show or play nothing.</summary>
+internal sealed class NotBlankConverter : JsonConverter<string>
 {
     public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         reader.TokenType == JsonTokenType.String && reader.GetString() is { } words && !string.IsNullOrWhiteSpace(words)

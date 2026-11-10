@@ -26,7 +26,7 @@ public sealed class SecretsTests : IDisposable
     {
         Assert.True(_secrets.Save("gvgnight", "123Videntity"));
 
-        Assert.Equal<(string, string?)?>(("gvgnight", "123Videntity"), _secrets.Load());
+        Assert.Equal<(string, string?, bool)?>(("gvgnight", "123Videntity", false), _secrets.Load());
         var file = File.ReadAllBytes(SecretsFile);
         Assert.Equal(-1, file.AsSpan().IndexOf("gvgnight"u8));
         Assert.Throws<CryptographicException>(() => ProtectedData.Unprotect(file, null, DataProtectionScope.CurrentUser));
@@ -36,15 +36,15 @@ public sealed class SecretsTests : IDisposable
     [Fact]
     public void Without_a_file_this_user_can_decrypt_there_are_no_secrets()
     {
-        Assert.Equal<(string, string?)?>(("", null), _secrets.Load());
+        Assert.Equal<(string, string?, bool)?>(("", null, false), _secrets.Load());
 
-        // As a file from another PC or another Windows user reads here.
+        // As a file from another PC or another Windows user reads here: there was one, lost to this user.
         Directory.CreateDirectory(_folder);
         File.WriteAllBytes(SecretsFile, [1, 2, 3]);
-        Assert.Equal<(string, string?)?>(("", null), _secrets.Load());
+        Assert.Equal<(string, string?, bool)?>(("", null, true), _secrets.Load());
 
         Assert.True(_secrets.Save("", "123Vnew"));
-        Assert.Equal<(string, string?)?>(("", "123Vnew"), _secrets.Load());
+        Assert.Equal<(string, string?, bool)?>(("", "123Vnew", false), _secrets.Load());
     }
 
     [Fact]
@@ -56,6 +56,6 @@ public sealed class SecretsTests : IDisposable
         {
             Assert.Null(_secrets.Load());
         }
-        Assert.Equal<(string, string?)?>(("gvgnight", "123Videntity"), _secrets.Load());
+        Assert.Equal<(string, string?, bool)?>(("gvgnight", "123Videntity", false), _secrets.Load());
     }
 }

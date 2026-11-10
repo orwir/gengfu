@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO;
 using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
@@ -6,13 +7,26 @@ using Gengfu.TeamSpeak;
 
 namespace Gengfu.App;
 
-/// <summary>Strings put together from parts: counts, times, voices, events, and the call's default text.</summary>
+/// <summary>Strings put together from parts: counts, times, voices, events, and an event's default words.</summary>
 internal static class Copy
 {
-    /// <summary>The call's default text for a lead Settings offers, such as "Jungle in thirty seconds".</summary>
-    public static string CallText(TimeSpan lead, CultureInfo language) =>
-        Strings.ResourceManager.GetString(string.Create(CultureInfo.InvariantCulture, $"CallText{lead.TotalSeconds:0}"), language)
-        ?? throw new ArgumentOutOfRangeException(nameof(lead), lead, "Settings offers no such lead.");
+    /// <summary>An event's default words for a lead Settings offers: its name and the lead, such as "Boss in thirty seconds".</summary>
+    public static string DefaultWords(MatchEvent matchEvent, TimeSpan lead, CultureInfo language) => DefaultWords([matchEvent], lead, language);
+
+    /// <summary>
+    /// The default words of events called together, at one spawn time: their names, each once, then
+    /// the lead, such as "Jungle and Boss in thirty seconds" or "Jungle, Boss and Supply in thirty seconds".
+    /// </summary>
+    public static string DefaultWords(IReadOnlyList<MatchEvent> events, TimeSpan lead, CultureInfo language)
+    {
+        var format = Strings.ResourceManager.GetString(string.Create(CultureInfo.InvariantCulture, $"CallText{lead.TotalSeconds:0}"), language)
+            ?? throw new ArgumentOutOfRangeException(nameof(lead), lead, "Settings offers no such lead.");
+        var names = events.Select(matchEvent => EventName(matchEvent, language)).Distinct().ToList();
+        var named = names.Count < 2
+            ? string.Concat(names)
+            : string.Format(language, Strings.ResourceManager.GetString(nameof(Strings.NamesAnd), language)!, string.Join(", ", names[..^1]), names[^1]);
+        return string.Format(language, format, named);
+    }
 
     /// <summary>"3 channels", "21 канал": the count with the noun in the language's plural form.</summary>
     public static string ChannelCount(int count, CultureInfo language)
@@ -21,8 +35,37 @@ internal static class Copy
         return string.Format(language, Strings.ResourceManager.GetString("ChannelCount" + form, language)!, count);
     }
 
-    /// <summary>An event as the calls list names it: its own name, or the jungle's in the app's language.</summary>
-    public static string EventName(MatchEvent matchEvent) => matchEvent.Name ?? Strings.Jungle;
+    /// <summary>An event as the calls list names it: its own name, or the jungle's in the language, the app's by default.</summary>
+    public static string EventName(MatchEvent matchEvent, CultureInfo? language = null) =>
+        matchEvent.Name ?? Strings.ResourceManager.GetString(nameof(Strings.Jungle), language)!;
+
+    /// <summary>
+    /// What a closed event says under its name: what is wrong with it, if anything, else its spawn
+    /// times and its own sound file.
+    /// </summary>
+    /// <param name="problem">Why its call isn't what it was given, from its last render.</param>
+    /// <param name="unreadable">Whether spawn times typed for it couldn't be read.</param>
+    public static (string Text, bool Wrong) EventSummary(MatchEvent matchEvent, CallProblem problem, bool unreadable) =>
+        unreadable ? (Strings.SpawnsUnreadableShort, true)
+        : problem switch
+        {
+            CallProblem.NoText => (Strings.NoTextShort, true),
+            CallProblem.SpeechFailed => (Strings.SpeechFailedShort, true),
+            CallProblem.FileUnreadable => (Format(Strings.FileUnreadableShort, FileName(matchEvent) ?? ""), true),
+            CallProblem.FileMissing => (Format(Strings.FileMissingShort, FileName(matchEvent) ?? ""), true),
+            _ when matchEvent.Spawns.Count == 0 => (Strings.NoSpawnTimes, false),
+            _ => (string.Join(" · ", matchEvent.Spawns.Select(MatchClock.Format).Append(FileName(matchEvent)).OfType<string>()), false),
+        };
+
+    /// <summary>What the bar under an event's sound file says when it can't play: why, and what its calls play instead.</summary>
+    /// <param name="says">The words its calls say instead; null when they play the gong.</param>
+    public static string FileHint(CallProblem problem, string file, string? says) => (problem, says) switch
+    {
+        (CallProblem.FileMissing, null) => Format(Strings.FileMissing, file),
+        (CallProblem.FileMissing, _) => Format(Strings.FileMissingSays, file, says),
+        (_, null) => Strings.FileUnreadable,
+        _ => Format(Strings.FileUnreadableSays, says),
+    };
 
     /// <summary>What the bar at the top of Settings says about the settings file.</summary>
     public static string FileError(SettingsError error) => error switch
@@ -80,6 +123,8 @@ internal static class Copy
     }
 
     public static string Format(string format, params object[] args) => string.Format(CultureInfo.CurrentCulture, format, args);
+
+    private static string? FileName(MatchEvent matchEvent) => matchEvent.SoundFile is { } file ? Path.GetFileName(file) : null;
 
     // 1, 21, 31 канал; 2–4, 22–24 канала; 5–20, 25–30 каналов.
     private static string RussianForm(int count) =>

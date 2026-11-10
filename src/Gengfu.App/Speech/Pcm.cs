@@ -5,8 +5,9 @@ using Gengfu.TeamSpeak;
 namespace Gengfu.App.Speech;
 
 /// <summary>
-/// Turns decoded audio into a call: 48 kHz stereo, silence trimmed, at most <see cref="MaxLength"/>,
-/// at one shared loudness, in whole frames of <see cref="VoiceSender.FrameLength"/>.
+/// Turns decoded audio into one sound of a call: 48 kHz stereo, silence trimmed, at most
+/// <see cref="MaxLength"/>, at one shared loudness, in whole frames of <see cref="VoiceSender.FrameLength"/>.
+/// A call of several events plays several such sounds in turn.
 /// </summary>
 internal static class Pcm
 {
@@ -24,7 +25,7 @@ internal static class Pcm
     private const double TrimLevel = 0.003;
     private const double SilenceFloor = 0.001;
 
-    /// <summary>The longest call: a longer text or file is cut here, fading out, so a wrong file can't hold the whisper for minutes.</summary>
+    /// <summary>The longest sound: a longer text or file is cut here, fading out, so a wrong file can't hold the whisper for minutes.</summary>
     public static TimeSpan MaxLength { get; } = TimeSpan.FromSeconds(10);
 
     // Listeners hear a moment of silence before the sound, so its start is never clipped, and after

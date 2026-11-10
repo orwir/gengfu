@@ -66,6 +66,9 @@ public sealed class CallSchedule
 
     public TimeSpan Lead { get; private set; }
 
+    /// <summary>The clock the calls are timed on.</summary>
+    public MatchClock Clock => _clock;
+
     public IReadOnlyList<Call> Calls { get; private set; }
 
     /// <summary>
@@ -118,21 +121,33 @@ public sealed class CallSchedule
     }
 
     /// <summary>
-    /// Takes new events, as when the settings file changes mid-match. A call the new events still
-    /// make, by an event of the same name at the same spawn, keeps how it stood: made stays made.
+    /// Takes new events, mid-match too. A call the new events still make keeps how it stood: made
+    /// stays made. An edit in Settings says which event each new one was, so a renamed event keeps
+    /// its calls; without that, as when the settings file changes, a call is the one of an event of
+    /// the same name at the same spawn.
     /// </summary>
-    public void ChangeEvents(IReadOnlyList<MatchEvent> events)
+    /// <param name="was">For each of the new events, the event it was before the edit; null for one added.</param>
+    public void ChangeEvents(IReadOnlyList<MatchEvent> events, IReadOnlyList<MatchEvent?>? was = null)
     {
         var (calls, fired, notSent) = (Calls, _fired, _notSent);
         Calls = CallsOf(events, Lead);
         _fired = new Fired?[Calls.Count];
         _notSent = new bool[Calls.Count];
+        // The events are records, alike whenever their fields are, so each is told apart by reference.
+        var before = new Dictionary<MatchEvent, MatchEvent?>(ReferenceEqualityComparer.Instance);
+        for (var i = 0; was is not null && i < events.Count; i++)
+        {
+            before.TryAdd(events[i], was[i]);
+        }
         foreach (var call in Calls)
         {
-            if (calls.FirstOrDefault(was => SameCall(was, call)) is { } was)
+            var old = was is null
+                ? calls.FirstOrDefault(prior => SameCall(prior, call))
+                : calls.FirstOrDefault(prior => ReferenceEquals(prior.Event, before[call.Event]) && prior.Spawn == call.Spawn);
+            if (old is not null)
             {
-                _fired[call.Index] = fired[was.Index];
-                _notSent[call.Index] = notSent[was.Index];
+                _fired[call.Index] = fired[old.Index];
+                _notSent[call.Index] = notSent[old.Index];
             }
         }
     }

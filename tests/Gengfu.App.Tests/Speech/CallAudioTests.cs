@@ -145,10 +145,49 @@ public sealed class CallAudioTests : IDisposable
     [Fact]
     public async Task A_file_Windows_cannot_read_plays_the_gong_with_its_error()
     {
-        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "missing.mp3")), English);
+        _readFile = _ => throw new InvalidDataException("Not a sound.");
+
+        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Touch("notes.txt")), English);
 
         Assert.Equal(CallProblem.FileUnreadable, clip.Problem);
-        Assert.Equal("No such file.", clip.Detail);
+        Assert.Equal("Not a sound.", clip.Detail);
+        Assert.Same(await GongFrames(), clip.Frames);
+    }
+
+    [Fact]
+    public async Task A_file_that_isn_t_on_this_PC_plays_the_gong_and_says_so_without_asking_Windows()
+    {
+        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "missing.mp3")), English);
+
+        Assert.Equal(CallProblem.FileMissing, clip.Problem);
+        Assert.Empty(_read);
+        Assert.Same(await GongFrames(), clip.Frames);
+    }
+
+    [Fact]
+    public async Task A_file_that_can_t_play_gives_way_to_what_plays_otherwise_and_says_why()
+    {
+        var words = new CallSound.Speech("Boss in thirty seconds");
+        var spoken = await _audio.RenderAsync(words, English);
+
+        var missing = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "boss.mp3"), words), English);
+        _readFile = _ => throw new InvalidDataException("Not a sound.");
+        var unreadable = await _audio.RenderAsync(new CallSound.AudioFile(Touch("notes.txt"), words), English);
+
+        Assert.Equal((CallProblem.FileMissing, CallProblem.None), (missing.Problem, missing.Instead));
+        Assert.Same(spoken.Frames, missing.Frames);
+        Assert.Equal((CallProblem.FileUnreadable, "Not a sound.", CallProblem.None), (unreadable.Problem, unreadable.Detail, unreadable.Instead));
+        Assert.Same(spoken.Frames, unreadable.Frames);
+    }
+
+    [Fact]
+    public async Task When_what_plays_otherwise_can_t_either_the_gong_plays_and_the_clip_says_why()
+    {
+        _voices.Clear();
+
+        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "boss.mp3"), new CallSound.Speech("Boss in thirty seconds")), English);
+
+        Assert.Equal((CallProblem.FileMissing, CallProblem.NoVoice), (clip.Problem, clip.Instead));
         Assert.Same(await GongFrames(), clip.Frames);
     }
 
@@ -167,14 +206,14 @@ public sealed class CallAudioTests : IDisposable
     }
 
     [Fact]
-    public async Task A_missing_file_says_why_in_Windows_own_words()
+    public async Task A_file_Windows_cannot_read_says_why_in_Windows_own_words()
     {
-        var clip = await new CallAudio().RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "missing.mp3")), English);
+        var clip = await new CallAudio().RenderAsync(new CallSound.AudioFile(Touch("notes.mp3")), English);
 
         Assert.Equal(CallProblem.FileUnreadable, clip.Problem);
         if (Sound.MediaFoundationInstalled)
         {
-            Assert.Contains("0x80070002", clip.Detail);
+            Assert.Matches("0x[0-9A-F]{8}", clip.Detail);
         }
         else
         {
@@ -255,6 +294,49 @@ public sealed class CallAudioTests : IDisposable
 
         Assert.Equal(1, most);
         Assert.Equal(3, _spoken.Count);
+    }
+
+    [Fact]
+    public async Task The_parts_of_one_call_play_in_turn_a_sentence_s_pause_apart_with_nothing_heard_between()
+    {
+        _speak = (text, _) => Sound.Wav(Sound.Tone(text == "one" ? 300 : 600, 0.5, 16000), 16000);
+        var one = (await _audio.RenderAsync(new CallSound.Speech("one"), English)).Frames;
+        var two = (await _audio.RenderAsync(new CallSound.Speech("two"), English)).Frames;
+
+        var call = CallAudio.Join([one, two]);
+
+        Assert.Same(one, CallAudio.Join([one]));
+        var pause = call.Count - one.Count - two.Count;
+        Assert.Equal(TimeSpan.FromSeconds(0.7), pause * TeamSpeak.VoiceSender.FrameLength);
+        var heard = Sound.Left(Sound.Decode(call));
+        var frame = heard.Length / call.Count;
+        Assert.True(Sound.Strength(heard[..(one.Count * frame)], 300, 48000) > 0.1);
+        Assert.True(Sound.Strength(heard[((one.Count + pause) * frame)..], 600, 48000) > 0.1);
+        // Where one's frames meet the other's, the first part's ending only fades, as the decoder
+        // lets it out a moment late; then silence through the pause and the next part's lead-in.
+        var end = one.Count * frame;
+        Assert.True(Sound.Peak(heard[end..(end + frame)]) <= Sound.Peak(heard[(end - (frame / 4))..end]));
+        Assert.InRange(Sound.Peak(heard[(end + frame)..((one.Count + pause + 4) * frame)]), 0, 0.001);
+    }
+
+    [Fact]
+    public async Task Parts_of_one_call_that_sound_the_same_play_once()
+    {
+        var path = Touch("boss.mp3");
+        var words = (await _audio.RenderAsync(new CallSound.Speech("Jungle in thirty seconds"), English)).Frames;
+        var file = (await _audio.RenderAsync(new CallSound.AudioFile(path, new CallSound.Speech("Boss in thirty seconds")), English)).Frames;
+        // The same file for another event at the spawn time, rendered afresh: other frames, the same sound.
+        File.SetLastWriteTimeUtc(path, File.GetLastWriteTimeUtc(path).AddMinutes(1));
+        var again = (await _audio.RenderAsync(new CallSound.AudioFile(path, new CallSound.Speech("Supply in thirty seconds")), English)).Frames;
+        Assert.NotSame(file, again);
+
+        Assert.Equal(CallAudio.Join([words, file]), CallAudio.Join([words, file, again]));
+
+        // With no voice, the gong plays in place of each part's words: once.
+        _voices.Clear();
+        var gongs = await Task.WhenAll(new[] { "Jungle and Boss in thirty seconds", "Boss soon" }.Select(text => _audio.RenderAsync(new CallSound.Speech(text), English)));
+        Assert.All(gongs, clip => Assert.Equal(CallProblem.NoVoice, clip.Problem));
+        Assert.Equal(await GongFrames(), CallAudio.Join([.. gongs.Select(clip => clip.Frames)]));
     }
 
     [Fact]
