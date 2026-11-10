@@ -8,13 +8,16 @@
              tab stop, and Space or Enter opens and closes it. -->
         <Style x:Key="EventExpander" TargetType="Expander">
             <Setter Property="Focusable" Value="False" />
+            <!-- The header's words take their colour from here, not from the header: the Fluent theme's own is dimmer. -->
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Expander">
                         <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                 BorderThickness="1" CornerRadius="8">
                             <DockPanel>
-                                <ToggleButton x:Name="Header" DockPanel.Dock="Top" Content="{TemplateBinding Header}"
+                                <!-- Across the card, as the Fluent theme keeps a button to its content's width. -->
+                                <ToggleButton x:Name="Header" DockPanel.Dock="Top" HorizontalAlignment="Stretch" Content="{TemplateBinding Header}"
                                               IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                               AutomationProperties.Name="{TemplateBinding AutomationProperties.Name}"
                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">

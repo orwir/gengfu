@@ -58,9 +58,17 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   is connected, and the server has to allow the bot to whisper. Connecting to another server
   clears the choice.
 - **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
-  default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
-  use a sound file instead. **Test call** whispers the call once, now. If the server says nobody
-  heard it, a note under Test call says why that may be.
+  default. *Voice* is any Windows voice, or the gong, for every event. **Test call** whispers the
+  first event's call once, now. If the server says nobody heard it, a note under Test call says
+  why that may be.
+- **Events.** The events whose spawns get a call: out of the box, the GvG jungle alone. Open one to
+  change its name, its spawn times and what its calls say: its name and the lead by default, such
+  as "Boss in thirty seconds", or words of your own, or a sound file of its own. Type spawn times
+  as the game shows them or in whole minutes, such as `25:00, 15`; Enter or leaving the field
+  applies them. Each event has its own **Test call**. **Add event** adds one, the bin beside a name
+  removes one, and **Back to default** puts the jungle alone back; until you leave Settings, Undo
+  puts back what they took. Every edit applies at once, mid-match too, and a call already made
+  stays made.
 - **Language.** English, Russian, or the same as Windows.
 - **Theme.** Light, dark, or the same as Windows.
 
@@ -102,20 +110,21 @@ The server password and the bot's identity are not in that file. They sit beside
 
 ### Events and presets
 
-The file's `events` say which spawns get a call. Out of the box there is one, the GvG jungle at
-25:00, 20:00, 15:00, 10:00 and 05:00. Each event lists its `spawns` as the game shows them, and may
-have a `name` for the calls list and a `text`, spoken in the chosen voice in place of the call's
-text from Settings. An event without a name is the jungle.
+The file's `events` are the ones Settings › Events shows. Each lists its `spawns` as the game shows
+them, and may have a `name` for the calls list, a `text` its calls say in place of its name and
+the lead, and a `soundFile` they play in place of the words. An event without a name is the jungle.
 
 ```json
 "events": [
-  { "name": null, "spawns": ["25:00", "20:00", "15:00", "10:00", "05:00"], "text": null },
-  { "name": "Boss", "spawns": ["28:00", "18:00"], "text": "Boss in thirty seconds" }
+  { "name": null, "spawns": ["25:00", "20:00", "15:00", "10:00", "05:00"], "text": null, "soundFile": null },
+  { "name": "Boss", "spawns": ["28:00", "18:00"], "text": "Boss soon", "soundFile": null }
 ]
 ```
 
 To share a preset, send the `events` part; the file holds no password or identity anyway. Whoever
-gets it pastes it over the `events` in their own file through **Open settings file**.
+gets it pastes it over the `events` in their own file through **Open settings file**. A sound file
+is a path on the PC that chose it: where it isn't, the event's calls say its words instead, and
+Settings says so.
 
 ## The calls
 
@@ -123,7 +132,7 @@ The calls list has every call of the match: the next one with the time left unti
 a call went out, and ✕ *Not sent* when nobody heard it: Gengfu was off the server, nobody was
 chosen to hear the calls, the whisper failed, the server said it reached nobody, or the clock was
 moved past the spawn first. When there are more calls than fit, the list scrolls to keep the next
-one in view.
+one in view. With no events, or none with spawn times, the list says so.
 
 When the server says a call or a Test call reached nobody, the line at the top of the main window
 says so until a call gets through, Gengfu connects anew, or you choose other listeners. The server

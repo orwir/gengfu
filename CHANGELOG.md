@@ -5,6 +5,25 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+### Added
+
+- Settings › Events adds, changes and removes the events whose spawns get calls, mid-match too (#38)
+- Spawn times can be typed in whole minutes, such as 25, and in any order (#38)
+- Each event has a Test call of its own in Settings (#38)
+- An event can play a sound file of its own in place of its words (#38)
+- After an event is removed or the events go back to default, Undo puts them back until Settings closes (#38)
+- With no events, or none with spawn times, the main window's calls list says so (#38)
+
+### Changed
+
+- Test call plays the first event's call (#38)
+- The sound file is set per event in Settings › Events, no longer in Calls (#38)
+- An event's sound file that isn't on this PC, or that Windows can't play, gives way to its words (#38)
+
+### Fixed
+
+- A named event without words of its own says its name and the lead, such as "Boss in thirty seconds", not the jungle's (#38)
+
 ## [0.2.0] - 2026-11-10
 
 ### Added
