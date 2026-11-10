@@ -74,3 +74,4 @@ The initial set, taken from the approved design; refined at the first UX review.
 | 5. Update | A new version installs in the background; once the clock is stopped, a notice says it applies on next start | Settings › General shows the new version after a restart |
 | 6. Share a preset | An officer sends the settings file's events; a guildmate opens Settings › Open settings file, pastes them in and saves | The guildmate's calls list shows the shared events |
 | 7. Strict server | The server limits whispers, so its admin sends a privilege key; open Settings › Use a privilege key, paste it, press Use, then Test call | The squad hears the test call |
+| 8. The guild's calls | Open Settings › Events, press Add event, type its name and spawn times, then press its Test call | The squad hears the event's own call, and the calls list has its spawns |

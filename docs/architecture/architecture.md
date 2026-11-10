@@ -25,10 +25,11 @@ server, and another transport would plug in without touching it.
 2. The call schedule makes a call for every spawn of every event, and marks it due once the clock
    reaches its game time (spawn plus lead time) while the spawn is still ahead; the App asks it
    for due calls on every tick.
-3. The App renders the calls' sound when Gengfu starts and whenever it changes, and keeps it: the
-   sound Settings sets, and each event's own text. Text goes through a Windows voice, or an audio
-   file is read, to 48 kHz stereo, then to 20 ms Opus frames ([Call audio](#call-audio)). Each call
-   asks for its sound again, and gets the kept one unless a voice was added to Windows meanwhile.
+3. The App renders each event's call when Gengfu starts and whenever it changes, and keeps it: the
+   event's words, by default its name and the lead, in the voice Settings sets, or a sound file of
+   its own. Words go through a Windows voice, or an audio file is read, to 48 kHz stereo, then to
+   20 ms Opus frames ([Call audio](#call-audio)). Each call asks for its sound again, and gets the
+   kept one unless a voice was added to Windows meanwhile.
 4. TeamSpeak sends the frames in real time as a whisper to the chosen listeners — a server group
    or chosen channels — then an empty frame to end the talk. A call that can't go out, with Gengfu
    off the server or nobody chosen, is marked not sent at once, so the list never shows it calling.
@@ -49,6 +50,13 @@ server, and another transport would plug in without touching it.
   user's Gengfu, close it or change its install.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
+  Settings edits the events through it, mid-match too. An edit tells the schedule which event each
+  new one was, so an event renamed or given other times keeps its calls, made stays made; an edit
+  of the file can't, so there a call is the one of an event of the same name at the same spawn.
+  Back to default puts the jungle alone back at its spawn times, keeping its words and sound file,
+  so the text and sound file an old file moved into it don't count as a change. It keeps the
+  events a Remove or Back to default took, for Undo, until the events change again or Settings
+  closes.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
   line's words. When the server says a call reached nobody, `Session` keeps that for the status line
   and Settings until a whisper gets through, the connection is new, or other listeners are chosen.
@@ -86,9 +94,11 @@ back above its game time re-arms it; a changed lead moves every call but never m
 
 ## Call audio
 
-A call plays text in a Windows voice, an audio file, or the gong: a small gong struck twice, made in
-code. It is never silent: text that can't be spoken and a file that can't be read play the gong,
-and the clip says why, for Settings to show.
+A call plays words in a Windows voice, an audio file, or the gong: a small gong struck twice, made
+in code. It is never silent: a file that can't play, missing on this PC or not something Windows
+plays, gives way to its event's words, and words that can't be spoken play the gong; the clip says
+why, for Settings to show. A preset made on another PC names files that aren't on this one, so its
+events still say what they are.
 
 - **Voice.** The chosen voice while it is installed, else the first in the app's language with
   Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
@@ -153,7 +163,11 @@ stop for half a second. It writes only after a change in the app, so the comment
 file last until then, and never over a file it couldn't read, where the edit would be lost. It
 watches the file: an edit saved there applies at once, events, language and theme too, and calls
 already made stay made. A file with an error changes nothing, and Settings shows where the error is
-until it is fixed.
+until it is fixed. A file written before 0.3 set a call's text and sound file once for every event;
+it opens with them moved into its events, the text into the jungle's and the file into every event
+without words of its own, and its next save writes them there. Open settings file writes it so
+before it opens it: read again with a preset's events pasted in, the old text and file would go to
+them too.
 
 The server password and the bot's identity stay out of the file, so it can be shared; a privilege
 key is kept nowhere, since a used one is worthless. `Secrets`
@@ -167,12 +181,12 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Server address, bot nickname, server password | none, "Gengfu", none |
 | Who hears the calls | a server group, none chosen; or chosen channels. Cleared on connecting to another server, where the same ids name other groups or channels |
 | Call ahead | 30 s; 15, 20, 30, 45 or 60 |
-| Text | the default for the language and the lead, such as "Jungle in thirty seconds"; it follows them until edited |
-| Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen |
-| Sound file | none: the text is spoken |
+| Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen; it speaks every event's words. A language chosen in Settings drops a chosen voice that can't speak it |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
 | Theme | the same as Windows, following it when it switches; or light or dark |
-| Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00. Each event has its spawns, and may have a name and a text of its own; without them it is the jungle and says the text above. Set in the file only |
+| Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00, set in Settings › Events or the file. Each event has its spawns, and may have a name, words and a sound file of its own; without a name it is the jungle, named in the app's language |
+| An event's words | its name and the lead, such as "Boss in thirty seconds"; they follow the name, the lead and the language until edited. Empty, its calls play the gong |
+| An event's sound file | none: its words are spoken. One that can't play gives way to the words |
 
 ## TeamSpeak specifics
 

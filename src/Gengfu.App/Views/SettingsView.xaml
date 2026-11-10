@@ -3,18 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:app="clr-namespace:Gengfu.App">
     <UserControl.Resources>
-        <Style x:Key="Label" TargetType="TextBlock">
-            <Setter Property="LineHeight" Value="20" />
-            <Setter Property="Margin" Value="0,0,0,4" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
-        </Style>
-        <!-- Shown in an empty field or an empty drop-down, which WPF's own controls can't do. -->
-        <Style x:Key="Placeholder" TargetType="TextBlock">
-            <Setter Property="IsHitTestVisible" Value="False" />
-            <Setter Property="Margin" Value="11,0,0,0" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{DynamicResource TextControlPlaceholderForeground}" />
-        </Style>
         <Style x:Key="Chevron" TargetType="Path">
             <Setter Property="Width" Value="12" />
             <Setter Property="Height" Value="12" />
@@ -172,51 +160,32 @@
                             <ComboBox x:Name="LeadBox" DockPanel.Dock="Right" Width="168" AutomationProperties.Name="{x:Static app:Strings.CallAhead}" SelectionChanged="OnLeadChosen" />
                             <TextBlock Text="{x:Static app:Strings.CallAhead}" VerticalAlignment="Center" />
                         </DockPanel>
-                        <StackPanel x:Name="SpeechPanel">
-                            <TextBlock Style="{StaticResource Label}" Margin="0,12,0,4" Text="{x:Static app:Strings.Say}" />
-                            <TextBox x:Name="SayBox" AutomationProperties.Name="{x:Static app:Strings.Say}" TextChanged="OnSayChanged" />
-                            <TextBlock Style="{StaticResource Label}" Margin="0,12,0,4" Text="{x:Static app:Strings.Voice}" />
-                            <ComboBox x:Name="VoiceBox" HorizontalAlignment="Stretch" AutomationProperties.Name="{x:Static app:Strings.Voice}"
-                                      DropDownOpened="OnVoicesOpened" SelectionChanged="OnVoiceChosen" />
-                        </StackPanel>
-                        <StackPanel x:Name="FilePanel">
-                            <TextBlock Style="{StaticResource Label}" Margin="0,12,0,4" Text="{x:Static app:Strings.SoundFile}" />
-                            <DockPanel>
-                                <Button x:Name="ChangeFile" DockPanel.Dock="Right" Height="32" Padding="12,0" Margin="8,0,0,0" Content="{x:Static app:Strings.Change}" Click="OnChooseFile" />
-                                <Border x:Name="FileBox" Height="32" Padding="10,0" CornerRadius="4" BorderThickness="1"
-                                        Background="{DynamicResource ControlFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
-                                    <DockPanel VerticalAlignment="Center">
-                                        <Path DockPanel.Dock="Left" Style="{StaticResource Icon}"
-                                              Data="M6,12 L6,3.5 L13,2 L13,10.5 M2.5,12 A1.75,1.75 0 1 0 6,12 A1.75,1.75 0 1 0 2.5,12 M9.5,10.5 A1.75,1.75 0 1 0 13,10.5 A1.75,1.75 0 1 0 9.5,10.5" />
-                                        <TextBlock x:Name="FileName" Style="{StaticResource IconLabel}" TextTrimming="CharacterEllipsis" />
-                                    </DockPanel>
-                                </Border>
-                            </DockPanel>
-                        </StackPanel>
-                        <Border x:Name="SoundHint" Margin="0,12,0,0">
+                        <TextBlock Style="{StaticResource Label}" Margin="0,12,0,4" Text="{x:Static app:Strings.Voice}" />
+                        <ComboBox x:Name="VoiceBox" HorizontalAlignment="Stretch" AutomationProperties.Name="{x:Static app:Strings.Voice}"
+                                  DropDownOpened="OnVoicesOpened" SelectionChanged="OnVoiceChosen" />
+                        <!-- With no voice in the app's language, the events' words play the gong; this says how to add one. -->
+                        <Border x:Name="SoundHint" Style="{StaticResource InfoBar}" Margin="0,12,0,0" Visibility="Collapsed">
                             <DockPanel>
                                 <Canvas DockPanel.Dock="Left" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Top">
-                                    <Ellipse x:Name="HintDisc" Width="14" Height="14" Canvas.Left="1" Canvas.Top="1" />
-                                    <Path x:Name="HintStem" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                    <Ellipse x:Name="HintDot" Width="1.9" Height="1.9" Canvas.Left="7.05" />
+                                    <Ellipse Width="14" Height="14" Canvas.Left="1" Canvas.Top="1" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                                    <Path Data="M8,7.25 L8,11.25" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          Stroke="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                    <Ellipse Width="1.9" Height="1.9" Canvas.Left="7.05" Canvas.Top="3.95" Fill="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
                                 </Canvas>
                                 <StackPanel>
-                                    <TextBlock x:Name="HintText" Style="{StaticResource BarText}" />
+                                    <TextBlock x:Name="HintText" Style="{StaticResource BarText}" Text="{x:Static app:Strings.NoVoice}" />
                                     <Button x:Name="HintLink" Style="{StaticResource LinkButton}" Height="20" Padding="0" Margin="0,4,0,0" FontSize="12"
                                             HorizontalAlignment="Left" Content="{x:Static app:Strings.OpenLanguageRegion}" Click="OnOpenLanguageRegion" />
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-                        <DockPanel Margin="0,12,0,0">
-                            <Button x:Name="TestButton" DockPanel.Dock="Left" Style="{StaticResource ContentButton}" Padding="12,0" Click="OnTest"
-                                    AutomationProperties.Name="{Binding Text, ElementName=TestText}">
-                                <StackPanel Orientation="Horizontal">
-                                    <Path Style="{StaticResource Icon}" Data="M2.5,6 L5,6 L8.5,3 L8.5,13 L5,10 L2.5,10 Z M11,5.5 A3.5,3.5 0 0 1 11,10.5" />
-                                    <TextBlock x:Name="TestText" Style="{StaticResource IconLabel}" />
-                                </StackPanel>
-                            </Button>
-                            <Button x:Name="SoundSwitch" Style="{StaticResource LinkButton}" Height="32" HorizontalAlignment="Right" Click="OnSoundSwitch" />
-                        </DockPanel>
+                        <!-- It plays the first event's call; each event has a Test call of its own too. -->
+                        <Button x:Name="TestButton" Style="{StaticResource ContentButton}" HorizontalAlignment="Left" Padding="12,0" Margin="0,12,0,0" Click="OnTest">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Style="{StaticResource Icon}" Data="M2.5,6 L5,6 L8.5,3 L8.5,13 L5,10 L2.5,10 Z M11,5.5 A3.5,3.5 0 0 1 11,10.5" />
+                                <TextBlock x:Name="TestText" Style="{StaticResource IconLabel}" />
+                            </StackPanel>
+                        </Button>
                         <!-- Where Settings' own Test call is pressed: the main window's status line is out of sight here. -->
                         <Border x:Name="NobodyHeardBar" Style="{StaticResource CautionBar}" Margin="0,12,0,0" Visibility="Collapsed">
                             <DockPanel>
@@ -231,6 +200,41 @@
                         </Border>
                     </StackPanel>
                 </Border>
+
+                <TextBlock Style="{StaticResource Heading}" Margin="0,20,0,8" Text="{x:Static app:Strings.Events}" />
+                <Border x:Name="NoEventsCard" Style="{StaticResource Card}" Margin="0,0,0,8" Visibility="Collapsed">
+                    <TextBlock Text="{x:Static app:Strings.NoEvents}" LineHeight="20" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Border>
+                <StackPanel x:Name="EventRows" />
+                <!-- After Remove or Back to default, until the events change again or Settings closes. -->
+                <Border x:Name="UndoBar" Margin="0,0,0,8" Padding="12,8,8,8" CornerRadius="4" BorderThickness="1" Visibility="Collapsed"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                    <DockPanel>
+                        <Button x:Name="UndoButton" DockPanel.Dock="Right" Height="24" MinHeight="24" Padding="8,0" Margin="10,0,0,0" FontSize="12"
+                                VerticalAlignment="Center" Content="{x:Static app:Strings.Undo}" Click="OnUndo" />
+                        <!-- The "i" beside the first line, as in the main window's update notice. -->
+                        <DockPanel VerticalAlignment="Center">
+                            <Canvas DockPanel.Dock="Left" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Top">
+                                <Ellipse Width="14" Height="14" Canvas.Left="1" Canvas.Top="1" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Path Data="M8,7.25 L8,11.25" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Stroke="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                <Ellipse Width="1.9" Height="1.9" Canvas.Left="7.05" Canvas.Top="3.95" Fill="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Canvas>
+                            <TextBlock x:Name="UndoText" Style="{StaticResource BarText}" />
+                        </DockPanel>
+                    </DockPanel>
+                </Border>
+                <DockPanel>
+                    <Button x:Name="AddEventButton" DockPanel.Dock="Left" Style="{StaticResource ContentButton}" Padding="12,0" Click="OnAddEvent"
+                            AutomationProperties.Name="{x:Static app:Strings.AddEvent}">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource Icon}" Data="M8,3 L8,13 M3,8 L13,8" />
+                            <TextBlock Style="{StaticResource IconLabel}" Text="{x:Static app:Strings.AddEvent}" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BackToDefaultLink" Style="{StaticResource LinkButton}" Height="32" HorizontalAlignment="Right"
+                            Content="{x:Static app:Strings.BackToDefault}" Click="OnBackToDefault" />
+                </DockPanel>
 
                 <TextBlock Style="{StaticResource Heading}" Margin="0,20,0,8" Text="{x:Static app:Strings.General}" />
                 <Border Style="{StaticResource Card}">

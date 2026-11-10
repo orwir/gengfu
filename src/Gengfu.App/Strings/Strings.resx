@@ -362,27 +362,27 @@
   </data>
   <data name="Say" xml:space="preserve">
     <value>Say</value>
-    <comment>Settings › Calls: the call's text.</comment>
+    <comment>Label over an event's words, in Settings › Events.</comment>
   </data>
   <data name="CallText15" xml:space="preserve">
-    <value>Jungle in fifteen seconds</value>
-    <comment>The call's default text with a 15 s lead; spoken by a Windows voice.</comment>
+    <value>{0} in fifteen seconds</value>
+    <comment>An event's default words with a 15 s lead, {0} being its name; spoken by a Windows voice.</comment>
   </data>
   <data name="CallText20" xml:space="preserve">
-    <value>Jungle in twenty seconds</value>
-    <comment>The call's default text with a 20 s lead.</comment>
+    <value>{0} in twenty seconds</value>
+    <comment>An event's default words with a 20 s lead.</comment>
   </data>
   <data name="CallText30" xml:space="preserve">
-    <value>Jungle in thirty seconds</value>
-    <comment>The call's default text with a 30 s lead.</comment>
+    <value>{0} in thirty seconds</value>
+    <comment>An event's default words with a 30 s lead.</comment>
   </data>
   <data name="CallText45" xml:space="preserve">
-    <value>Jungle in forty-five seconds</value>
-    <comment>The call's default text with a 45 s lead.</comment>
+    <value>{0} in forty-five seconds</value>
+    <comment>An event's default words with a 45 s lead.</comment>
   </data>
   <data name="CallText60" xml:space="preserve">
-    <value>Jungle in one minute</value>
-    <comment>The call's default text with a 60 s lead.</comment>
+    <value>{0} in one minute</value>
+    <comment>An event's default words with a 60 s lead.</comment>
   </data>
   <data name="Voice" xml:space="preserve">
     <value>Voice</value>
@@ -401,32 +401,32 @@
     <comment>Link in the no-voice hint; opens Windows Settings.</comment>
   </data>
   <data name="NoText" xml:space="preserve">
-    <value>There is nothing to say, so calls play a gong.</value>
-    <comment>Hint under Voice when Say is empty.</comment>
+    <value>There is nothing to say, so its calls play a gong.</value>
+    <comment>Hint under an event's Say when it is empty.</comment>
   </data>
   <data name="SpeechFailed" xml:space="preserve">
-    <value>Windows couldn’t speak the text, so calls play a gong.</value>
-    <comment>Hint under Voice when the voice failed.</comment>
+    <value>Windows couldn’t speak the text, so its calls play a gong.</value>
+    <comment>Hint under an event's Say when the voice failed.</comment>
   </data>
   <data name="SoundFile" xml:space="preserve">
     <value>Sound file</value>
-    <comment>Settings › Calls, in place of Say and Voice.</comment>
+    <comment>Label over an event's own sound file, in place of its words.</comment>
   </data>
   <data name="Change" xml:space="preserve">
     <value>Change</value>
     <comment>Button beside the sound file: pick another.</comment>
   </data>
   <data name="FileUnreadable" xml:space="preserve">
-    <value>Windows can’t play this file, so calls play a gong. Pick another, such as an MP3 or WAV.</value>
-    <comment>Hint under the sound file.</comment>
+    <value>Windows can’t play this file, so its calls play a gong. Pick another, such as an MP3 or WAV.</value>
+    <comment>Hint under an event's sound file, when Voice is the gong.</comment>
   </data>
   <data name="UseSoundFile" xml:space="preserve">
     <value>Use a sound file instead</value>
-    <comment>Link in Settings › Calls.</comment>
+    <comment>Link under an event's words.</comment>
   </data>
   <data name="UseText" xml:space="preserve">
     <value>Use text instead</value>
-    <comment>Link in Settings › Calls while a sound file is chosen.</comment>
+    <comment>Link under an event while its sound file is chosen.</comment>
   </data>
   <data name="NobodyHeardGroup" xml:space="preserve">
     <value>Nobody heard the last call. Either no one in the group is online, or the server doesn’t allow the bot to whisper to them.</value>
@@ -515,5 +515,109 @@
   <data name="UpdateCheckFailed" xml:space="preserve">
     <value>Couldn’t check for updates — trying again later</value>
     <comment>Settings › General, under the version: the last look failed, offline perhaps; the next comes on schedule.</comment>
+  </data>
+  <data name="Events" xml:space="preserve">
+    <value>Events</value>
+    <comment>Settings: the heading over the events whose spawns get calls.</comment>
+  </data>
+  <data name="EventNameLabel" xml:space="preserve">
+    <value>Name</value>
+    <comment>Label over an event's name; an empty one is the jungle.</comment>
+  </data>
+  <data name="SpawnTimes" xml:space="preserve">
+    <value>Spawn times</value>
+    <comment>Label over an event's spawn times.</comment>
+  </data>
+  <data name="SpawnsPlaceholder" xml:space="preserve">
+    <value>Such as 25:00, 15:00</value>
+    <comment>Shown in an empty spawn times field.</comment>
+  </data>
+  <data name="RemoveEvent" xml:space="preserve">
+    <value>Remove event</value>
+    <comment>Tooltip of the bin beside an event's name.</comment>
+  </data>
+  <data name="RemoveEventNamed" xml:space="preserve">
+    <value>Remove the event {0}</value>
+    <comment>The bin's name for a screen reader; {0} is the event's name.</comment>
+  </data>
+  <data name="TestCallFor" xml:space="preserve">
+    <value>Test call: {0}</value>
+    <comment>A Test call button's name for a screen reader; {0} is the event's name.</comment>
+  </data>
+  <data name="AddEvent" xml:space="preserve">
+    <value>Add event</value>
+    <comment>Button under the events.</comment>
+  </data>
+  <data name="BackToDefault" xml:space="preserve">
+    <value>Back to default</value>
+    <comment>Link under the events: the jungle alone again.</comment>
+  </data>
+  <data name="NoEvents" xml:space="preserve">
+    <value>No events, so no calls go out.</value>
+    <comment>Settings, in place of the events when there are none.</comment>
+  </data>
+  <data name="NoEventsCalls" xml:space="preserve">
+    <value>No events, so no calls.</value>
+    <comment>Main window's calls list with no events; a Settings link follows.</comment>
+  </data>
+  <data name="NoSpawnsCalls" xml:space="preserve">
+    <value>No spawn times, so no calls.</value>
+    <comment>Main window's calls list when the events have no spawn times; a Settings link follows.</comment>
+  </data>
+  <data name="Undo" xml:space="preserve">
+    <value>Undo</value>
+    <comment>Button in the bar after an event is removed or the events go back to default.</comment>
+  </data>
+  <data name="EventRemoved" xml:space="preserve">
+    <value>“{0}” removed.</value>
+    <comment>Bar under the events; {0} is the event's name.</comment>
+  </data>
+  <data name="EventsReset" xml:space="preserve">
+    <value>Back to default: the jungle alone.</value>
+    <comment>Bar under the events after Back to default.</comment>
+  </data>
+  <data name="NoSpawnTimes" xml:space="preserve">
+    <value>No spawn times yet</value>
+    <comment>Under a closed event's name, when it has no spawn times.</comment>
+  </data>
+  <data name="NewEvent" xml:space="preserve">
+    <value>New event</value>
+    <comment>The name Add event gives; it is selected, so typing replaces it.</comment>
+  </data>
+  <data name="SpawnsUnreadable" xml:space="preserve">
+    <value>Can’t read “{0}”: write times as 25:00 or 25, up to 35:00. The calls keep the times from before.</value>
+    <comment>Bar under the spawn times; {0} is the part Gengfu couldn't read.</comment>
+  </data>
+  <data name="SpawnsUnreadableShort" xml:space="preserve">
+    <value>Can’t read the spawn times</value>
+    <comment>Under a closed event's name.</comment>
+  </data>
+  <data name="NoTextShort" xml:space="preserve">
+    <value>Nothing to say: its calls play a gong</value>
+    <comment>Under a closed event's name.</comment>
+  </data>
+  <data name="SpeechFailedShort" xml:space="preserve">
+    <value>Windows couldn’t speak the text</value>
+    <comment>Under a closed event's name.</comment>
+  </data>
+  <data name="FileUnreadableShort" xml:space="preserve">
+    <value>Windows can’t play {0}</value>
+    <comment>Under a closed event's name; {0} is the file's name.</comment>
+  </data>
+  <data name="FileMissingShort" xml:space="preserve">
+    <value>{0} isn’t on this PC</value>
+    <comment>Under a closed event's name; {0} is the file's name.</comment>
+  </data>
+  <data name="FileUnreadableSays" xml:space="preserve">
+    <value>Windows can’t play this file, so its calls say “{0}”. Pick another, such as an MP3 or WAV.</value>
+    <comment>Hint under an event's sound file; {0} is the words its calls say instead.</comment>
+  </data>
+  <data name="FileMissingSays" xml:space="preserve">
+    <value>{0} isn’t on this PC, so its calls say “{1}”.</value>
+    <comment>Hint under an event's sound file, as from a preset made on another PC; {0} is the file's name, {1} the words said instead.</comment>
+  </data>
+  <data name="FileMissing" xml:space="preserve">
+    <value>{0} isn’t on this PC, so its calls play a gong.</value>
+    <comment>Hint under an event's sound file when Voice is the gong; {0} is the file's name.</comment>
   </data>
 </root>

@@ -77,6 +77,43 @@ public sealed class MainViewTests(WpfApp wpf)
             Assert.Equal(("Match over", ""), Line(view));
         });
 
+    [Fact]
+    public Task The_calls_list_follows_the_events_as_Settings_edits_them_mid_match_too() =>
+        OnView((session, time, view) =>
+        {
+            session.Clock.Start();
+            time.Advance(TimeSpan.FromSeconds(571));
+            Assert.Single(session.Schedule.TakeDue());
+            view.Refresh();
+            Assert.Equal(5, view.CallRows.Children.Count);
+
+            session.AddEvent();
+            session.RenameEvent(1, "Boss");
+            session.SetSpawns(1, [TimeSpan.FromMinutes(22)]);
+            view.Refresh();
+
+            Assert.Equal(6, view.CallRows.Children.Count);
+            Assert.Equal(Visibility.Collapsed, view.NoCalls.Visibility);
+            // The call made before the edit stays made.
+            Assert.Equal(CallState.Calling, session.Schedule.StateOf(session.Schedule.Calls[0]));
+        });
+
+    [Fact]
+    public Task With_no_calls_the_list_says_why() =>
+        OnView((session, _, view) =>
+        {
+            Assert.Equal(Visibility.Collapsed, view.NoCalls.Visibility);
+
+            session.SetSpawns(0, []);
+            view.Refresh();
+            Assert.Equal((Visibility.Visible, "No spawn times, so no calls."), (view.NoCalls.Visibility, view.NoCallsText.Text));
+            Assert.Empty(view.CallRows.Children);
+
+            session.RemoveEvent(0);
+            view.Refresh();
+            Assert.Equal((Visibility.Visible, "No events, so no calls."), (view.NoCalls.Visibility, view.NoCallsText.Text));
+        });
+
     [Theory]
     [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]
     public async Task Start_Stop_and_Test_call_keep_their_icon_and_label_on_the_buttons_centre(double scale)

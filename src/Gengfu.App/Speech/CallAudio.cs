@@ -17,13 +17,14 @@ public abstract record CallSound
     public sealed record Speech(string Text, string? VoiceId = null) : CallSound;
 
     /// <summary>An audio file the user picked.</summary>
-    public sealed record AudioFile(string Path) : CallSound;
+    /// <param name="Otherwise">What plays when the file can't: an event's words; null plays the gong.</param>
+    public sealed record AudioFile(string Path, CallSound? Otherwise = null) : CallSound;
 
     /// <summary>The gong, chosen over a voice.</summary>
     public sealed record Gong : CallSound;
 }
 
-/// <summary>Why a call plays the gong in place of what it was given.</summary>
+/// <summary>Why a call isn't what it was given: the gong in its place, or for a file that can't play, what plays otherwise.</summary>
 public enum CallProblem
 {
     None,
@@ -36,18 +37,26 @@ public enum CallProblem
     /// <summary>Windows couldn't speak the text; <see cref="CallClip.Detail"/> holds its error.</summary>
     SpeechFailed,
 
-    /// <summary>The file is missing, silent, or not something Windows can play; <see cref="CallClip.Detail"/> holds the error.</summary>
+    /// <summary>The file is silent, or not something Windows can play; <see cref="CallClip.Detail"/> holds the error.</summary>
     FileUnreadable,
+
+    /// <summary>The file isn't on this PC, as when a preset made on another names it.</summary>
+    FileMissing,
 }
 
-/// <summary>A call ready to whisper: its 20 ms Opus frames, and why it is the gong when it is.</summary>
-public sealed record CallClip(IReadOnlyList<byte[]> Frames, CallProblem Problem = CallProblem.None, string? Detail = null);
+/// <summary>
+/// A call ready to whisper: its 20 ms Opus frames, and why it isn't what it was given when it isn't:
+/// the gong, or for a file that can't play, what plays in its place.
+/// </summary>
+/// <param name="Instead">For a file that can't play, why what plays in its place isn't what it was given either, so the gong plays.</param>
+public sealed record CallClip(IReadOnlyList<byte[]> Frames, CallProblem Problem = CallProblem.None, string? Detail = null, CallProblem Instead = CallProblem.None);
 
 /// <summary>
 /// Renders calls ahead of time and keeps them: text through Windows speech or an audio file through
 /// Media Foundation, shaped to 48 kHz stereo (<see cref="Pcm"/>), then 20 ms Opus frames at 48 kbps.
-/// A call is never silent: what can't be spoken or read plays the gong, and the clip says why.
-/// Renders run one at a time on the thread pool.
+/// A call is never silent: a file that can't play gives way to what the sound says plays otherwise,
+/// and what can't be spoken plays the gong; the clip says why. Renders run one at a time on the
+/// thread pool.
 /// </summary>
 public sealed class CallAudio
 {
@@ -76,6 +85,9 @@ public sealed class CallAudio
         _speak = speak;
         _read = read;
     }
+
+    /// <summary>The installed voices, as the calls are spoken with them.</summary>
+    public IReadOnlyList<Voice> InstalledVoices() => _voices();
 
     /// <summary>The call's frames, rendered now or kept from before; a voice picked by <paramref name="language"/> when none is chosen.</summary>
     public async Task<CallClip> RenderAsync(CallSound sound, CultureInfo language)
@@ -112,7 +124,7 @@ public sealed class CallAudio
     private CallClip Render(CallSound sound, CultureInfo language) => sound switch
     {
         CallSound.Speech speech => RenderSpeech(speech, language),
-        CallSound.AudioFile file => RenderFile(file.Path),
+        CallSound.AudioFile file => RenderFile(file, language),
         _ => new CallClip(GongFrames()),
     };
 
@@ -145,22 +157,32 @@ public sealed class CallAudio
         }
     }
 
-    private CallClip RenderFile(string path)
+    // A file that can't play gives way to what plays otherwise. The clip names the file's problem,
+    // and what kept the other from playing too, when something did.
+    private CallClip RenderFile(CallSound.AudioFile sound, CultureInfo language)
     {
+        CallProblem problem;
+        string? detail = null;
         try
         {
             // A file edited in place renders afresh.
-            var file = new FileInfo(path);
-            return new CallClip(Keep(("file", file.FullName, file.LastWriteTimeUtc, file.Exists ? file.Length : -1), () =>
+            var file = new FileInfo(sound.Path);
+            if (file.Exists)
             {
-                var (samples, cut) = _read(file.FullName, Pcm.MaxLength);
-                return Pcm.Shape(samples, 2, cut) ?? throw new InvalidDataException("The file is silent.");
-            }));
+                return new CallClip(Keep(("file", file.FullName, file.LastWriteTimeUtc, file.Length), () =>
+                {
+                    var (samples, cut) = _read(file.FullName, Pcm.MaxLength);
+                    return Pcm.Shape(samples, 2, cut) ?? throw new InvalidDataException("The file is silent.");
+                }));
+            }
+            problem = CallProblem.FileMissing;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            return new CallClip(GongFrames(), CallProblem.FileUnreadable, exception.Message);
+            (problem, detail) = (CallProblem.FileUnreadable, exception.Message);
         }
+        var otherwise = sound.Otherwise is null ? new CallClip(GongFrames()) : Render(sound.Otherwise, language);
+        return otherwise with { Problem = problem, Detail = detail, Instead = otherwise.Problem };
     }
 
     private IReadOnlyList<byte[]> GongFrames() => Keep("gong", () => Pcm.Shape(Gong.Render(), 1)!);

@@ -56,11 +56,12 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   no Mica: under a Mica frame Windows draws its own caption buttons as well. Minimize and
   close keep out of the Tab order, as Windows' own do; the back arrow takes focus, its
   focus ring drawn inside it.
-- **Buttons:** accent (Start), standard (Stop, Connect, Change), subtle (Test call, the
-  Settings icon), link (accent text: the status line's Settings, "Use a sound file
-  instead"); Fluent rest / hover / pressed / disabled. Start and Stop are one button that
-  flips, so keyboard focus stays on it. Test call is off unless Gengfu is connected with
-  someone to hear it, and reads "Calling…" while its call plays. An icon and its label share
+- **Buttons:** accent (Start), standard (Stop, Connect, Change, Add event), subtle (Test call,
+  the Settings icon, an event's bin), link (accent text: the status line's Settings, "Use a sound
+  file instead", Back to default); Fluent rest / hover / pressed / disabled. Start and Stop are
+  one button that flips, so keyboard focus stays on it. Test call is off unless Gengfu is
+  connected with someone to hear it and there is an event to call, and the one pressed reads
+  "Calling…" while its call plays, the others off meanwhile. An icon and its label share
   the centre of what holds them, the label's capitals rather than its line: the IconLabel
   style lifts a 14 px label 2.2 px beside its 16 px icon, and both hang from the top of a
   panel that centres the pair, so rounding to device pixels moves them together.
@@ -81,7 +82,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   reached nobody (once it has played), or when a correction takes the clock past its spawn
   first. When the calls don't fit, the card stops above the buttons and its rows scroll,
   keeping the call calling or next second from the top; it moves only when that call changes,
-  so a scroll by wheel stays meanwhile.
+  so a scroll by wheel stays meanwhile. With no calls, secondary body text says why, no events or
+  no spawn times, with a Settings link under it.
 - **Status line:** dot + text, caption size — connected, naming who hears (success);
   connecting, or raising the bot's identity for the server (hollow dot: not yet whispering, and
   nothing to fix); trying again, saying why (hollow caution dot, caution text) and counting
@@ -120,14 +122,29 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   Windows uses for .json files, or in Notepad. Under the version, across the card, a caption says
   where updates stand: checking, up to date, downloading, installed, or couldn't check; a copy
   Setup didn't install shows none.
-- **Sound file:** in place of Say and Voice, the file's name with a note icon and Change;
-  "Use text instead" goes back to the text.
-- **Hints:** an info bar with an accent "i" (the no-voice hint), or a caution bar with a
-  "!" when a call plays the gong for another reason: no text, Windows failed to speak it,
-  or the file can't be played. Under Test call, a caution bar says the server said the last
-  call reached nobody, and why that may be, for the group or the channels: Settings hides the
-  main window's status line, and its own Test call is pressed there. Under the privilege key, a
-  success bar with a check names the group the server put the bot in, or an error bar with a cross
+- **Calls and Events:** Calls holds what every call shares: Call ahead, Voice, and a Test call
+  that plays the first event's call. Events, under it, lists the events whose spawns get calls,
+  one card each, as Windows 11's own settings expanders: closed, the event's name and, under it in
+  caption size, its spawn times and own file, or in caution with a 12 px "!", what is wrong with
+  it; the header is the one tab stop, Space or Enter opens it, and a chevron says which way. Open,
+  under a divider: Name with the bin beside it (an empty name is the jungle, which the placeholder
+  says), Spawn times, Say or the event's sound file, then its own Test call and the switch between
+  words and file. Spawn times are one field, read on Enter or leaving it: game times or whole
+  minutes, written back sorted as 25:00. Say wraps, so a long Russian call shows whole. Under the
+  events, Add event, and Back to default while the events differ from the built-in ones, the
+  jungle alone at its five times; how the jungle sounds doesn't count, and Back to default keeps
+  it. With no events, a card says no calls go out.
+- **Sound file:** in an event, in place of Say, the file's name with a note icon and Change;
+  "Use text instead" goes back to the words.
+- **Hints:** an info bar with an accent "i" (the no-voice hint, under Voice), or a caution bar
+  with a "!" under an event's field: times it can't read, nothing to say or words Windows failed
+  to speak (the gong plays), or a file that can't play, missing on this PC or not a sound Windows
+  plays (the words play instead, quoted, or the gong when it is the voice or the words can't be
+  spoken either). Under the Test call
+  pressed last, a caution bar says the server said the last call reached nobody, and why that may
+  be, for the group or the channels: Settings hides the main window's status line. Under the
+  privilege key, a success bar with a check names the group the server put the bot in, or an
+  error bar with a cross
   says why the server didn't take the key; it stays until another key is typed or Connect is
   pressed, through the connection's own reconnects.
 - **Settings file bar:** when settings.json has an error, a caution bar sits under the title
@@ -137,7 +154,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   settings shown and saves nothing until then, and links to Open settings file. The main window
   doesn't change for it.
 - **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
-  (the language in its own tongue), the app language's first. Any voice may be picked.
+  (the language in its own tongue), the app language's first. Any voice may be picked; a new
+  language chosen in General drops one that can't speak it, for the language's own.
 - **No-voice hint:** when no voice speaks the app's language, Voice shows the gong and an
   info bar under it says so: accent info icon, caption text naming the way in (Language &
   region › the language › Language options), and a link that opens Language & region.
@@ -155,8 +173,12 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   says it is "in sync" — the clock itself is the feedback. Out-of-range typed values are
   ignored. No dialogs, no toasts; Windows' own file picker is the one exception.
 - **Settings apply at once:** no Save or OK. A new language remakes the views; Settings stays
-  where it was, with focus on Language. A new theme does the same, with focus on Theme. A call's
-  default text follows the lead and the language until the user edits it.
+  where it was, with focus on Language. A new theme does the same, with focus on Theme. An event's
+  default words follow its name, the lead and the language until the user edits them.
+- **Undo, not a dialog:** what takes the user's work away, an event's bin or Back to default, acts
+  at once and leaves a bar in the update notice's look, an accent "i", its words and Undo, with
+  focus on Undo. It stays until the next change of the same things or Settings closes. Add event
+  puts the new one at the end, open, its name selected so typing replaces it.
 - **Marks beside words:** an icon or a dot centres on the capitals of the words beside it, those
   of the first line where they wrap, as in buttons. Caption words, 12 px on 16 px lines, have
   their capitals' centre 0.75 px under the line's middle: in a bar the words lift to the icon
@@ -171,6 +193,6 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html, MainRaising.dc.html, MainServerKick.dc.html, MainFlood.dc.html, MainLevelTooHigh.dc.html, MainFull.dc.html, MainNobodyHeard.dc.html, MainNobodyHeardRu.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html, SettingsNobodyHeard.dc.html, SettingsNobodyHeardRu.dc.html, SettingsKeyOpen.dc.html, SettingsKeyTaken.dc.html, SettingsKeyTakenRu.dc.html, SettingsKeyUnknown.dc.html, SettingsKeyNotAllowedRu.dc.html, SettingsKeyOffline.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) |
+| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html, MainRaising.dc.html, MainServerKick.dc.html, MainFlood.dc.html, MainLevelTooHigh.dc.html, MainFull.dc.html, MainNobodyHeard.dc.html, MainNobodyHeardRu.dc.html, MainNoEvents.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
+| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html, SettingsNobodyHeard.dc.html, SettingsNobodyHeardRu.dc.html, SettingsKeyOpen.dc.html, SettingsKeyTaken.dc.html, SettingsKeyTakenRu.dc.html, SettingsKeyUnknown.dc.html, SettingsKeyNotAllowedRu.dc.html, SettingsKeyOffline.dc.html, SettingsEvents.dc.html, SettingsEventOpen.dc.html, SettingsEventAddedRu.dc.html, SettingsEventFileMissingRu.dc.html, SettingsEventTimesBad.dc.html, SettingsEventsEmpty.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml), [EventRow.xaml](../../src/Gengfu.App/Views/EventRow.xaml) |
 | App icon    | AppIcon.dc.html | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |

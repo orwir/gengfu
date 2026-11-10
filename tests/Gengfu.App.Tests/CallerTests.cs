@@ -10,7 +10,7 @@ public sealed class CallerTests
     private readonly MatchClock _clock;
     private readonly CallClip _clip = new([[1], [2], [3]]);
     private readonly List<IReadOnlyList<byte[]>> _whispered = [];
-    private readonly List<MatchEvent?> _rendered = [];
+    private readonly List<MatchEvent> _rendered = [];
     private CallSchedule _schedule;
     private bool _canSend = true;
     private Func<IReadOnlyList<byte[]>, Task<bool>> _whisper;
@@ -77,7 +77,7 @@ public sealed class CallerTests
     }
 
     [Fact]
-    public async Task A_call_plays_its_event_s_sound_and_a_test_call_the_one_Settings_sets()
+    public async Task A_call_plays_its_event_s_sound_and_a_test_call_the_one_of_the_event_tested()
     {
         var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(26)], Text = "Boss in thirty seconds" };
         _schedule = new CallSchedule(_clock, [MatchEvent.Jungle, boss], CallSchedule.DefaultLead);
@@ -86,9 +86,9 @@ public sealed class CallerTests
         RunTo(First.At);
 
         await Task.WhenAll(caller.Tick());
-        await caller.TestAsync();
+        await caller.TestAsync(MatchEvent.Jungle);
 
-        Assert.Equal(new[] { boss, null }, _rendered);
+        Assert.Equal(new[] { boss, MatchEvent.Jungle }, _rendered);
     }
 
     [Fact]
@@ -115,9 +115,9 @@ public sealed class CallerTests
         _whisper = _ => playing.Task;
         var caller = NewCaller();
 
-        var test = caller.TestAsync();
+        var test = caller.TestAsync(MatchEvent.Jungle);
         Assert.True(caller.Testing);
-        Assert.False(await caller.TestAsync());
+        Assert.False(await caller.TestAsync(MatchEvent.Jungle));
         Assert.Single(_whispered);
 
         playing.SetResult(true);
@@ -130,7 +130,7 @@ public sealed class CallerTests
     {
         _canSend = false;
 
-        Assert.False(await NewCaller().TestAsync());
+        Assert.False(await NewCaller().TestAsync(MatchEvent.Jungle));
         Assert.Empty(_whispered);
     }
 

@@ -20,10 +20,13 @@ internal partial class MainView : UserControl
     private readonly Session _session;
     private readonly Action _openSettings;
     private readonly ClockDigits _digits;
-    private readonly CallRow[] _rows;
     private readonly Style _startStyle;
     private StatusTone? _tone;
     private int _followed = -1;
+
+    // The rows show these calls; the schedule makes new ones whenever the events or the lead change.
+    private IReadOnlyList<Call> _shown = [];
+    private CallRow[] _rows = [];
 
     public MainView(Session session, Action openSettings)
     {
@@ -33,7 +36,6 @@ internal partial class MainView : UserControl
         _digits = new ClockDigits(session.Clock);
         ClockHost.Child = _digits;
         _startStyle = (Style)FindResource("AccentButtonStyle");
-        _rows = [.. session.Schedule.Calls.Select(_ => new CallRow(CallRows))];
         Refresh();
     }
 
@@ -49,7 +51,7 @@ internal partial class MainView : UserControl
         ShowLine();
         ShowCalls();
         FollowCalls();
-        TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
+        TestButton.IsEnabled = _session.CanTest;
         TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
         UpdateNotice.Visibility = ShowsUpdate(_session.Updates.State, _session.Clock.State) ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -154,6 +156,15 @@ internal partial class MainView : UserControl
     {
         var schedule = _session.Schedule;
         CallsAhead.Text = Copy.Format(Strings.CallsAhead, schedule.Lead.TotalSeconds);
+        if (!ReferenceEquals(_shown, schedule.Calls))
+        {
+            _shown = schedule.Calls;
+            CallRows.Children.Clear();
+            _rows = [.. _shown.Select(_ => new CallRow(CallRows))];
+            _followed = -1;
+        }
+        NoCalls.Visibility = _shown.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        NoCallsText.Text = _session.Settings.Events.Count == 0 ? Strings.NoEventsCalls : Strings.NoSpawnsCalls;
         var gameTime = _session.Clock.GameTime;
         foreach (var call in schedule.Calls)
         {
@@ -188,7 +199,7 @@ internal partial class MainView : UserControl
         Refresh();
     }
 
-    private async void OnTest(object sender, RoutedEventArgs e) => await _session.Caller.TestAsync();
+    private async void OnTest(object sender, RoutedEventArgs e) => await _session.TestAsync();
 
     // Velopack's updater takes over once Gengfu has closed the usual way, off the server and saved.
     private void OnRestart(object sender, RoutedEventArgs e)

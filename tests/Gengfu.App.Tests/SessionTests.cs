@@ -32,21 +32,177 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public void The_call_says_the_default_for_its_lead_until_the_user_types_their_own()
+    public void An_event_says_its_name_and_the_lead_until_the_user_types_its_own_words()
     {
-        Assert.Equal("Jungle in thirty seconds", _session.CallText);
+        Assert.Equal("Jungle in thirty seconds", _session.WordsOf(_session.Settings.Events[0]));
 
         _session.ChangeLead(TimeSpan.FromSeconds(45));
-        Assert.Equal("Jungle in forty-five seconds", _session.CallText);
+        Assert.Equal("Jungle in forty-five seconds", _session.WordsOf(_session.Settings.Events[0]));
         Assert.Equal(TimeSpan.FromSeconds(45), _session.Schedule.Lead);
 
         // Typing the default back keeps it the default.
-        _session.SetCallText("Jungle in forty-five seconds");
-        Assert.Null(_session.Settings.CallText);
+        _session.SetWords(0, "Jungle in forty-five seconds");
+        Assert.Null(_session.Settings.Events[0].Text);
 
-        _session.SetCallText("Jungle, go go go");
+        _session.SetWords(0, "Jungle, go go go");
         _session.ChangeLead(TimeSpan.FromSeconds(15));
-        Assert.Equal("Jungle, go go go", _session.CallText);
+        Assert.Equal("Jungle, go go go", _session.WordsOf(_session.Settings.Events[0]));
+    }
+
+    [Fact]
+    public void A_named_event_without_words_of_its_own_says_its_own_name_never_the_jungle_s()
+    {
+        _session.AddEvent();
+        var added = _session.Settings.Events[1];
+        Assert.Equal(("New event", 0), (added.Name, added.Spawns.Count));
+        Assert.Equal("New event in thirty seconds", _session.WordsOf(added));
+
+        _session.RenameEvent(1, "Boss");
+        Assert.Equal("Boss in thirty seconds", _session.WordsOf(_session.Settings.Events[1]));
+        Assert.Equal("Jungle in thirty seconds", _session.WordsOf(_session.Settings.Events[0]));
+
+        // An empty name, or the jungle's own, makes it the jungle.
+        _session.RenameEvent(1, " ");
+        Assert.Null(_session.Settings.Events[1].Name);
+        _session.RenameEvent(1, "Boss");
+        _session.RenameEvent(1, "Jungle");
+        Assert.Null(_session.Settings.Events[1].Name);
+    }
+
+    [Fact]
+    public void An_event_renamed_or_given_other_times_mid_match_keeps_its_calls_so_none_goes_out_twice()
+    {
+        _session.Clock.Start();
+        // 25:29, in the first call's window.
+        _time.Advance(TimeSpan.FromSeconds(571));
+        Assert.Single(_session.Schedule.TakeDue());
+
+        _session.RenameEvent(0, "Forest");
+        _session.SetSpawns(0, [TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(17)]);
+        _session.SetWords(0, "Forest, go go go");
+
+        Assert.Empty(_session.Schedule.TakeDue());
+        Assert.Equal(CallState.Calling, _session.Schedule.StateOf(_session.Schedule.Calls[0]));
+        Assert.Equal(new[] { "25:00", "17:00" }, _session.Schedule.Calls.Select(call => MatchClock.Format(call.Spawn)));
+    }
+
+    [Fact]
+    public void A_voice_that_can_t_speak_a_newly_chosen_language_gives_way_to_the_language_s_own()
+    {
+        IReadOnlyList<Voice> installed = [new("zira", "Microsoft Zira", "en-US"), new("irina", "Microsoft Irina", "ru-RU")];
+        var russian = CultureInfo.GetCultureInfo("ru");
+
+        Assert.Null(Session.VoiceAfterSwitch("zira", installed, russian));
+        Assert.Null(Session.VoiceAfterSwitch("irina", installed, English));
+        Assert.Equal("irina", Session.VoiceAfterSwitch("irina", installed, russian));
+        Assert.Equal(AppSettings.Gong, Session.VoiceAfterSwitch(AppSettings.Gong, installed, russian));
+        Assert.Null(Session.VoiceAfterSwitch(null, installed, russian));
+        Assert.Equal("pavel", Session.VoiceAfterSwitch("pavel", installed, russian));
+    }
+
+    [Fact]
+    public void A_Test_call_goes_out_only_when_a_call_can_none_is_playing_and_there_is_an_event_to_call()
+    {
+        Assert.True(Session.CanTestFor(canCall: true, testing: false, events: 1));
+        Assert.False(Session.CanTestFor(canCall: true, testing: false, events: 0));
+        Assert.False(Session.CanTestFor(canCall: false, testing: false, events: 1));
+        Assert.False(Session.CanTestFor(canCall: true, testing: true, events: 1));
+    }
+
+    [Fact]
+    public void Calls_Test_call_plays_the_first_event_s_call_and_an_event_s_own_Test_call_its_call()
+    {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [] };
+
+        Assert.Same(MatchEvent.Jungle, Session.TestedEvent([MatchEvent.Jungle, boss], null));
+        Assert.Same(boss, Session.TestedEvent([MatchEvent.Jungle, boss], boss));
+        Assert.Null(Session.TestedEvent([], null));
+    }
+
+    [Fact]
+    public void Remove_and_Back_to_default_act_at_once_and_Undo_puts_the_events_back_until_they_change_again()
+    {
+        _session.AddEvent();
+        _session.RenameEvent(1, "Boss");
+        var (jungle, boss) = (_session.Settings.Events[0], _session.Settings.Events[1]);
+        Assert.Null(_session.Undo);
+
+        _session.RemoveEvent(0);
+        Assert.Equal(new[] { boss }, _session.Settings.Events);
+        Assert.Same(jungle, _session.Undo?.Removed);
+        _session.UndoEvents();
+        Assert.Equal(new[] { jungle, boss }, _session.Settings.Events);
+        Assert.Null(_session.Undo);
+
+        _session.ResetEvents();
+        Assert.True(_session.Settings.EventsAreDefault);
+        Assert.Equal(2, _session.Undo?.Events.Count);
+        Assert.Null(_session.Undo?.Removed);
+        _session.UndoEvents();
+        Assert.Equal(new[] { jungle, boss }, _session.Settings.Events);
+
+        // Another change takes the offer away, and so does leaving Settings.
+        _session.RemoveEvent(1);
+        _session.SetSpawns(0, [TimeSpan.FromMinutes(25)]);
+        Assert.Null(_session.Undo);
+        _session.ResetEvents();
+        _session.ForgetUndo();
+        _session.UndoEvents();
+        Assert.True(_session.Settings.EventsAreDefault);
+    }
+
+    [Fact]
+    public void Back_to_default_keeps_how_the_jungle_sounds_and_a_jungle_made_anew_says_its_default_words()
+    {
+        _session.SetWords(0, "Jungle, go go go");
+        _session.SetSoundFile(0, @"C:\Sounds\jungle.mp3");
+        _session.SetSpawns(0, [TimeSpan.FromMinutes(25)]);
+        _session.AddEvent();
+
+        _session.ResetEvents();
+        var jungle = Assert.Single(_session.Settings.Events);
+        Assert.Equal((null, "Jungle, go go go", @"C:\Sounds\jungle.mp3"), (jungle.Name, jungle.Text, jungle.SoundFile));
+        Assert.Equal(CallSchedule.GvgSpawns, jungle.Spawns);
+
+        _session.RemoveEvent(0);
+        _session.ResetEvents();
+        Assert.Equal((null, null), (_session.Settings.Events[0].Text, _session.Settings.Events[0].SoundFile));
+    }
+
+    [Fact]
+    public async Task Events_edited_in_Settings_are_saved_and_come_back_on_the_next_start()
+    {
+        _session.AddEvent();
+        _session.RenameEvent(1, "Босс");
+        _session.SetSpawns(1, [TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(15)]);
+        _session.SetSoundFile(1, @"C:\Звуки\босс.mp3");
+        _session.SetWords(0, "Лес, вперёд");
+        Settle();
+
+        await RestartAsync();
+
+        Assert.Equal(
+            new (string?, string, string?, string?)[] { (null, "25:00, 20:00, 15:00, 10:00, 05:00", "Лес, вперёд", null), ("Босс", "25:00, 15:00", null, @"C:\Звуки\босс.mp3") },
+            _session.Settings.Events.Select(e => (e.Name, MatchEvent.WriteSpawns(e.Spawns), e.Text, e.SoundFile)));
+        Assert.Equal(7, _session.Schedule.Calls.Count);
+    }
+
+    [Fact]
+    public async Task An_event_s_file_that_isn_t_on_this_PC_gives_way_to_its_words_and_its_call_says_why()
+    {
+        await _session.DisposeAsync();
+        _session = new Session(
+            English,
+            _time,
+            new CallAudio(() => [new Voice("zira", "Microsoft Zira", "en-US")], (_, _) => Speech.Sound.Wav(Speech.Sound.Tone(300, 0.5, 16000), 16000), (_, _) => throw new InvalidOperationException()),
+            _folder);
+
+        _session.SetSoundFile(0, Path.Combine(_folder, "jungle.mp3"));
+        var jungle = _session.Settings.Events[0];
+        Assert.True(SpinWait.SpinUntil(() => _session.ClipOf(jungle) is not null, TimeSpan.FromSeconds(10)));
+
+        Assert.Equal(CallProblem.FileMissing, _session.ClipOf(jungle)!.Problem);
+        Assert.Equal("Jungle in thirty seconds", _session.HeardFor(jungle));
     }
 
     [Fact]
@@ -207,29 +363,21 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public void A_call_plays_the_sound_file_or_the_gong_when_chosen_and_speaks_the_text_otherwise()
+    public void A_call_speaks_its_event_s_words_in_the_voice_or_plays_its_own_file_with_the_words_behind_it()
     {
         var settings = new AppSettings { Voice = "zira" };
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(12)] };
+        var withFile = boss with { SoundFile = @"C:\Sounds\boss.mp3", Text = "Boss, go go go" };
+
         Assert.Equal(new CallSound.Speech("Jungle in thirty seconds", "zira"), Session.SoundOf(settings, MatchEvent.Jungle, English));
-
-        settings.Voice = AppSettings.Gong;
-        Assert.Equal(new CallSound.Gong(), Session.SoundOf(settings, MatchEvent.Jungle, English));
-
-        settings.SoundFile = @"C:\Sounds\jungle.mp3";
-        Assert.Equal(new CallSound.AudioFile(@"C:\Sounds\jungle.mp3"), Session.SoundOf(settings, MatchEvent.Jungle, English));
-        Assert.Equal(new CallSound.AudioFile(@"C:\Sounds\jungle.mp3"), Session.SoundOf(settings, null, English));
-    }
-
-    [Fact]
-    public void An_event_s_own_text_plays_in_the_chosen_voice_whatever_else_Settings_sets()
-    {
-        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(12)], Text = "Boss in thirty seconds" };
-        var settings = new AppSettings { Voice = "zira", SoundFile = @"C:\Sounds\jungle.mp3" };
-
         Assert.Equal(new CallSound.Speech("Boss in thirty seconds", "zira"), Session.SoundOf(settings, boss, English));
+        Assert.Equal(
+            new CallSound.AudioFile(@"C:\Sounds\boss.mp3", new CallSound.Speech("Boss, go go go", "zira")),
+            Session.SoundOf(settings, withFile, English));
 
         settings.Voice = AppSettings.Gong;
         Assert.Equal(new CallSound.Gong(), Session.SoundOf(settings, boss, English));
+        Assert.Equal(new CallSound.AudioFile(@"C:\Sounds\boss.mp3", new CallSound.Gong()), Session.SoundOf(settings, withFile, English));
     }
 
     [Fact]
@@ -238,17 +386,21 @@ public sealed class SessionTests : IAsyncLifetime
         using var english = new UiCulture("en-US");
         var played = new CallClip([[1]]);
         var settings = new AppSettings();
-        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(12)], Text = "Boss in thirty seconds" };
+        var boss = new MatchEvent { Name = "Boss", Spawns = [TimeSpan.FromMinutes(12)], Text = "Boss, go go go" };
+        var withFile = boss with { SoundFile = @"C:\Sounds\boss.mp3" };
 
         Assert.Equal("Jungle in thirty seconds", Session.HeardAs(settings, MatchEvent.Jungle, English, played));
-        Assert.Equal("Boss in thirty seconds", Session.HeardAs(settings, boss, English, played));
+        Assert.Equal("Boss, go go go", Session.HeardAs(settings, boss, English, played));
         Assert.Equal("the gong", Session.HeardAs(settings, boss, English, new CallClip([[1]], CallProblem.NoVoice)));
+        Assert.Equal("boss.mp3", Session.HeardAs(settings, withFile, English, played));
+        // A file that can't play gives way to the words, and to the gong when they can't be spoken either.
+        Assert.Equal("Boss, go go go", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileMissing)));
+        Assert.Equal("the gong", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileMissing, Instead: CallProblem.NoVoice)));
+
         settings.Voice = AppSettings.Gong;
         Assert.Equal("the gong", Session.HeardAs(settings, MatchEvent.Jungle, English, played));
-
-        // A file chosen after the gong plays the file, so the line names the file.
-        settings.SoundFile = @"C:\Sounds\jungle.mp3";
-        Assert.Equal("jungle.mp3", Session.HeardAs(settings, MatchEvent.Jungle, English, played));
+        Assert.Equal("boss.mp3", Session.HeardAs(settings, withFile, English, played));
+        Assert.Equal("the gong", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileUnreadable)));
     }
 
     [Fact]
@@ -371,6 +523,28 @@ public sealed class SessionTests : IAsyncLifetime
         _session.Settings.Nickname = "Gengfu 2";
         Settle();
         Assert.Contains("\"nickname\": \"Gengfu 2\"", File.ReadAllText(SettingsFile), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_file_from_before_0_3_is_written_afresh_when_opened_to_edit_so_a_pasted_preset_reads_as_pasted()
+    {
+        const string Old = """{ "callText": "Jungle, go", "soundFile": "C:\\Sounds\\jungle.mp3", "events": [{ "spawns": ["25:00"] }] }""";
+        await RestartAsync(() => File.WriteAllText(SettingsFile, Old));
+        Settle();
+        // Nothing changed in the app, so nothing is written.
+        Assert.Equal(Old, File.ReadAllText(SettingsFile));
+
+        // As Open settings file does before it opens the file.
+        _session.SaveNow();
+        var written = File.ReadAllText(SettingsFile);
+        Assert.DoesNotContain("callText", written, StringComparison.Ordinal);
+        Assert.Contains("\"text\": \"Jungle, go\"", written, StringComparison.Ordinal);
+
+        File.WriteAllText(SettingsFile, written.Replace("\"events\": [", "\"events\": [\n    { \"name\": \"Boss\", \"spawns\": [\"28:00\"] },", StringComparison.Ordinal));
+        _session.Reload();
+        Assert.Equal(
+            new (string?, string?, string?)[] { ("Boss", null, null), (null, "Jungle, go", @"C:\Sounds\jungle.mp3") },
+            _session.Settings.Events.Select(e => (e.Name, e.Text, e.SoundFile)));
     }
 
     [Fact]
