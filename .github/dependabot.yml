@@ -1,8 +1,8 @@
 version: 2
 updates:
   # Vendored lib/ is re-synced by hand (lib/README.md), so only our own projects are watched. The
-  # updater still follows their project references into lib/, so the packages only lib/ uses are
-  # ignored as well; re-syncing lib/ keeps this list in step.
+  # updater still follows their project references into lib/, so the packages lib/'s projects
+  # reference are ignored as well; re-syncing lib/ keeps this list in step.
   - package-ecosystem: nuget
     directories: ["/src/*", "/tests/*"]
     schedule:
