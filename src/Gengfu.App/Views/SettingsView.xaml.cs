@@ -95,6 +95,12 @@ internal partial class SettingsView : UserControl
         set => Scroller.ScrollToVerticalOffset(value);
     }
 
+    /// <summary>
+    /// Whether a Test call button reads "Calling…": a Test call is playing, and it was the one pressed.
+    /// Calls' own is the null button, pressed whenever no row's was.
+    /// </summary>
+    internal static bool ReadsCalling(bool testing, EventRow? pressed, EventRow? button) => testing && ReferenceEquals(pressed, button);
+
     public void FocusLanguage() => LanguageBox.Focus();
 
     public void FocusTheme() => ThemeBox.Focus();
@@ -209,7 +215,7 @@ internal partial class SettingsView : UserControl
     // Calls' Test call plays the first event's call; with no events there is nothing to test.
     private void ShowCallsTest()
     {
-        var testing = _session.Caller.Testing && _tested is null;
+        var testing = ReadsCalling(_session.Caller.Testing, _tested, null);
         TestButton.IsEnabled = _session.CanTest;
         TestText.Text = testing ? Strings.TestCalling : Strings.TestCall;
         AutomationProperties.SetName(TestButton, testing || _session.Settings.Events.Count == 0
@@ -223,8 +229,7 @@ internal partial class SettingsView : UserControl
     {
         foreach (var row in _rows)
         {
-            var tested = ReferenceEquals(row, _tested);
-            row.Refresh(testing: tested && _session.Caller.Testing, nobodyHeard: tested && _session.NobodyHeard);
+            row.Refresh(testing: ReadsCalling(_session.Caller.Testing, _tested, row), nobodyHeard: ReferenceEquals(row, _tested) && _session.NobodyHeard);
         }
         NoEventsCard.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var undo = _session.Undo;

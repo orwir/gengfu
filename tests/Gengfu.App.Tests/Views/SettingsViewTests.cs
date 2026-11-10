@@ -247,6 +247,21 @@ public sealed class SettingsViewTests(WpfApp wpf)
         });
 
     [Fact]
+    public Task While_a_Test_call_plays_the_one_pressed_reads_Calling_and_Calls_own_when_no_row_s_was() =>
+        OnView((_, view) =>
+        {
+            Click(view.AddEventButton);
+            var (jungle, boss) = (Rows(view)[0], Rows(view)[1]);
+
+            Assert.True(SettingsView.ReadsCalling(testing: true, pressed: null, button: null));
+            Assert.False(SettingsView.ReadsCalling(testing: true, pressed: null, button: boss));
+            Assert.False(SettingsView.ReadsCalling(testing: true, pressed: boss, button: null));
+            Assert.True(SettingsView.ReadsCalling(testing: true, pressed: boss, button: boss));
+            Assert.False(SettingsView.ReadsCalling(testing: true, pressed: boss, button: jungle));
+            Assert.False(SettingsView.ReadsCalling(testing: false, pressed: boss, button: boss));
+        });
+
+    [Fact]
     public Task With_every_event_removed_Settings_says_no_calls_go_out() =>
         OnView((_, view) =>
         {
