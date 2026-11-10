@@ -94,7 +94,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 | New or removed user journey | `docs/product/vision.md` § CUJs |
 | Change to vendored code | `lib/README.md` § Local patches |
 | Release or packaging change | `docs/guides/release.md` (created with the release issue) |
-| Process / workflow change | `CONTRIBUTING.md`; also `docs/guides/project_kickstart.md` if reusable |
+| Process / workflow change | `CONTRIBUTING.md`; if reusable, propose it for the gist's `project_kickstart.md`, which `docs/guides/` mirrors |
 
 ### Task-closing checklist
 
