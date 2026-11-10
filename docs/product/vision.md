@@ -17,7 +17,12 @@ to a minute early or after the spawn, and nobody can see or fix the offset.
 ## Who it's for
 
 Competitive WWM guilds that run GvG comms on TeamSpeak — first the maintainer's guild (top-1 EU),
-then any guild, since the app and repo are public. Discord guilds come after v0.1.
+then any guild, since the app and repo are public.
+
+Discord isn't planned. A Discord bot can't join a server by its address, as Gengfu joins
+TeamSpeak: each guild would have to register a bot on Discord's developer portal, give Gengfu its
+token and invite the bot to its server. Gengfu stays a desktop app with nothing hosted, so that
+setup would fall on every guild.
 
 ## What Gengfu is
 
@@ -49,7 +54,7 @@ and in a real GvG every squad hears all five jungle calls 30 s (±1 s) before ea
 6. One small human-readable settings file; presets shareable without secrets.
 7. A self-updating build from GitHub Releases.
 
-**Out:** Discord (planned for v0.2) · text, poke or chat notifications · ServerQuery · reading the
+**Out:** Discord (not planned) · text, poke or chat notifications · ServerQuery · reading the
 timer off the screen · remote control from TeamSpeak chat · headless or VPS hosting · an in-app
 event editor · code signing · an overlay · languages beyond English and Russian · Windows 10 ·
 macOS and Linux.

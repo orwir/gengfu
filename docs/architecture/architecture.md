@@ -16,8 +16,8 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
 | `tests/Gengfu.App.Tests` | Tests mirroring `Gengfu.App`, against this machine's own voices and media stack | App |
 
-`Gengfu.Core` never references WPF, Windows-only APIs or TSLib, so a second transport (Discord in
-v0.2) plugs in without touching it.
+`Gengfu.Core` never references WPF, Windows-only APIs or TSLib, so it is tested without the UI or a
+server, and another transport would plug in without touching it.
 
 ## Data flow
 
