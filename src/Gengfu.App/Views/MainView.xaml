@@ -36,6 +36,11 @@
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock Text="{x:Static app:Strings.Calls}" FontWeight="SemiBold" LineHeight="20" />
                 </DockPanel>
+                <!-- With no calls, the list says why, and the way to the events. -->
+                <DockPanel x:Name="NoCalls" DockPanel.Dock="Top" Margin="16,0,12,4" HorizontalAlignment="Left" Visibility="Collapsed">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Padding="4,0" Content="{x:Static app:Strings.Settings}" Click="OnSettings" />
+                    <TextBlock x:Name="NoCallsText" VerticalAlignment="Center" LineHeight="20" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </DockPanel>
                 <ScrollViewer x:Name="CallsScroller" VerticalScrollBarVisibility="Auto" Focusable="False">
                     <StackPanel x:Name="CallRows" />
                 </ScrollViewer>

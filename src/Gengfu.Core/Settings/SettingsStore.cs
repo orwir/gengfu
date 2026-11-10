@@ -202,8 +202,8 @@ internal sealed class SpawnsConverter : JsonConverter<IReadOnlyList<TimeSpan>>
     public override void Write(Utf8JsonWriter writer, IReadOnlyList<TimeSpan> value, JsonSerializerOptions options) =>
         writer.WriteRawValue("[" + string.Join(", ", value.Select(spawn => "\"" + MatchClock.Format(spawn) + "\"")) + "]");
 
-    // "5:00" and "05:00" alike; the game's timer shows nothing above 35:00.
-    private static TimeSpan? Parse(string text) =>
+    /// <summary>"5:00" and "05:00" alike; the game's timer shows nothing above 35:00.</summary>
+    internal static TimeSpan? Parse(string text) =>
         text.Split(':') is [{ Length: 1 or 2 } minutesText, { Length: 2 } secondsText]
         && int.TryParse(minutesText, NumberStyles.None, CultureInfo.InvariantCulture, out var minutes)
         && int.TryParse(secondsText, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
@@ -258,7 +258,7 @@ internal sealed class ListenersConverter : JsonConverter<ListenerKind>
         writer.WriteStringValue(value == ListenerKind.Group ? "group" : "channels");
 }
 
-/// <summary>An event's name or text with something in it: a blank one would show or say nothing.</summary>
+/// <summary>An event's name or sound file with something in it: a blank one would show or play nothing.</summary>
 internal sealed class WordsConverter : JsonConverter<string>
 {
     public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>

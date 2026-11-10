@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -10,18 +11,17 @@ using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
 using Gengfu.TeamSpeak;
-using Microsoft.Win32;
 
 namespace Gengfu.App.Views;
 
 /// <summary>
-/// Settings: the TeamSpeak server, who hears the calls, what a call plays, the language and the
-/// theme. Every change applies at once and goes into the settings file; the server password stays
-/// out of it.
+/// Settings: the TeamSpeak server, who hears the calls, how calls sound, the events whose spawns get
+/// them, the language and the theme. Every change applies at once and goes into the settings file;
+/// the server password stays out of it.
 /// </summary>
 internal partial class SettingsView : UserControl
 {
-    // A typed text is rendered once the typing pauses, not on every keystroke.
+    // Typed words are rendered once the typing pauses, not on every keystroke.
     private static readonly TimeSpan TypingPause = TimeSpan.FromMilliseconds(600);
 
     private readonly Session _session;
@@ -32,11 +32,16 @@ internal partial class SettingsView : UserControl
     // Set while the view writes a control, so only the user's own changes count.
     private bool _showing;
     private StatusTone? _tone;
-    private CallProblem? _problem;
     private KeyResult? _keyShown;
 
     // Whether the privilege key's field is open in place of its link.
     private bool _keyOpen;
+
+    // One row for each event, made again whenever events come or go.
+    private List<EventRow> _rows = [];
+
+    // The row whose Test call was pressed last; null for Calls' own, which plays the first event's.
+    private EventRow? _tested;
 
     public SettingsView(Session session, Action languageChanged, Action themeChanged)
     {
@@ -62,7 +67,6 @@ internal partial class SettingsView : UserControl
         ChannelsRadio.IsChecked = session.Settings.Listeners == ListenerKind.Channels;
         LeadBox.ItemsSource = AppSettings.Leads.Select(lead => new ComboBoxItem { Content = Copy.Lead(lead), Tag = lead }).ToList();
         LeadBox.SelectedItem = LeadBox.Items.Cast<ComboBoxItem>().First(item => (TimeSpan)item.Tag == session.Settings.Lead);
-        SayBox.Text = session.CallText;
         LanguageBox.ItemsSource = new[]
         {
             new ComboBoxItem { Content = Strings.SameAsWindows, Tag = null },
@@ -81,6 +85,7 @@ internal partial class SettingsView : UserControl
         _showing = false;
         ShowPlaceholders();
         _ = ShowVoicesAsync();
+        MakeRows([]);
         Refresh();
     }
 
@@ -102,10 +107,9 @@ internal partial class SettingsView : UserControl
         ShowConnection();
         ShowKey();
         ShowListeners();
-        ShowSound();
-        ShowNobodyHeard();
-        TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
-        TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
+        ShowVoiceHint();
+        ShowCallsTest();
+        ShowEvents();
         var updateLine = Copy.UpdateLine(_session.Updates.State);
         UpdateText.Text = updateLine ?? "";
         UpdateText.Visibility = updateLine is null ? Visibility.Collapsed : Visibility.Visible;
@@ -195,49 +199,64 @@ internal partial class SettingsView : UserControl
         GroupPlaceholder.Visibility = GroupBox.SelectedItem is null ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void ShowSound()
-    {
-        var file = _session.Settings.SoundFile;
-        SpeechPanel.Visibility = file is null ? Visibility.Visible : Visibility.Collapsed;
-        FilePanel.Visibility = file is null ? Visibility.Collapsed : Visibility.Visible;
-        FileName.Text = file is null ? "" : System.IO.Path.GetFileName(file);
-        FileBox.ToolTip = file;
-        SoundSwitch.Content = file is null ? Strings.UseSoundFile : Strings.UseText;
-        // A hint about the other kind of sound is left over from before a switch: the render runs behind.
-        var problem = _session.Clip?.Problem ?? CallProblem.None;
-        ShowHint(problem == CallProblem.FileUnreadable == (file is not null) ? problem : CallProblem.None);
-    }
+    // No voice speaks the app's language: every event's words play the gong. An event's own trouble
+    // shows on its row.
+    private void ShowVoiceHint() =>
+        SoundHint.Visibility = _session.Settings.Events.Any(matchEvent => _session.ClipOf(matchEvent)?.Problem == CallProblem.NoVoice)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
-    private void ShowNobodyHeard()
+    // Calls' Test call plays the first event's call; with no events there is nothing to test.
+    private void ShowCallsTest()
     {
-        NobodyHeardBar.Visibility = _session.NobodyHeard ? Visibility.Visible : Visibility.Collapsed;
+        var testing = _session.Caller.Testing && _tested is null;
+        TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing && _session.Settings.Events.Count > 0;
+        TestText.Text = testing ? Strings.TestCalling : Strings.TestCall;
+        AutomationProperties.SetName(TestButton, testing || _session.Settings.Events.Count == 0
+            ? TestText.Text
+            : Copy.Format(Strings.TestCallFor, Copy.EventName(_session.Settings.Events[0])));
+        NobodyHeardBar.Visibility = _session.NobodyHeard && _tested is null ? Visibility.Visible : Visibility.Collapsed;
         NobodyHeardText.Text = _session.Settings.Listeners == ListenerKind.Group ? Strings.NobodyHeardGroup : Strings.NobodyHeardChannels;
     }
 
-    private void ShowHint(CallProblem problem)
+    private void ShowEvents()
     {
-        if (_problem == problem)
+        foreach (var row in _rows)
         {
-            return;
+            var tested = ReferenceEquals(row, _tested);
+            row.Refresh(testing: tested && _session.Caller.Testing, nobodyHeard: tested && _session.NobodyHeard);
         }
-        _problem = problem;
-        SoundHint.Visibility = problem == CallProblem.None ? Visibility.Collapsed : Visibility.Visible;
-        var noVoice = problem == CallProblem.NoVoice;
-        SoundHint.Style = (Style)FindResource(noVoice ? "InfoBar" : "CautionBar");
-        HintText.Text = problem switch
+        NoEventsCard.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var undo = _session.Undo;
+        UndoBar.Visibility = undo is null ? Visibility.Collapsed : Visibility.Visible;
+        UndoText.Text = undo is { Removed: { } removed } ? Copy.Format(Strings.EventRemoved, Copy.EventName(removed)) : Strings.EventsReset;
+        BackToDefaultLink.Visibility = _session.Settings.EventsAreDefault ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    // A row for each event, open as <paramref name="open"/> says by place; Calls' bar takes back
+    // the "nobody heard" caution, as the row it showed under may be gone.
+    private void MakeRows(IReadOnlyList<bool> open)
+    {
+        EventRows.Children.Clear();
+        _rows = [.. _session.Settings.Events.Select((_, index) =>
+            new EventRow(_session, index, index < open.Count && open[index], RenderOncePaused, OnRemoveEvent, row => _tested = row)
+            {
+                Margin = new Thickness(0, 0, 0, 8),
+            })];
+        foreach (var row in _rows)
         {
-            CallProblem.NoVoice => Strings.NoVoice,
-            CallProblem.NoText => Strings.NoText,
-            CallProblem.SpeechFailed => Strings.SpeechFailed,
-            _ => Strings.FileUnreadable,
-        };
-        HintLink.Visibility = noVoice ? Visibility.Visible : Visibility.Collapsed;
-        HintDisc.SetResourceReference(Shape.FillProperty, noVoice ? "AccentFillColorDefaultBrush" : "SystemFillColorCautionBrush");
-        HintStem.SetResourceReference(Shape.StrokeProperty, "TextOnAccentFillColorPrimaryBrush");
-        HintDot.SetResourceReference(Shape.FillProperty, "TextOnAccentFillColorPrimaryBrush");
-        // An "i" for information, a "!" for a call that plays the gong.
-        HintStem.Data = Geometry.Parse(noVoice ? "M8,7.25 L8,11.25" : "M8,4.5 L8,8.75");
-        Canvas.SetTop(HintDot, noVoice ? 3.95 : 10.15);
+            EventRows.Children.Add(row);
+        }
+        _tested = null;
+    }
+
+    // Focus goes where the user looks next, once the new rows are laid out.
+    private void FocusAfterLayout(Action focus) => _ = Dispatcher.InvokeAsync(focus, DispatcherPriority.Loaded);
+
+    private void RenderOncePaused()
+    {
+        _typing.Stop();
+        _typing.Start();
     }
 
     private void ShowPlaceholders()
@@ -435,23 +454,10 @@ internal partial class SettingsView : UserControl
             return;
         }
         _session.ChangeLead(lead);
-        if (_session.Settings.CallText is null)
+        foreach (var row in _rows)
         {
-            _showing = true;
-            SayBox.Text = _session.CallText;
-            _showing = false;
+            row.ShowWords();
         }
-    }
-
-    private void OnSayChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_showing)
-        {
-            return;
-        }
-        _session.SetCallText(SayBox.Text);
-        _typing.Stop();
-        _typing.Start();
     }
 
     private async void OnVoicesOpened(object sender, EventArgs e) => await ShowVoicesAsync();
@@ -465,40 +471,63 @@ internal partial class SettingsView : UserControl
         }
     }
 
-    private void OnSoundSwitch(object sender, RoutedEventArgs e)
+    private async void OnTest(object sender, RoutedEventArgs e)
     {
-        if (_session.Settings.SoundFile is null)
-        {
-            ChooseFile();
-        }
-        else
-        {
-            _session.Settings.SoundFile = null;
-            _session.SoundChanged();
-        }
+        _tested = null;
+        await _session.TestAsync();
     }
 
-    private void OnChooseFile(object sender, RoutedEventArgs e) => ChooseFile();
-
-    private void ChooseFile()
+    // The new event opens at the end, its name selected so typing replaces it.
+    private void OnAddEvent(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog
-        {
-            Title = Strings.ChooseSoundFile,
-            Filter = $"{Strings.SoundFiles}|*.mp3;*.wav;*.wma;*.m4a;*.aac;*.flac|{Strings.AllFiles}|*.*",
-        };
-        if (_session.Settings.SoundFile is { } current)
-        {
-            dialog.InitialDirectory = System.IO.Path.GetDirectoryName(current);
-        }
-        if (dialog.ShowDialog(Window.GetWindow(this)) == true)
-        {
-            _session.Settings.SoundFile = dialog.FileName;
-            _session.SoundChanged();
-        }
+        var open = _rows.Select(row => row.IsOpen).Append(true).ToList();
+        _session.AddEvent();
+        MakeRows(open);
+        Refresh();
+        var added = _rows[^1];
+        FocusAfterLayout(added.FocusName);
     }
 
-    private async void OnTest(object sender, RoutedEventArgs e) => await _session.Caller.TestAsync();
+    // Gone at once; focus goes to Undo, which puts it back.
+    private void OnRemoveEvent(int index)
+    {
+        var open = _rows.Where(row => row.Index != index).Select(row => row.IsOpen).ToList();
+        _session.RemoveEvent(index);
+        MakeRows(open);
+        Refresh();
+        FocusAfterLayout(() => UndoButton.Focus());
+    }
+
+    private void OnBackToDefault(object sender, RoutedEventArgs e)
+    {
+        _session.ResetEvents();
+        MakeRows([]);
+        Refresh();
+        FocusAfterLayout(() => UndoButton.Focus());
+    }
+
+    // An event put back opens again, as it was when its bin was pressed, with focus on it.
+    private void OnUndo(object sender, RoutedEventArgs e)
+    {
+        if (_session.Undo is not { } undo)
+        {
+            return;
+        }
+        var back = undo.Removed is { } removed ? undo.Events.ToList().FindIndex(matchEvent => ReferenceEquals(matchEvent, removed)) : -1;
+        var open = _rows.Select(row => row.IsOpen).ToList();
+        if (back >= 0)
+        {
+            open.Insert(back, true);
+        }
+        _session.UndoEvents();
+        MakeRows(back >= 0 ? open : []);
+        Refresh();
+        if (_rows.Count > 0)
+        {
+            var focused = _rows[Math.Max(back, 0)];
+            FocusAfterLayout(focused.FocusHeader);
+        }
+    }
 
     // In the app Windows opens .json files with, or in Notepad when there is none.
     private void OnOpenSettingsFile(object sender, RoutedEventArgs e)

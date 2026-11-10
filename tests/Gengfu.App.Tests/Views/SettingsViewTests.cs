@@ -194,6 +194,63 @@ public sealed class SettingsViewTests(WpfApp wpf)
         LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>()
             .SelectMany(child => child is Control control ? [control] : Controls(child));
 
+    [Fact]
+    public Task Add_event_opens_a_new_one_at_the_end_and_Remove_and_Back_to_default_offer_Undo_until_the_events_change() =>
+        OnView((session, view) =>
+        {
+            Assert.Equal(Visibility.Collapsed, view.BackToDefaultLink.Visibility);
+            Click(view.AddEventButton);
+            var added = Rows(view)[^1];
+            Assert.Equal((2, true, "New event"), (Rows(view).Count, added.IsOpen, added.NameBox.Text));
+            Assert.False(Rows(view)[0].IsOpen);
+            Assert.Equal(Visibility.Visible, view.BackToDefaultLink.Visibility);
+
+            // Removed at once, the jungle comes back open with Undo, where it was.
+            Rows(view)[0].Row.IsExpanded = true;
+            Click(Rows(view)[0].RemoveButton);
+            Assert.Equal(new[] { "New event" }, Rows(view).Select(row => row.Title.Text));
+            Assert.Equal((Visibility.Visible, "“Jungle” removed."), (view.UndoBar.Visibility, view.UndoText.Text));
+            Click(view.UndoButton);
+            Assert.Equal(new[] { ("Jungle", true), ("New event", true) }, Rows(view).Select(row => (row.Title.Text, row.IsOpen)));
+            Assert.Equal(Visibility.Collapsed, view.UndoBar.Visibility);
+
+            Click(view.BackToDefaultLink);
+            Assert.Equal((Visibility.Visible, "Back to default: the jungle alone."), (view.UndoBar.Visibility, view.UndoText.Text));
+            Assert.Equal((1, Visibility.Collapsed), (Rows(view).Count, view.BackToDefaultLink.Visibility));
+            Assert.True(session.Settings.EventsAreDefault);
+
+            // An edit takes the offer away.
+            Rows(view)[0].SpawnsBox.Text = "25";
+            Rows(view)[0].ApplySpawns();
+            view.Refresh();
+            Assert.Equal(Visibility.Collapsed, view.UndoBar.Visibility);
+        });
+
+    [Fact]
+    public Task With_every_event_removed_Settings_says_no_calls_go_out() =>
+        OnView((_, view) =>
+        {
+            Assert.Equal(Visibility.Collapsed, view.NoEventsCard.Visibility);
+
+            Click(Rows(view)[0].RemoveButton);
+
+            Assert.Empty(Rows(view));
+            Assert.Equal(Visibility.Visible, view.NoEventsCard.Visibility);
+        });
+
+    [Fact]
+    public Task A_new_lead_rewrites_the_events_default_words_and_leaves_their_own() =>
+        OnView((session, view) =>
+        {
+            Click(view.AddEventButton);
+            Rows(view)[1].WordsBox.Text = "Boss, go go go";
+
+            view.LeadBox.SelectedItem = view.LeadBox.Items.Cast<ComboBoxItem>().Single(item => (TimeSpan)item.Tag == TimeSpan.FromSeconds(45));
+
+            Assert.Equal(new[] { "Jungle in forty-five seconds", "Boss, go go go" }, Rows(view).Select(row => row.WordsBox.Text));
+            Assert.Equal("Boss, go go go", session.Settings.Events[1].Text);
+        });
+
     [Theory]
     [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]
     public async Task Test_call_and_the_sound_file_keep_their_icon_and_label_on_one_centre(double scale)
@@ -204,19 +261,24 @@ public sealed class SettingsViewTests(WpfApp wpf)
             new FakeTimeSource(),
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
             folder);
-        session.Settings.SoundFile = @"C:\Sounds\jungle.mp3";
+        session.SetSoundFile(0, @"C:\Sounds\jungle.mp3");
         try
         {
             var offsets = wpf.Invoke(() =>
             {
                 var view = new SettingsView(session, () => { }, () => { });
+                var row = Rows(view)[0];
+                row.Row.IsExpanded = true;
                 WpfApp.Lay(view, scale);
-                var speaker = (FrameworkElement)((Panel)view.TestButton.Content).Children[0];
-                var note = (FrameworkElement)((Panel)view.FileName.Parent).Children[0];
+                FrameworkElement Icon(Button button) => (FrameworkElement)((Panel)button.Content).Children[0];
+                var note = (FrameworkElement)((Panel)row.FileName.Parent).Children[0];
+                var plus = (Panel)view.AddEventButton.Content;
                 return new[]
                 {
-                    WpfApp.Offsets(view.TestButton, speaker, view.TestText, scale),
-                    WpfApp.Offsets(view.FileBox, note, view.FileName, scale),
+                    WpfApp.Offsets(view.TestButton, Icon(view.TestButton), view.TestText, scale),
+                    WpfApp.Offsets(row.TestButton, Icon(row.TestButton), row.TestText, scale),
+                    WpfApp.Offsets(row.FileBox, note, row.FileName, scale),
+                    WpfApp.Offsets(view.AddEventButton, (FrameworkElement)plus.Children[0], (TextBlock)plus.Children[1], scale),
                 };
             });
 
@@ -250,24 +312,40 @@ public sealed class SettingsViewTests(WpfApp wpf)
             new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
             folder);
         session.Settings.Group = new Named(1625, "GvG");
+        // A second event with nothing to say, for its bar, and a third removed, for Undo's.
+        session.AddEvent();
+        session.AddEvent();
+        session.SetWords(1, "");
+        session.RemoveEvent(2);
+        session.SoundChanged();
         try
         {
-            // The hint follows the call's sound, which renders off the UI thread.
-            Assert.True(SpinWait.SpinUntil(() => session.Clip is not null, TimeSpan.FromSeconds(10)));
+            // The hints follow the calls' sounds, which render off the UI thread.
+            Assert.True(SpinWait.SpinUntil(() => session.Settings.Events.All(e => session.ClipOf(e) is not null), TimeSpan.FromSeconds(10)));
             var offsets = wpf.Invoke(() =>
             {
                 var view = new SettingsView(session, () => { }, () => { });
                 session.KeyUsed(new KeyResult(KeyOutcome.Unknown));
                 session.Whispered(session.Target!, session.Connection.State, WhisperResult.ReachedNobody);
+                var row = Rows(view)[1];
+                row.Row.IsExpanded = true;
+                row.SpawnsBox.Text = "61";
+                row.ApplySpawns();
                 view.Refresh();
                 WpfApp.Lay(view, scale);
-                Assert.All([view.FileBar, view.KeyBar, view.SoundHint, view.NobodyHeardBar], bar => Assert.Equal(Visibility.Visible, bar.Visibility));
+                Assert.All(
+                    [view.FileBar, view.KeyBar, view.SoundHint, view.NobodyHeardBar, view.UndoBar, row.SpawnsBar, row.SoundBar],
+                    bar => Assert.Equal(Visibility.Visible, bar.Visibility));
                 return new[]
                 {
                     WpfApp.Capitals(Icon(view.FileBar), view.FileErrorText, scale),
                     WpfApp.Capitals(Icon(view.KeyBar), view.KeyText, scale),
                     WpfApp.Capitals(Icon(view.SoundHint), view.HintText, scale),
                     WpfApp.Capitals(Icon(view.NobodyHeardBar), view.NobodyHeardText, scale),
+                    WpfApp.Capitals((FrameworkElement)((Panel)view.UndoText.Parent).Children[0], view.UndoText, scale),
+                    WpfApp.Capitals(Icon(row.SpawnsBar), row.SpawnsBarText, scale),
+                    WpfApp.Capitals(Icon(row.SoundBar), row.SoundBarText, scale),
+                    WpfApp.Capitals(row.SummaryMark, row.Summary, scale),
                     WpfApp.Capitals(view.ConnectionDot, view.ConnectionText, scale),
                 };
             });
@@ -286,4 +364,36 @@ public sealed class SettingsViewTests(WpfApp wpf)
 
     // A bar's icon leads the panel it holds.
     private static FrameworkElement Icon(Border bar) => (FrameworkElement)((Panel)bar.Child).Children[0];
+
+    private static List<EventRow> Rows(SettingsView view) => [.. view.EventRows.Children.Cast<EventRow>()];
+
+    private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+
+    // A view in English, on a session in a folder of its own.
+    private async Task OnView(Action<Session, SettingsView> check)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder);
+        try
+        {
+            wpf.Invoke(() =>
+            {
+                using var english = new UiCulture("en-US");
+                check(session, new SettingsView(session, () => { }, () => { }));
+                return true;
+            });
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
 }

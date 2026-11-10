@@ -10,12 +10,12 @@ namespace Gengfu.App;
 /// test call goes out the same way, outside the schedule.
 /// </summary>
 /// <param name="canSend">Whether a whisper can go out now: connected, with someone to hear it.</param>
-/// <param name="render">A call of the event as it sounds now; null asks for the sound Settings sets, which Test call plays.</param>
+/// <param name="render">A call of the event as it sounds now.</param>
 /// <param name="whisper">Sends the frames; false when they couldn't go out, or the server said they reached nobody.</param>
 internal sealed class Caller(
     CallSchedule schedule,
     Func<bool> canSend,
-    Func<MatchEvent?, Task<CallClip>> render,
+    Func<MatchEvent, Task<CallClip>> render,
     Func<IReadOnlyList<byte[]>, Task<bool>> whisper)
 {
     /// <summary>Whether a test call is playing.</summary>
@@ -24,8 +24,8 @@ internal sealed class Caller(
     /// <summary>Makes the calls due now. Call it on every tick, before reading any call's state.</summary>
     public IReadOnlyList<Task> Tick() => [.. schedule.TakeDue().Select(SendAsync)];
 
-    /// <summary>Whispers the call once, now; false when it couldn't go out, or the server said it reached nobody.</summary>
-    public async Task<bool> TestAsync()
+    /// <summary>Whispers the event's call once, now; false when it couldn't go out, or the server said it reached nobody.</summary>
+    public async Task<bool> TestAsync(MatchEvent matchEvent)
     {
         if (Testing || !canSend())
         {
@@ -34,7 +34,7 @@ internal sealed class Caller(
         Testing = true;
         try
         {
-            return await TrySendAsync(null);
+            return await TrySendAsync(matchEvent);
         }
         finally
         {
@@ -51,7 +51,7 @@ internal sealed class Caller(
     }
 
     // A send that fails, however it fails, is a call nobody heard.
-    private async Task<bool> TrySendAsync(MatchEvent? matchEvent)
+    private async Task<bool> TrySendAsync(MatchEvent matchEvent)
     {
         try
         {

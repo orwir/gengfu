@@ -21,7 +21,8 @@ public sealed record Named(ulong Id, string Name);
 
 /// <summary>
 /// Something in the match whose every spawn gets a call. Without a name it is the jungle, named in
-/// the app's language; without a text of its own, its calls play what Settings sets.
+/// the app's language. Its calls say its words in the voice Settings sets, by default its name and
+/// the lead, or play a sound file of its own in their place.
 /// </summary>
 public sealed record MatchEvent
 {
@@ -35,16 +36,41 @@ public sealed record MatchEvent
     [JsonConverter(typeof(SpawnsConverter))]
     public required IReadOnlyList<TimeSpan> Spawns { get; init; }
 
-    /// <summary>What its calls say, in the voice Settings sets, in place of what Settings sets.</summary>
-    [JsonConverter(typeof(WordsConverter))]
+    /// <summary>What its calls say; null says its name and the lead. An empty one says nothing, and the calls play the gong.</summary>
     public string? Text { get; init; }
+
+    /// <summary>A sound file its calls play in place of its words; null speaks the words.</summary>
+    [JsonConverter(typeof(WordsConverter))]
+    public string? SoundFile { get; init; }
+
+    /// <summary>
+    /// Spawn times as typed in Settings: each a game time such as 25:00 or 5:00, or whole minutes
+    /// such as 25, apart by commas or spaces, in any order. They come back soonest first, each once;
+    /// when a part isn't a game time, none come back, and that part does.
+    /// </summary>
+    public static (IReadOnlyList<TimeSpan> Spawns, string? Unreadable) ReadSpawns(string text)
+    {
+        List<TimeSpan> spawns = [];
+        foreach (var part in text.Split([',', ';', ' ', '\t'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (SpawnsConverter.Parse(part.Contains(':', StringComparison.Ordinal) ? part : part + ":00") is not { } spawn)
+            {
+                return ([], part);
+            }
+            spawns.Add(spawn);
+        }
+        return ([.. spawns.Distinct().OrderDescending()], null);
+    }
+
+    /// <summary>Spawn times as Settings shows them, such as "25:00, 15:00".</summary>
+    public static string WriteSpawns(IEnumerable<TimeSpan> spawns) => string.Join(", ", spawns.Select(MatchClock.Format));
 }
 
 /// <summary>
-/// What the user sets, in Settings or in the settings file, where the events live. The server
-/// password and the bot's identity are kept apart from it.
+/// What the user sets, in Settings or in the settings file. The server password and the bot's
+/// identity are kept apart from it.
 /// </summary>
-public sealed class AppSettings
+public sealed class AppSettings : IJsonOnDeserialized
 {
     /// <summary>The <see cref="Voice"/> that plays the gong in place of any voice.</summary>
     public const string Gong = "gong";
@@ -73,14 +99,8 @@ public sealed class AppSettings
     [JsonConverter(typeof(LeadConverter))]
     public TimeSpan Lead { get; set; } = CallSchedule.DefaultLead;
 
-    /// <summary>What a call says; null says the default for the app's language and the lead.</summary>
-    public string? CallText { get; set; }
-
     /// <summary>A Windows voice's id, or <see cref="Gong"/>; null speaks in the first voice of the app's language.</summary>
     public string? Voice { get; set; }
-
-    /// <summary>A sound file played in place of the text; null speaks the text.</summary>
-    public string? SoundFile { get; set; }
 
     /// <summary>"en" or "ru"; null follows Windows.</summary>
     [JsonConverter(typeof(LanguageConverter))]
@@ -92,4 +112,38 @@ public sealed class AppSettings
 
     /// <summary>The events whose spawns get calls; the built-in GvG preset is the jungle alone.</summary>
     public IReadOnlyList<MatchEvent> Events { get; set; } = [MatchEvent.Jungle];
+
+    /// <summary>Whether the events are the built-in GvG preset's, as a fresh Gengfu has them.</summary>
+    [JsonIgnore]
+    public bool EventsAreDefault =>
+        Events is [{ Name: null, Text: null, SoundFile: null } jungle] && jungle.Spawns.SequenceEqual(CallSchedule.GvgSpawns);
+
+    // Before 0.3 a call's text and sound file were set once for every event. A file that still has
+    // them opens, with them moved into its events, and its next save writes them there.
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    private string? CallText { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    private string? SoundFile { get; set; }
+
+    // The text was the jungle's words, and the file played for every event without words of its own.
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        if (CallText is null && SoundFile is null)
+        {
+            return;
+        }
+        var file = string.IsNullOrWhiteSpace(SoundFile) ? null : SoundFile;
+        Events =
+        [
+            .. Events.Select(matchEvent => matchEvent.Text is not null ? matchEvent : matchEvent with
+            {
+                Text = matchEvent.Name is null ? CallText : null,
+                SoundFile = matchEvent.SoundFile ?? file,
+            }),
+        ];
+        (CallText, SoundFile) = (null, null);
+    }
 }

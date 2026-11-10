@@ -81,6 +81,8 @@ public partial class MainWindow : Window
     private void ShowMain()
     {
         var fromSettings = Page.Content is SettingsView;
+        // Undo is offered only while Settings stays open.
+        _session.ForgetUndo();
         Page.Content = _main;
         _main.Refresh();
         ShowTitleBar();

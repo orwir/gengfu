@@ -32,15 +32,14 @@ public sealed class SettingsStoreTests : IDisposable
             Channels = [new Named(3977, "Пуш 1"), new Named(3978, "Пуш 2")],
             ListenersServer = "teal.example.com:9608",
             Lead = TimeSpan.FromSeconds(45),
-            CallText = "Лес через сорок пять секунд",
             Voice = @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_ruRU_IrinaM",
-            SoundFile = @"C:\Users\Игрок\Music\лес.mp3",
             Language = "ru",
             Theme = theme,
             Events =
             [
-                MatchEvent.Jungle,
-                new MatchEvent { Name = "Босс", Spawns = [TimeSpan.FromMinutes(28), TimeSpan.FromMinutes(12.5)], Text = "Босс через тридцать секунд" },
+                MatchEvent.Jungle with { Text = "Лес через сорок пять секунд" },
+                new MatchEvent { Name = "Босс", Spawns = [TimeSpan.FromMinutes(28), TimeSpan.FromMinutes(12.5)], SoundFile = @"C:\Users\Игрок\Music\босс.mp3" },
+                new MatchEvent { Name = "Дуэль", Spawns = [], Text = "" },
             ],
         };
 
@@ -49,8 +48,56 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Equal(SettingsStore.Serialize(settings), SettingsStore.Serialize(loaded));
         Assert.Equal(settings.Channels, loaded.Channels);
-        Assert.Equal((settings.Server, settings.Nickname, settings.Listeners, settings.Group, settings.Lead, settings.Voice, settings.SoundFile, settings.Language, settings.Theme),
-            (loaded.Server, loaded.Nickname, loaded.Listeners, loaded.Group, loaded.Lead, loaded.Voice, loaded.SoundFile, loaded.Language, loaded.Theme));
+        Assert.Equal((settings.Server, settings.Nickname, settings.Listeners, settings.Group, settings.Lead, settings.Voice, settings.Language, settings.Theme),
+            (loaded.Server, loaded.Nickname, loaded.Listeners, loaded.Group, loaded.Lead, loaded.Voice, loaded.Language, loaded.Theme));
+        Assert.Equal(
+            settings.Events.Select(e => (e.Name, e.Text, e.SoundFile, string.Join(" ", e.Spawns))),
+            loaded.Events.Select(e => (e.Name, e.Text, e.SoundFile, string.Join(" ", e.Spawns))));
+    }
+
+    [Fact]
+    public void A_file_from_before_events_had_their_own_words_opens_with_the_words_and_the_file_moved_into_them()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(_store.FilePath, """
+            {
+              "lead": 45,
+              "callText": "Лес через сорок пять секунд",
+              "soundFile": "C:\\Sounds\\лес.mp3",
+              "events": [
+                { "name": null, "spawns": ["25:00"], "text": null },
+                { "name": "Boss", "spawns": ["28:00"], "text": null },
+                { "name": "Supply", "spawns": ["22:30"], "text": "Supply drop in thirty seconds" }
+              ]
+            }
+            """);
+
+        var settings = Assert.IsType<SettingsLoad.Loaded>(_store.Load()).Settings;
+
+        // The text was the jungle's words; the file played for every event without words of its own.
+        Assert.Equal(
+            new (string?, string?, string?)[]
+            {
+                (null, "Лес через сорок пять секунд", @"C:\Sounds\лес.mp3"),
+                ("Boss", null, @"C:\Sounds\лес.mp3"),
+                ("Supply", "Supply drop in thirty seconds", null),
+            },
+            settings.Events.Select(e => (e.Name, e.Text, e.SoundFile)));
+        var saved = SettingsStore.Serialize(settings);
+        Assert.DoesNotContain("callText", saved, StringComparison.Ordinal);
+        Assert.Equal(2, saved.Split("\"soundFile\": \"C:\\\\Sounds\\\\лес.mp3\"").Length - 1);
+    }
+
+    [Fact]
+    public void A_file_with_only_the_old_text_or_a_blank_old_file_moves_what_it_has()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(_store.FilePath, """{ "callText": "", "soundFile": " ", "events": [{ "spawns": ["25:00"] }, { "spawns": ["20:00"], "soundFile": "C:\\Sounds\\own.mp3" }] }""");
+
+        var settings = Assert.IsType<SettingsLoad.Loaded>(_store.Load()).Settings;
+
+        // An empty text said nothing, and the calls played the gong; they still do.
+        Assert.Equal(new (string?, string?)[] { ("", null), ("", @"C:\Sounds\own.mp3") }, settings.Events.Select(e => (e.Text, e.SoundFile)));
     }
 
     [Fact]
@@ -83,16 +130,15 @@ public sealed class SettingsStoreTests : IDisposable
               "channels": [],
               "listenersServer": null,
               "lead": 30,
-              "callText": null,
               "voice": null,
-              "soundFile": null,
               "language": null,
               "theme": null,
               "events": [
                 {
                   "name": null,
                   "spawns": ["25:00", "20:00", "15:00", "10:00", "05:00"],
-                  "text": null
+                  "text": null,
+                  "soundFile": null
                 }
               ]
             }
@@ -150,7 +196,8 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("{\n  \"events\": [{ \"spawns\": [1500] }]\n}", 2, "events[0].spawns")]
     [InlineData("{\n  \"events\": [{ \"spawns\": \"25:00\" }]\n}", 2, "events[0].spawns")]
     [InlineData("{\n  \"events\": [{ \"name\": \" \", \"spawns\": [] }]\n}", 2, "events[0].name")]
-    [InlineData("{\n  \"events\": [{ \"spawns\": [], \"text\": \"\" }]\n}", 2, "events[0].text")]
+    [InlineData("{\n  \"events\": [{ \"spawns\": [], \"text\": 1 }]\n}", 2, "events[0].text")]
+    [InlineData("{\n  \"events\": [{ \"spawns\": [], \"soundFile\": \" \" }]\n}", 2, "events[0].soundFile")]
     [InlineData("{\n  \"events\": [{ \"spawns\": [] },\n    { \"spawns\": [], \"colour\": 1 }]\n}", 3, "events[1].colour")]
     [InlineData("{\n  \"events\": [{ \"spawns\": [],\n    \"spawns\": [\"25:00\"] }]\n}", 3, "events[0].spawns")]
     [InlineData("{\n  \"events\": [\n    { \"spawns\": [] },\n    null\n  ]\n}", 4, "events[1]")]

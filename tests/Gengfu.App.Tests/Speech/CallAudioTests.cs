@@ -145,10 +145,49 @@ public sealed class CallAudioTests : IDisposable
     [Fact]
     public async Task A_file_Windows_cannot_read_plays_the_gong_with_its_error()
     {
-        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "missing.mp3")), English);
+        _readFile = _ => throw new InvalidDataException("Not a sound.");
+
+        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Touch("notes.txt")), English);
 
         Assert.Equal(CallProblem.FileUnreadable, clip.Problem);
-        Assert.Equal("No such file.", clip.Detail);
+        Assert.Equal("Not a sound.", clip.Detail);
+        Assert.Same(await GongFrames(), clip.Frames);
+    }
+
+    [Fact]
+    public async Task A_file_that_isn_t_on_this_PC_plays_the_gong_and_says_so_without_asking_Windows()
+    {
+        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "missing.mp3")), English);
+
+        Assert.Equal(CallProblem.FileMissing, clip.Problem);
+        Assert.Empty(_read);
+        Assert.Same(await GongFrames(), clip.Frames);
+    }
+
+    [Fact]
+    public async Task A_file_that_can_t_play_gives_way_to_what_plays_otherwise_and_says_why()
+    {
+        var words = new CallSound.Speech("Boss in thirty seconds");
+        var spoken = await _audio.RenderAsync(words, English);
+
+        var missing = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "boss.mp3"), words), English);
+        _readFile = _ => throw new InvalidDataException("Not a sound.");
+        var unreadable = await _audio.RenderAsync(new CallSound.AudioFile(Touch("notes.txt"), words), English);
+
+        Assert.Equal(CallProblem.FileMissing, missing.Problem);
+        Assert.Same(spoken.Frames, missing.Frames);
+        Assert.Equal((CallProblem.FileUnreadable, "Not a sound."), (unreadable.Problem, unreadable.Detail));
+        Assert.Same(spoken.Frames, unreadable.Frames);
+    }
+
+    [Fact]
+    public async Task When_what_plays_otherwise_can_t_either_the_gong_plays_and_the_clip_says_why()
+    {
+        _voices.Clear();
+
+        var clip = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "boss.mp3"), new CallSound.Speech("Boss in thirty seconds")), English);
+
+        Assert.Equal(CallProblem.NoVoice, clip.Problem);
         Assert.Same(await GongFrames(), clip.Frames);
     }
 
@@ -167,14 +206,14 @@ public sealed class CallAudioTests : IDisposable
     }
 
     [Fact]
-    public async Task A_missing_file_says_why_in_Windows_own_words()
+    public async Task A_file_Windows_cannot_read_says_why_in_Windows_own_words()
     {
-        var clip = await new CallAudio().RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "missing.mp3")), English);
+        var clip = await new CallAudio().RenderAsync(new CallSound.AudioFile(Touch("notes.mp3")), English);
 
         Assert.Equal(CallProblem.FileUnreadable, clip.Problem);
         if (Sound.MediaFoundationInstalled)
         {
-            Assert.Contains("0x80070002", clip.Detail);
+            Assert.Matches("0x[0-9A-F]{8}", clip.Detail);
         }
         else
         {

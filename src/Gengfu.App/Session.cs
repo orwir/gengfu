@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using Gengfu.App.Speech;
@@ -17,6 +16,9 @@ internal sealed record Login(string Server, string Nickname, string Password)
             string.IsNullOrWhiteSpace(settings.Nickname) ? AppSettings.DefaultNickname : settings.Nickname.Trim(),
             password);
 }
+
+/// <summary>What Undo puts back: the events as they were, and the one removed, or none after Back to default.</summary>
+internal sealed record EventsUndo(IReadOnlyList<MatchEvent> Events, MatchEvent? Removed);
 
 /// <summary>
 /// One running Gengfu: what Settings holds, kept in the settings file, the match clock and its calls,
@@ -46,9 +48,8 @@ internal sealed class Session : IAsyncDisposable
     private readonly IDisposable _watch;
     private readonly bool _secretsUnread;
 
-    // The clips of the events' own texts, by text.
-    private readonly Dictionary<string, Task<CallClip>> _clips = [];
-    private Task<CallClip> _clip;
+    // The events' calls, by what they play.
+    private readonly Dictionary<CallSound, Task<CallClip>> _clips = [];
     private ConnectionStatus _seen;
     private int _touched;
     private TimeSpan? _readAt;
@@ -141,9 +142,6 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>The server's channels in its tree order, as of the last look.</summary>
     public IReadOnlyList<ChannelInfo> Channels { get; private set; } = [];
 
-    /// <summary>The call as Settings sets it, last rendered, with why it plays the gong when it does; null until the first render ends.</summary>
-    public CallClip? Clip => _clip.IsCompletedSuccessfully ? _clip.Result : null;
-
     /// <summary>Who hears the calls; null until a group or a channel is chosen.</summary>
     public WhisperTarget? Target => Settings.Listeners switch
     {
@@ -181,8 +179,11 @@ internal sealed class Session : IAsyncDisposable
 
     public StatusLine SettingsStatus => StatusLine.InSettings(Connection.State, ConnectedWith?.Server, Settings, Clock.Time.Now);
 
-    /// <summary>What a call says: the user's text, or the default for the language and lead.</summary>
-    public string CallText => TextOf(Settings, Language);
+    /// <summary>
+    /// The events before the last Remove or Back to default, while Settings offers to undo it; null
+    /// once the events change again or Settings closes.
+    /// </summary>
+    public EventsUndo? Undo { get; private set; }
 
     /// <summary>
     /// Makes the calls due now, keeps the server's lists fresh, keeps the settings file in step both
@@ -297,9 +298,68 @@ internal sealed class Session : IAsyncDisposable
         Settings.ListenersServer = ConnectedWith?.Server;
     }
 
-    /// <summary>Takes the typed text. The default text is kept as "the default", so it follows the lead and the language.</summary>
-    public void SetCallText(string text) =>
-        Settings.CallText = text == Copy.CallText(Settings.Lead, Language) ? null : text;
+    /// <summary>Renames the event; an empty name, or the jungle's own, makes it the jungle.</summary>
+    public void RenameEvent(int index, string name) =>
+        EditEvent(index, matchEvent => matchEvent with
+        {
+            Name = string.IsNullOrWhiteSpace(name) || name == Copy.EventName(MatchEvent.Jungle, Language) ? null : name,
+        });
+
+    public void SetSpawns(int index, IReadOnlyList<TimeSpan> spawns) => EditEvent(index, matchEvent => matchEvent with { Spawns = spawns });
+
+    /// <summary>Takes the typed words. The default words are kept as "the default", so they follow the name, the lead and the language.</summary>
+    public void SetWords(int index, string words) =>
+        EditEvent(index, matchEvent => matchEvent with { Text = words == Copy.DefaultWords(matchEvent, Settings.Lead, Language) ? null : words });
+
+    /// <summary>Gives the event a sound file of its own; null gives it its words back.</summary>
+    public void SetSoundFile(int index, string? file)
+    {
+        EditEvent(index, matchEvent => matchEvent with { SoundFile = file });
+        SoundChanged();
+    }
+
+    /// <summary>Puts a new event at the end, named for the user to rename, with no spawn times yet.</summary>
+    public void AddEvent()
+    {
+        var was = Settings.Events;
+        ChangeEvents([.. was, new MatchEvent { Name = Strings.ResourceManager.GetString(nameof(Strings.NewEvent), Language), Spawns = [] }], [.. was, null]);
+        SoundChanged();
+    }
+
+    /// <summary>Removes the event at once; Undo puts it back.</summary>
+    public void RemoveEvent(int index)
+    {
+        var was = Settings.Events;
+        var left = was.Where((_, i) => i != index).ToList();
+        ChangeEvents(left, left);
+        Undo = new EventsUndo(was, was[index]);
+    }
+
+    /// <summary>Puts the built-in GvG preset back, the jungle alone, at once; Undo puts the events back.</summary>
+    public void ResetEvents()
+    {
+        var was = Settings.Events;
+        ChangeEvents([MatchEvent.Jungle]);
+        Undo = new EventsUndo(was, null);
+        SoundChanged();
+    }
+
+    /// <summary>Puts back the events the last Remove or Back to default took.</summary>
+    public void UndoEvents()
+    {
+        if (Undo is { } undo)
+        {
+            ChangeEvents(undo.Events);
+            SoundChanged();
+        }
+    }
+
+    /// <summary>Settings has closed, and with it the offer to undo.</summary>
+    public void ForgetUndo() => Undo = null;
+
+    /// <summary>Whispers the event's call once, now, or the first event's; false when it couldn't go out, there is no event, or nobody heard it.</summary>
+    public Task<bool> TestAsync(MatchEvent? matchEvent = null) =>
+        (matchEvent ?? Settings.Events.FirstOrDefault()) is { } tested ? Caller.TestAsync(tested) : Task.FromResult(false);
 
     public void ChangeLead(TimeSpan lead)
     {
@@ -324,24 +384,25 @@ internal sealed class Session : IAsyncDisposable
         AppTheme.Apply(choice);
     }
 
-    /// <summary>Renders the calls again, after a text, the voice or the file changed, or a voice was added to Windows.</summary>
-    [MemberNotNull(nameof(_clip))]
+    /// <summary>Renders the events' calls again, after words, the voice or a file changed, or a voice was added to Windows.</summary>
     public void SoundChanged()
     {
-        _clip = Render(null);
         _clips.Clear();
-        foreach (var matchEvent in Settings.Events.Where(matchEvent => matchEvent.Text is not null).DistinctBy(matchEvent => matchEvent.Text))
+        foreach (var sound in Settings.Events.Select(matchEvent => SoundOf(Settings, matchEvent, Language)).Distinct())
         {
-            _clips[matchEvent.Text!] = Render(matchEvent);
+            _clips[sound] = _audio.RenderAsync(sound, Language);
         }
     }
 
+    /// <summary>The event's call as last rendered, with why it isn't what it was given when it isn't; null until a render ends.</summary>
+    public CallClip? ClipOf(MatchEvent matchEvent) =>
+        _clips.GetValueOrDefault(SoundOf(Settings, matchEvent, Language)) is { IsCompletedSuccessfully: true } clip ? clip.Result : null;
+
+    /// <summary>The words a call of the event says: its own, or its name and the lead in the app's language.</summary>
+    public string WordsOf(MatchEvent matchEvent) => WordsOf(Settings, matchEvent, Language);
+
     /// <summary>What listeners hear from a call of <paramref name="matchEvent"/>, in words, for the line under the clock.</summary>
-    public string HeardFor(MatchEvent matchEvent)
-    {
-        var clip = matchEvent.Text is { } text ? _clips.GetValueOrDefault(text) : _clip;
-        return HeardAs(Settings, matchEvent, Language, clip is { IsCompletedSuccessfully: true } ? clip.Result : null);
-    }
+    public string HeardFor(MatchEvent matchEvent) => HeardAs(Settings, matchEvent, Language, ClipOf(matchEvent));
 
     /// <summary>Writes what changed at once, so the file opened in an editor holds it.</summary>
     public void SaveNow() => Save(flush: true);
@@ -421,32 +482,37 @@ internal sealed class Session : IAsyncDisposable
     internal static bool CanUseKeyFor(ConnectionStatus status, string key, bool sending) =>
         !sending && key.Trim().Length > 0 && status == ConnectionStatus.Connected;
 
-    internal static string TextOf(AppSettings settings, CultureInfo language) =>
-        settings.CallText ?? Copy.CallText(settings.Lead, language);
+    internal static string WordsOf(AppSettings settings, MatchEvent matchEvent, CultureInfo language) =>
+        matchEvent.Text ?? Copy.DefaultWords(matchEvent, settings.Lead, language);
 
     /// <summary>
-    /// What a call of <paramref name="matchEvent"/> plays: its own text in the chosen voice, else what
-    /// Settings sets. Null asks for Settings' own, which Test call plays.
+    /// What a call of <paramref name="matchEvent"/> plays: its sound file, which gives way to its
+    /// words when it can't play; or its words, in the chosen voice or as the gong.
     /// </summary>
-    internal static CallSound SoundOf(AppSettings settings, MatchEvent? matchEvent, CultureInfo language) =>
-        matchEvent?.Text is { } text ? Spoken(settings, text)
-        : settings.SoundFile is { } file ? new CallSound.AudioFile(file)
-        : Spoken(settings, TextOf(settings, language));
+    internal static CallSound SoundOf(AppSettings settings, MatchEvent matchEvent, CultureInfo language)
+    {
+        var words = settings.Voice == AppSettings.Gong
+            ? (CallSound)new CallSound.Gong()
+            : new CallSound.Speech(WordsOf(settings, matchEvent, language), settings.Voice);
+        return matchEvent.SoundFile is { } file ? new CallSound.AudioFile(file, words) : words;
+    }
 
-    /// <summary>The text, the file's name, or the gong whenever the call plays it, chosen or not.</summary>
-    internal static string HeardAs(AppSettings settings, MatchEvent? matchEvent, CultureInfo language, CallClip? clip) =>
-        clip is { Problem: not CallProblem.None } ? Strings.Gong
-        : SoundOf(settings, matchEvent, language) switch
+    /// <summary>The words, the file's name, or the gong: whichever the call plays, chosen or not.</summary>
+    internal static string HeardAs(AppSettings settings, MatchEvent matchEvent, CultureInfo language, CallClip? clip)
+    {
+        var sound = SoundOf(settings, matchEvent, language);
+        if (sound is CallSound.AudioFile { Otherwise: { } otherwise } && clip?.Problem is CallProblem.FileMissing or CallProblem.FileUnreadable)
         {
-            CallSound.AudioFile file => Path.GetFileName(file.Path),
-            CallSound.Speech speech => speech.Text,
-            _ => Strings.Gong,
-        };
-
-    private static CallSound Spoken(AppSettings settings, string text) =>
-        settings.Voice == AppSettings.Gong ? new CallSound.Gong() : new CallSound.Speech(text, settings.Voice);
-
-    private Task<CallClip> Render(MatchEvent? matchEvent) => _audio.RenderAsync(SoundOf(Settings, matchEvent, Language), Language);
+            sound = otherwise;
+        }
+        return clip?.Problem is CallProblem.NoVoice or CallProblem.NoText or CallProblem.SpeechFailed ? Strings.Gong
+            : sound switch
+            {
+                CallSound.AudioFile file => Path.GetFileName(file.Path),
+                CallSound.Speech speech => speech.Text,
+                _ => Strings.Gong,
+            };
+    }
 
     // A call goes out to the listeners chosen now, on the connection as it stands now.
     private async Task<bool> WhisperAsync(IReadOnlyList<byte[]> frames)
@@ -459,20 +525,32 @@ internal sealed class Session : IAsyncDisposable
         return Whispered(target, on, await Connection.WhisperAsync(frames, target));
     }
 
-    // A call asks for its sound as it is now: its event's own, or Settings' for the rest and Test call.
-    private Task<CallClip> RenderAsync(MatchEvent? matchEvent)
+    // A call asks for its sound as it is now.
+    private Task<CallClip> RenderAsync(MatchEvent matchEvent)
     {
-        if (matchEvent?.Text is not { } text)
-        {
-            return _clip = Render(null);
-        }
-        return _clips[text] = Render(matchEvent);
+        var sound = SoundOf(Settings, matchEvent, Language);
+        return _clips[sound] = _audio.RenderAsync(sound, Language);
+    }
+
+    private void EditEvent(int index, Func<MatchEvent, MatchEvent> edit)
+    {
+        var was = Settings.Events;
+        ChangeEvents([.. was.Select((matchEvent, i) => i == index ? edit(matchEvent) : matchEvent)], was);
+    }
+
+    // Every change of the events comes here, and the offer to undo goes with each.
+    private void ChangeEvents(IReadOnlyList<MatchEvent> events, IReadOnlyList<MatchEvent?>? was = null)
+    {
+        Settings.Events = events;
+        Schedule.ChangeEvents(events, was);
+        Undo = null;
     }
 
     private void Apply(AppSettings settings)
     {
         var themeChanged = settings.Theme != Settings.Theme;
         Settings = settings;
+        Undo = null;
         _settingsWritten = SettingsStore.Serialize(settings);
         // The language and the theme are the whole app's, so each is set only when the file changes it.
         if (AppLanguage.Resolve(settings.Language, _windows) is var language && language != Language)
