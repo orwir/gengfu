@@ -53,8 +53,10 @@ server, and another transport would plug in without touching it.
   Settings edits the events through it, mid-match too. An edit tells the schedule which event each
   new one was, so an event renamed or given other times keeps its calls, made stays made; an edit
   of the file can't, so there a call is the one of an event of the same name at the same spawn.
-  It keeps the events a Remove or Back to default took, for Undo, until the events change again or
-  Settings closes.
+  Back to default puts the jungle alone back at its spawn times, keeping its words and sound file,
+  so the text and sound file an old file moved into it don't count as a change. It keeps the
+  events a Remove or Back to default took, for Undo, until the events change again or Settings
+  closes.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
   line's words. When the server says a call reached nobody, `Session` keeps that for the status line
   and Settings until a whisper gets through, the connection is new, or other listeners are chosen.

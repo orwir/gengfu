@@ -342,11 +342,15 @@ internal sealed class Session : IAsyncDisposable
         Undo = new EventsUndo(was, was[index]);
     }
 
-    /// <summary>Puts the built-in GvG preset back, the jungle alone, at once; Undo puts the events back.</summary>
+    /// <summary>
+    /// Puts the built-in GvG preset back at once, the jungle alone at its spawn times, keeping how the
+    /// jungle sounds: its words and sound file. Undo puts the events back.
+    /// </summary>
     public void ResetEvents()
     {
         var was = Settings.Events;
-        ChangeEvents([MatchEvent.Jungle]);
+        var jungle = was.FirstOrDefault(matchEvent => matchEvent.Name is null);
+        ChangeEvents([MatchEvent.Jungle with { Text = jungle?.Text, SoundFile = jungle?.SoundFile }]);
         Undo = new EventsUndo(was, null);
         SoundChanged();
     }

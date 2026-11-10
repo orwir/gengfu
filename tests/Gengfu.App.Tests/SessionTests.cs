@@ -152,6 +152,24 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Back_to_default_keeps_how_the_jungle_sounds_and_a_jungle_made_anew_says_its_default_words()
+    {
+        _session.SetWords(0, "Jungle, go go go");
+        _session.SetSoundFile(0, @"C:\Sounds\jungle.mp3");
+        _session.SetSpawns(0, [TimeSpan.FromMinutes(25)]);
+        _session.AddEvent();
+
+        _session.ResetEvents();
+        var jungle = Assert.Single(_session.Settings.Events);
+        Assert.Equal((null, "Jungle, go go go", @"C:\Sounds\jungle.mp3"), (jungle.Name, jungle.Text, jungle.SoundFile));
+        Assert.Equal(CallSchedule.GvgSpawns, jungle.Spawns);
+
+        _session.RemoveEvent(0);
+        _session.ResetEvents();
+        Assert.Equal((null, null), (_session.Settings.Events[0].Text, _session.Settings.Events[0].SoundFile));
+    }
+
+    [Fact]
     public async Task Events_edited_in_Settings_are_saved_and_come_back_on_the_next_start()
     {
         _session.AddEvent();

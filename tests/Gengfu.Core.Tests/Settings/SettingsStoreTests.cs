@@ -89,6 +89,24 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void An_old_file_with_the_built_in_jungle_still_has_the_default_events_once_its_text_and_file_move_in()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(_store.FilePath, """
+            {
+              "callText": "Jungle, go go go",
+              "soundFile": "C:\\Sounds\\jungle.mp3",
+              "events": [{ "name": null, "spawns": ["25:00", "20:00", "15:00", "10:00", "05:00"], "text": null }]
+            }
+            """);
+
+        var settings = Assert.IsType<SettingsLoad.Loaded>(_store.Load()).Settings;
+
+        Assert.Equal(("Jungle, go go go", @"C:\Sounds\jungle.mp3"), (settings.Events[0].Text, settings.Events[0].SoundFile));
+        Assert.True(settings.EventsAreDefault);
+    }
+
+    [Fact]
     public void A_file_with_only_the_old_text_or_a_blank_old_file_moves_what_it_has()
     {
         Directory.CreateDirectory(_folder);

@@ -113,10 +113,13 @@ public sealed class AppSettings : IJsonOnDeserialized
     /// <summary>The events whose spawns get calls; the built-in GvG preset is the jungle alone.</summary>
     public IReadOnlyList<MatchEvent> Events { get; set; } = [MatchEvent.Jungle];
 
-    /// <summary>Whether the events are the built-in GvG preset's, as a fresh Gengfu has them.</summary>
+    /// <summary>
+    /// Whether the events are the built-in GvG preset's: the jungle alone at its spawn times. How it
+    /// sounds doesn't count: its words and sound file stay through Back to default, as Call ahead and
+    /// Voice do, so an old file's text and sound file don't make the events read as changed.
+    /// </summary>
     [JsonIgnore]
-    public bool EventsAreDefault =>
-        Events is [{ Name: null, Text: null, SoundFile: null } jungle] && jungle.Spawns.SequenceEqual(CallSchedule.GvgSpawns);
+    public bool EventsAreDefault => Events is [{ Name: null } jungle] && jungle.Spawns.SequenceEqual(CallSchedule.GvgSpawns);
 
     /// <summary>Whether the file these were read from set a call's text or sound file once for every event, as before 0.3.</summary>
     internal bool FromOldFile { get; private set; }

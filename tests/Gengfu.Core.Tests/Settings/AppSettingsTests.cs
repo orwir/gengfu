@@ -32,10 +32,19 @@ public class AppSettingsTests
     }
 
     [Fact]
-    public void The_events_are_the_default_only_while_they_are_the_jungle_alone_as_built_in()
+    public void The_events_are_the_default_while_they_are_the_jungle_alone_at_its_times_however_it_sounds()
     {
-        var settings = new AppSettings { Events = [MatchEvent.Jungle with { Spawns = [.. CallSchedule.GvgSpawns] }] };
-        Assert.True(settings.EventsAreDefault);
+        var settings = new AppSettings();
+        foreach (var events in new IReadOnlyList<MatchEvent>[]
+        {
+            [MatchEvent.Jungle with { Spawns = [.. CallSchedule.GvgSpawns] }],
+            [MatchEvent.Jungle with { Text = "Jungle, go go go" }],
+            [MatchEvent.Jungle with { SoundFile = @"C:\Sounds\jungle.mp3" }],
+        })
+        {
+            settings.Events = events;
+            Assert.True(settings.EventsAreDefault);
+        }
 
         foreach (var events in new IReadOnlyList<MatchEvent>[]
         {
@@ -43,8 +52,6 @@ public class AppSettingsTests
             [MatchEvent.Jungle, MatchEvent.Jungle with { Name = "Boss" }],
             [MatchEvent.Jungle with { Name = "Forest" }],
             [MatchEvent.Jungle with { Spawns = [TimeSpan.FromMinutes(25)] }],
-            [MatchEvent.Jungle with { Text = "Jungle, go go go" }],
-            [MatchEvent.Jungle with { SoundFile = @"C:\Sounds\jungle.mp3" }],
         })
         {
             settings.Events = events;

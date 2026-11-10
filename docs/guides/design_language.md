@@ -131,8 +131,9 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   says), Spawn times, Say or the event's sound file, then its own Test call and the switch between
   words and file. Spawn times are one field, read on Enter or leaving it: game times or whole
   minutes, written back sorted as 25:00. Say wraps, so a long Russian call shows whole. Under the
-  events, Add event, and Back to default while the events differ from the built-in ones; with no
-  events, a card says no calls go out.
+  events, Add event, and Back to default while the events differ from the built-in ones, the
+  jungle alone at its five times; how the jungle sounds doesn't count, and Back to default keeps
+  it. With no events, a card says no calls go out.
 - **Sound file:** in an event, in place of Say, the file's name with a note icon and Change;
   "Use text instead" goes back to the words.
 - **Hints:** an info bar with an accent "i" (the no-voice hint, under Voice), or a caution bar
