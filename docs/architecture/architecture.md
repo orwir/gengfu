@@ -163,7 +163,9 @@ watches the file: an edit saved there applies at once, events, language and them
 already made stay made. A file with an error changes nothing, and Settings shows where the error is
 until it is fixed. A file written before 0.3 set a call's text and sound file once for every event;
 it opens with them moved into its events, the text into the jungle's and the file into every event
-without words of its own, and its next save writes them there.
+without words of its own, and its next save writes them there. Open settings file writes it so
+before it opens it: read again with a preset's events pasted in, the old text and file would go to
+them too.
 
 The server password and the bot's identity stay out of the file, so it can be shared; a privilege
 key is kept nowhere, since a used one is worthless. `Secrets`

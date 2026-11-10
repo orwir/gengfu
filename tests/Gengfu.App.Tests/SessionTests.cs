@@ -361,8 +361,9 @@ public sealed class SessionTests : IAsyncLifetime
         Assert.Equal("Boss, go go go", Session.HeardAs(settings, boss, English, played));
         Assert.Equal("the gong", Session.HeardAs(settings, boss, English, new CallClip([[1]], CallProblem.NoVoice)));
         Assert.Equal("boss.mp3", Session.HeardAs(settings, withFile, English, played));
-        // A file that can't play gives way to the words.
+        // A file that can't play gives way to the words, and to the gong when they can't be spoken either.
         Assert.Equal("Boss, go go go", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileMissing)));
+        Assert.Equal("the gong", Session.HeardAs(settings, withFile, English, new CallClip([[1]], CallProblem.FileMissing, Instead: CallProblem.NoVoice)));
 
         settings.Voice = AppSettings.Gong;
         Assert.Equal("the gong", Session.HeardAs(settings, MatchEvent.Jungle, English, played));
@@ -490,6 +491,28 @@ public sealed class SessionTests : IAsyncLifetime
         _session.Settings.Nickname = "Gengfu 2";
         Settle();
         Assert.Contains("\"nickname\": \"Gengfu 2\"", File.ReadAllText(SettingsFile), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_file_from_before_0_3_is_written_afresh_when_opened_to_edit_so_a_pasted_preset_reads_as_pasted()
+    {
+        const string Old = """{ "callText": "Jungle, go", "soundFile": "C:\\Sounds\\jungle.mp3", "events": [{ "spawns": ["25:00"] }] }""";
+        await RestartAsync(() => File.WriteAllText(SettingsFile, Old));
+        Settle();
+        // Nothing changed in the app, so nothing is written.
+        Assert.Equal(Old, File.ReadAllText(SettingsFile));
+
+        // As Open settings file does before it opens the file.
+        _session.SaveNow();
+        var written = File.ReadAllText(SettingsFile);
+        Assert.DoesNotContain("callText", written, StringComparison.Ordinal);
+        Assert.Contains("\"text\": \"Jungle, go\"", written, StringComparison.Ordinal);
+
+        File.WriteAllText(SettingsFile, written.Replace("\"events\": [", "\"events\": [\n    { \"name\": \"Boss\", \"spawns\": [\"28:00\"] },", StringComparison.Ordinal));
+        _session.Reload();
+        Assert.Equal(
+            new (string?, string?, string?)[] { ("Boss", null, null), (null, "Jungle, go", @"C:\Sounds\jungle.mp3") },
+            _session.Settings.Events.Select(e => (e.Name, e.Text, e.SoundFile)));
     }
 
     [Fact]

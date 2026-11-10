@@ -112,6 +112,41 @@ public sealed class EventRowTests(WpfApp wpf)
             Assert.Equal(Strings.NobodyHeardGroup, row.NobodyHeardText.Text);
         });
 
+    [Fact]
+    public async Task When_a_file_can_t_play_and_its_words_can_t_be_spoken_either_the_row_says_the_gong_plays()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        // No voice at all: the words that would play in the file's place play the gong.
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder);
+        try
+        {
+            session.SetSoundFile(0, Path.Combine(folder, "jungle.mp3"));
+            Assert.True(SpinWait.SpinUntil(() => session.ClipOf(session.Settings.Events[0]) is not null, TimeSpan.FromSeconds(10)));
+
+            var (bar, summary) = wpf.Invoke(() =>
+            {
+                using var english = new UiCulture("en-US");
+                var row = new EventRow(session, 0, open: true, () => { }, _ => { }, _ => { });
+                return ((row.SoundBar.Visibility, row.SoundBarText.Text), (row.Summary.Text, row.SummaryMark.Visibility));
+            });
+
+            Assert.Equal((Visibility.Visible, "jungle.mp3 isn’t on this PC, so its calls play a gong."), bar);
+            Assert.Equal(("jungle.mp3 isn’t on this PC", Visibility.Visible), summary);
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
     // The controls under an element in tree order, which is the order Tab takes.
     private static IEnumerable<Control> Controls(DependencyObject parent) =>
         LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>()

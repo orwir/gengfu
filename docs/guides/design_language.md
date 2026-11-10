@@ -138,7 +138,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Hints:** an info bar with an accent "i" (the no-voice hint, under Voice), or a caution bar
   with a "!" under an event's field: times it can't read, nothing to say or words Windows failed
   to speak (the gong plays), or a file that can't play, missing on this PC or not a sound Windows
-  plays (the words play instead, quoted, or the gong when it is the voice). Under the Test call
+  plays (the words play instead, quoted, or the gong when it is the voice or the words can't be
+  spoken either). Under the Test call
   pressed last, a caution bar says the server said the last call reached nobody, and why that may
   be, for the group or the channels: Settings hides the main window's status line. Under the
   privilege key, a success bar with a check names the group the server put the bot in, or an

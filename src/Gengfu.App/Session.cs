@@ -60,6 +60,9 @@ internal sealed class Session : IAsyncDisposable
     private string? _settingsWritten;
     private (string, string?) _secretsWritten;
 
+    // The file on disk still sets a call's text or sound file once for every event, as before 0.3.
+    private bool _oldFile;
+
     // The listeners the last whisper reached nobody among, as the server said, and the connection's
     // state when it went out. The connection replaces its state whenever it changes, so while that
     // state stands, the connection is the same one.
@@ -82,6 +85,7 @@ internal sealed class Session : IAsyncDisposable
             case SettingsLoad.Loaded loaded:
                 Settings = loaded.Settings;
                 _settingsWritten = SettingsStore.Serialize(Settings);
+                _oldFile = loaded.Old;
                 break;
             case SettingsLoad.Broken broken:
                 FileError = broken.Error;
@@ -407,8 +411,18 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>What listeners hear from a call of <paramref name="matchEvent"/>, in words, for the line under the clock.</summary>
     public string HeardFor(MatchEvent matchEvent) => HeardAs(Settings, matchEvent, Language, ClipOf(matchEvent));
 
-    /// <summary>Writes what changed at once, so the file opened in an editor holds it.</summary>
-    public void SaveNow() => Save(flush: true);
+    /// <summary>
+    /// Writes what changed at once, so the file opened in an editor holds it. A file from before 0.3
+    /// is written afresh too: read again with events pasted in, its text and sound file would go to them.
+    /// </summary>
+    public void SaveNow()
+    {
+        if (_oldFile)
+        {
+            _settingsWritten = null;
+        }
+        Save(flush: true);
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -452,6 +466,7 @@ internal sealed class Session : IAsyncDisposable
             case SettingsLoad.Loaded loaded:
                 FileError = null;
                 Apply(loaded.Settings);
+                _oldFile = loaded.Old;
                 break;
             case SettingsLoad.Broken broken:
                 FileError = broken.Error;
@@ -460,6 +475,7 @@ internal sealed class Session : IAsyncDisposable
                 // Deleted: the next save writes what Gengfu holds, so the file is there to open again.
                 FileError = null;
                 _settingsWritten = null;
+                _oldFile = false;
                 break;
             case SettingsLoad.Unreadable:
                 // An error already found stays shown until the file reads again.
@@ -511,7 +527,7 @@ internal sealed class Session : IAsyncDisposable
         var sound = SoundOf(settings, matchEvent, language);
         if (sound is CallSound.AudioFile { Otherwise: { } otherwise } && clip?.Problem is CallProblem.FileMissing or CallProblem.FileUnreadable)
         {
-            sound = otherwise;
+            sound = clip.Instead == CallProblem.None ? otherwise : new CallSound.Gong();
         }
         return clip?.Problem is CallProblem.NoVoice or CallProblem.NoText or CallProblem.SpeechFailed ? Strings.Gong
             : sound switch
@@ -617,6 +633,7 @@ internal sealed class Session : IAsyncDisposable
             if (_store.Save(Settings))
             {
                 _settingsWritten = settings;
+                _oldFile = false;
             }
             else
             {

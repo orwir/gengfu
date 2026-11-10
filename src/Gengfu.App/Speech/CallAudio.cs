@@ -48,7 +48,8 @@ public enum CallProblem
 /// A call ready to whisper: its 20 ms Opus frames, and why it isn't what it was given when it isn't:
 /// the gong, or for a file that can't play, what plays in its place.
 /// </summary>
-public sealed record CallClip(IReadOnlyList<byte[]> Frames, CallProblem Problem = CallProblem.None, string? Detail = null);
+/// <param name="Instead">For a file that can't play, why what plays in its place isn't what it was given either, so the gong plays.</param>
+public sealed record CallClip(IReadOnlyList<byte[]> Frames, CallProblem Problem = CallProblem.None, string? Detail = null, CallProblem Instead = CallProblem.None);
 
 /// <summary>
 /// Renders calls ahead of time and keeps them: text through Windows speech or an audio file through
@@ -153,8 +154,8 @@ public sealed class CallAudio
         }
     }
 
-    // A file that can't play gives way to what plays otherwise; when that can't either, its own
-    // problem is the one the clip names, since it is why the gong plays.
+    // A file that can't play gives way to what plays otherwise. The clip names the file's problem,
+    // and what kept the other from playing too, when something did.
     private CallClip RenderFile(CallSound.AudioFile sound, CultureInfo language)
     {
         CallProblem problem;
@@ -178,7 +179,7 @@ public sealed class CallAudio
             (problem, detail) = (CallProblem.FileUnreadable, exception.Message);
         }
         var otherwise = sound.Otherwise is null ? new CallClip(GongFrames()) : Render(sound.Otherwise, language);
-        return otherwise.Problem == CallProblem.None ? otherwise with { Problem = problem, Detail = detail } : otherwise;
+        return otherwise with { Problem = problem, Detail = detail, Instead = otherwise.Problem };
     }
 
     private IReadOnlyList<byte[]> GongFrames() => Keep("gong", () => Pcm.Shape(Gong.Render(), 1)!);

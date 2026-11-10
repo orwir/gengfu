@@ -68,7 +68,8 @@ internal partial class EventRow : UserControl
     {
         var matchEvent = Event;
         var name = Copy.EventName(matchEvent);
-        var problem = _session.ClipOf(matchEvent)?.Problem ?? CallProblem.None;
+        var clip = _session.ClipOf(matchEvent);
+        var problem = clip?.Problem ?? CallProblem.None;
         var (summary, wrong) = Copy.EventSummary(matchEvent, problem, _unreadable is not null);
         Title.Text = name;
         Summary.Text = summary;
@@ -85,8 +86,9 @@ internal partial class EventRow : UserControl
         FileName.Text = file is null ? "" : Path.GetFileName(file);
         FileBox.ToolTip = file;
         SoundSwitch.Content = file is null ? Strings.UseSoundFile : Strings.UseText;
-        // A file that can't play gives way to the words, unless the gong is the voice.
-        var says = _session.Settings.Voice == AppSettings.Gong ? null : _session.WordsOf(matchEvent);
+        // A file that can't play gives way to the words, unless the gong is the voice or they can't be spoken either.
+        var gong = _session.Settings.Voice == AppSettings.Gong || (clip?.Instead ?? CallProblem.None) != CallProblem.None;
+        var says = gong ? null : _session.WordsOf(matchEvent);
         var hint = problem switch
         {
             CallProblem.NoText => Strings.NoText,

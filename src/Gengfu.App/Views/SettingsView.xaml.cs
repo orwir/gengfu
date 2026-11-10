@@ -205,10 +205,10 @@ internal partial class SettingsView : UserControl
         GroupPlaceholder.Visibility = GroupBox.SelectedItem is null ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    // No voice speaks the app's language: every event's words play the gong. An event's own trouble
-    // shows on its row.
+    // No voice speaks the app's language: every event's words play the gong, a file's in its place too.
+    // An event's own trouble shows on its row.
     private void ShowVoiceHint() =>
-        SoundHint.Visibility = _session.Settings.Events.Any(matchEvent => _session.ClipOf(matchEvent)?.Problem == CallProblem.NoVoice)
+        SoundHint.Visibility = _session.Settings.Events.Select(_session.ClipOf).Any(clip => clip?.Problem == CallProblem.NoVoice || clip?.Instead == CallProblem.NoVoice)
             ? Visibility.Visible
             : Visibility.Collapsed;
 

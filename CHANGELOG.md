@@ -19,6 +19,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Test call plays the first event's call (#38)
 - The sound file is set per event in Settings › Events, no longer in Calls (#38)
 - An event's sound file that isn't on this PC, or that Windows can't play, gives way to its words (#38)
+- Open settings file first rewrites a settings file from before 0.3 in its new form (#38)
 
 ### Fixed
 

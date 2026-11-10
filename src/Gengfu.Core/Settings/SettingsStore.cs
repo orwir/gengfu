@@ -27,7 +27,8 @@ public abstract record SettingsLoad
     /// <summary>Windows wouldn't let Gengfu read the file, perhaps for another program holding it.</summary>
     public sealed record Unreadable : SettingsLoad;
 
-    public sealed record Loaded(AppSettings Settings) : SettingsLoad;
+    /// <param name="Old">Written before 0.3, with a call's text or sound file set once for every event.</param>
+    public sealed record Loaded(AppSettings Settings, bool Old = false) : SettingsLoad;
 
     public sealed record Broken(SettingsError Error) : SettingsLoad;
 }
@@ -139,7 +140,7 @@ public sealed class SettingsStore(string filePath)
         }
         return settings is null ? new SettingsLoad.Broken(new SettingsError(1, null))
             : NullElement(text) is { } error ? new SettingsLoad.Broken(error)
-            : new SettingsLoad.Loaded(settings);
+            : new SettingsLoad.Loaded(settings, settings.FromOldFile);
     }
 
     // The serializer lets a null element into a list whatever the list's type says, so the events

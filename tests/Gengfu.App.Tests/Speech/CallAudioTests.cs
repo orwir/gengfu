@@ -174,9 +174,9 @@ public sealed class CallAudioTests : IDisposable
         _readFile = _ => throw new InvalidDataException("Not a sound.");
         var unreadable = await _audio.RenderAsync(new CallSound.AudioFile(Touch("notes.txt"), words), English);
 
-        Assert.Equal(CallProblem.FileMissing, missing.Problem);
+        Assert.Equal((CallProblem.FileMissing, CallProblem.None), (missing.Problem, missing.Instead));
         Assert.Same(spoken.Frames, missing.Frames);
-        Assert.Equal((CallProblem.FileUnreadable, "Not a sound."), (unreadable.Problem, unreadable.Detail));
+        Assert.Equal((CallProblem.FileUnreadable, "Not a sound.", CallProblem.None), (unreadable.Problem, unreadable.Detail, unreadable.Instead));
         Assert.Same(spoken.Frames, unreadable.Frames);
     }
 
@@ -187,7 +187,7 @@ public sealed class CallAudioTests : IDisposable
 
         var clip = await _audio.RenderAsync(new CallSound.AudioFile(Path.Combine(_folder, "boss.mp3"), new CallSound.Speech("Boss in thirty seconds")), English);
 
-        Assert.Equal(CallProblem.NoVoice, clip.Problem);
+        Assert.Equal((CallProblem.FileMissing, CallProblem.NoVoice), (clip.Problem, clip.Instead));
         Assert.Same(await GongFrames(), clip.Frames);
     }
 
