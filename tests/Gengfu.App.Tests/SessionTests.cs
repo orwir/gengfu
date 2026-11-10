@@ -1091,12 +1091,10 @@ public sealed partial class SessionTests : IAsyncLifetime
     [Fact]
     public async Task No_server_password_identity_or_privilege_key_reaches_the_log()
     {
-        const string password = "pw-7Hq2-gvgnight";
-        const string key = "v2Rk+Qc8XyT1aZ9mBf3LwN0pHs7uJd5EgKoYiC4";
         var identity = _session.Connection.Identity;
-        _session.Password = password;
+        _session.Password = "gvgnight";
         _session.Settings.Group = new Named(1625, "GvG");
-        _session.TypeKey(key);
+        _session.TypeKey("v2Rk+Qc8XyT1aZ9mBf3LwN0pHs7uJd5EgKoYiC4");
 
         // Nothing answers on the discard port; the connection keeps trying until the test ends.
         _session.Settings.Server = "127.0.0.1:9";
@@ -1112,9 +1110,9 @@ public sealed partial class SessionTests : IAsyncLifetime
         var log = string.Join(Environment.NewLine, Logged());
         Assert.Contains("Connecting to 127.0.0.1:9 as Gengfu…", log, StringComparison.Ordinal);
         Assert.Contains("Call for 25:00 at 25:30: Jungle — not sent: not connected", log, StringComparison.Ordinal);
-        Assert.Equal(password, _session.Password);
-        Assert.DoesNotContain(password, log, StringComparison.Ordinal);
-        Assert.DoesNotContain(key, log, StringComparison.Ordinal);
+        Assert.Equal("gvgnight", _session.Password);
+        Assert.DoesNotContain("gvgnight", log, StringComparison.Ordinal);
+        Assert.DoesNotContain("v2Rk+Qc8XyT1aZ9mBf3LwN0pHs7uJd5EgKoYiC4", log, StringComparison.Ordinal);
         Assert.DoesNotContain(identity, log, StringComparison.Ordinal);
         Assert.DoesNotContain(identity[(identity.IndexOf('V', StringComparison.Ordinal) + 1)..][..16], log, StringComparison.Ordinal);
     }
