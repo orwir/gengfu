@@ -1,10 +1,21 @@
 version: 2
 updates:
-  # Vendored lib/ is re-synced by hand (lib/README.md), so only our own projects are watched.
+  # Vendored lib/ is re-synced by hand (lib/README.md), so only our own projects are watched. The
+  # updater still follows their project references into lib/, so the packages only lib/ uses are
+  # ignored as well; re-syncing lib/ keeps this list in step.
   - package-ecosystem: nuget
     directories: ["/src/*", "/tests/*"]
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: NLog
+      - dependency-name: Heijden.Dns.Portable
+      - dependency-name: Portable.BouncyCastle
+      - dependency-name: Splamy.Ed25519.Toolkit
+      - dependency-name: Microsoft.CodeAnalysis.CSharp
+      - dependency-name: Microsoft.CodeAnalysis.Analyzers
+      - dependency-name: CsvTextFieldParser
+      - dependency-name: Nett
     groups:
       nuget:
         patterns: ["*"]

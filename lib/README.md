@@ -27,4 +27,6 @@ Changes against upstream, each marked `gengfu patch` in the source. Re-apply the
 
 1. Copy `TSLib/` and `TSLibAutogen/` from the new upstream commit, without `bin/` and `obj/`.
 2. Re-apply the patches above, then update the commit hashes in this file.
-3. Run `scripts/check.sh`.
+3. Match the `ignore` list in [`.github/dependabot.yml`](../.github/dependabot.yml) to the packages
+   these projects reference, so Dependabot leaves them to the next re-sync.
+4. Run `scripts/check.sh`.
