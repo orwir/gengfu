@@ -2,7 +2,9 @@
 
 The *what* of Gengfu's interface: tokens, components, patterns. The *how* is
 [design_workflow.md](design_workflow.md). The visual source of truth is the Claude
-Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private until shared).
+Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private until shared). It
+has a page per surface (Main window, Settings, Foundations), each with its state boards grouped
+by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
 
 ## Principles
 
@@ -11,8 +13,9 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   the list.
 - **The clock mirrors the game.** Same format, counts down 35:00 → 00:00, rounds up
   (35:00 holds for the first second, 00:00 shows only at the end). Digits never animate.
-- **Theme.** Light and dark follow Windows unless Settings › General picks one; the accent
-  follows the Windows accent in either. Windows' high contrast wins over the pick.
+- **Theme.** Light and dark follow Windows' app mode unless Settings › General picks one; the
+  accent follows the Windows accent in either. Windows' high contrast wins over the pick, and
+  Windows' own file picker keeps Windows' theme.
 - **Two languages.** Every string ships in English and Russian; leave room for Russian,
   which runs about a quarter longer.
 
@@ -80,7 +83,7 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   called (secondary, check), not sent (secondary, critical ✕ "Not sent"), calling (accent,
   speaker, tinted), next (accent, "in m:ss", tinted), later (primary). A call is not sent when
   it comes due with Gengfu off the server or nobody chosen to hear it, when the server says it
-  reached nobody (once it has played), or when a correction takes the clock past its spawn
+  reached nobody (once it has played: a call longer than 3 s shows its check until then), or when a correction takes the clock past its spawn
   first. When the calls don't fit, the card stops above the buttons and its rows scroll,
   keeping the call calling or next second from the top; it moves only when that call changes,
   so a scroll by wheel stays meanwhile. With no calls, secondary body text says why, no events or
@@ -88,7 +91,7 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Status line:** dot + text, caption size — connected, naming who hears (success);
   connecting, or raising the bot's identity for the server (hollow dot: not yet whispering, and
   nothing to fix); trying again, saying why (hollow caution dot, caution text) and counting
-  down to the next attempt in m:ss, as the calls list counts to the next call, then "trying
+  down to the next attempt in m:ss, as the calls list counts to the next call, since a moving count shows Gengfu at work and when it tries, then "trying
   again…" while the attempt runs; connected with nobody chosen (caution); connected, but the
   server said the last call reached nobody (caution, until a whisper gets through, the
   connection is new or other listeners are chosen); not connected, saying why (critical). A
@@ -99,15 +102,19 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   first line, once a downloaded version is ready: it applies on next start, and Restart applies it
   now. It shows only while the clock is stopped, so a match is never interrupted. Restart closes
   Gengfu the usual way, off the server and saved, and Velopack opens it again.
-- **App icon:** the title bar's gong mark in Windows blue, #0078D4, a fixed colour that reads on
-  light and dark taskbars, since an icon can't follow the accent. Up to 32 px it has a simpler
-  drawing of its own. `scripts/make-icon.cs` draws `Gengfu.ico`, 16–256 px; the title bar keeps
-  the mark in the accent colour.
+- **App icon:** the title bar's gong mark (hanger, rim and boss) in Windows blue, #0078D4, a fixed
+  colour that reads on light and dark taskbars, since an icon can't follow the accent. Up to 32 px
+  it has a simpler drawing of its own, so its strokes stay crisp. `scripts/make-icon.cs` draws
+  `Gengfu.ico` at 16, 20, 24, 32, 40, 48, 64 and 256 px, for the exe, its shortcuts, Settings ›
+  Apps and the Setup file; the title bar keeps the mark in the accent colour.
 - **Settings:** grouped cards; short controls (drop-downs, toggles) on the right in a fixed
   column, text fields stacked. The column is 152 px beside the radios and 168 elsewhere:
   the Fluent drop-down keeps about 50 px for its chevron. Empty fields and drop-downs show a
-  placeholder. One button connects with what the fields hold, or disconnects; it offers
-  Connect again as soon as a field changes. Radios for who hears the calls: a server group,
+  placeholder. One button connects with what the fields hold, or disconnects, and Enter in
+  a field connects too; it offers Connect again as soon as a field changes. Beside it a line says
+  how the connection stands, in shorter words than the main window's: Connected, whoever hears
+  and whatever the last call reached; the main window's retry lines, wrapped, countdown included;
+  or why Gengfu isn't connected. Radios for who hears the calls: a server group,
   from the server's list, or chosen channels, ticked in a flyout in the server's tree order
   that stays open while ticking (Esc, Enter or a click outside closes it). Until Gengfu is
   connected the drop-downs are off; the server's lists are read once it is, and again whenever
@@ -115,7 +122,7 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   Connecting to another server clears the choice, and the status line asks who hears the calls.
   Privilege keys are rare, so under Connect a link, Use a privilege key, opens the key's field in
   its place, with focus in it; Use beside the field is off until Gengfu is connected and a key is
-  typed, and Enter in the field does the same. A key the server took empties the field; one it
+  typed, and Enter in the field does the same. A key the server took empties the field and keeps focus in it; one it
   didn't stays, so a typo can be fixed. The field stays open, and opens again when Settings is
   made anew while a key is typed or an answer stands.
   General starts with Language and Theme, each offering Same as Windows first, then its fixed
@@ -131,7 +138,8 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   under a divider: Name with the bin beside it (an empty name is the jungle, which the placeholder
   says), Spawn times, Say or the event's sound file, then its own Test call and the switch between
   words and file. Spawn times are one field, read on Enter or leaving it: game times or whole
-  minutes, written back sorted as 25:00. Say wraps, so a long Russian call shows whole. Under the
+  minutes, written back sorted as 25:00; one it can't read changes nothing, and the calls keep the
+  times from before. Say wraps, so a long Russian call shows whole. Under the
   events, Add event, and Back to default while the events differ from the built-in ones, the
   jungle alone at its five times; how the jungle sounds doesn't count, and Back to default keeps
   it. With no events, a card says no calls go out.
@@ -194,6 +202,6 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 
 | Screen      | Design file (canvas)                          | Source                                                                                                              |
 | ----------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Main window | Main.dc.html (views: MainDark.dc.html, MainRetrying.dc.html, MainPreset.dc.html, MainPresetRu.dc.html, MainUpdate.dc.html, MainUpdateRu.dc.html, MainRaising.dc.html, MainServerKick.dc.html, MainFlood.dc.html, MainLevelTooHigh.dc.html, MainFull.dc.html, MainNobodyHeard.dc.html, MainNobodyHeardRu.dc.html, MainNoEvents.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
-| Settings    | Settings.dc.html (views: SettingsRu.dc.html, SettingsNoVoice.dc.html, SettingsVoiceList.dc.html, SettingsFirstRun.dc.html, SettingsDark.dc.html, SettingsSoundFile.dc.html, SettingsFileError.dc.html, SettingsFileErrorRu.dc.html, SettingsUpdate.dc.html, SettingsUpdateRu.dc.html, SettingsTheme.dc.html, SettingsThemeLight.dc.html, SettingsNobodyHeard.dc.html, SettingsNobodyHeardRu.dc.html, SettingsKeyOpen.dc.html, SettingsKeyTaken.dc.html, SettingsKeyTakenRu.dc.html, SettingsKeyUnknown.dc.html, SettingsKeyNotAllowedRu.dc.html, SettingsKeyOffline.dc.html, SettingsEvents.dc.html, SettingsEventOpen.dc.html, SettingsEventAddedRu.dc.html, SettingsEventFileMissingRu.dc.html, SettingsEventTimesBad.dc.html, SettingsEventsEmpty.dc.html) | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml), [EventRow.xaml](../../src/Gengfu.App/Views/EventRow.xaml) |
-| App icon    | AppIcon.dc.html | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |
+| Main window | Main.dc.html, its states on the canvas's Main window page | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [MainView.xaml](../../src/Gengfu.App/Views/MainView.xaml), [ClockDigits.xaml](../../src/Gengfu.App/Controls/ClockDigits.xaml) |
+| Settings    | Settings.dc.html, its states on the canvas's Settings page | [MainWindow.xaml](../../src/Gengfu.App/MainWindow.xaml), [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml), [EventRow.xaml](../../src/Gengfu.App/Views/EventRow.xaml) |
+| App icon    | AppIcon.dc.html, on the canvas's Foundations page | [make-icon.cs](../../scripts/make-icon.cs), which draws `src/Gengfu.App/Gengfu.ico` |

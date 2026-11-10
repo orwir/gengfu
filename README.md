@@ -49,7 +49,7 @@ install and keeps your settings.
 Open Settings with the gear at the bottom right. Every change applies at once and is saved.
 
 - **TeamSpeak.** Enter the server address as your TeamSpeak client takes it, the server password
-  if it has one, and a nickname for the bot, then press **Connect**. Gengfu stays connected by
+  if it has one, and a nickname for the bot, then press **Connect** or Enter in a field. Gengfu stays connected by
   itself; the line at the top of the main window says how it stands, and while Gengfu waits to
   try again, how long until it does. A privilege key from the server's admin goes under **Use a
   privilege key** ([On a strict server](#on-a-strict-server)).
@@ -58,21 +58,22 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   is connected, and the server has to allow the bot to whisper. Connecting to another server
   clears the choice.
 - **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
-  default. *Voice* is any Windows voice, or the gong, for every event. **Test call** whispers the
-  first event's call once, now. If the server says nobody heard it, a note under Test call says
+  default. *Voice* is any Windows voice, or the gong, for every event. **Test call**, here or in the
+  main window, whispers the first event's call once, now. If the server says nobody heard it, a note under Test call says
   why that may be.
 - **Events.** The events whose spawns get a call: out of the box, the GvG jungle alone. Open one to
   change its name, its spawn times and what its calls say: its name and the lead by default, such
   as "Boss in thirty seconds", or words of your own, or a sound file of its own. Type spawn times
   as the game shows them or in whole minutes, such as `25:00, 15`; Enter or leaving the field
-  applies them. Each event has its own **Test call**. **Add event** adds one, the bin beside a name
+  applies them, and a time Gengfu can't read changes nothing, with a note saying which. Each event has its own **Test call**. **Add event** adds one, the bin beside a name
   removes one, and **Back to default** puts the jungle alone back at its five times, keeping its
   words or sound file; Undo puts back what they took,
   until you change the events again or leave Settings. Every edit applies at once, mid-match too,
   and an event you rename or give other times keeps the calls it already made.
 - **Language.** English, Russian, or the same as Windows. The events' default words follow it, so a
   voice you chose that can't speak the new language gives way to one that can.
-- **Theme.** Light, dark, or the same as Windows.
+- **Theme.** Light, dark, or the same as Windows' app mode (Personalization › Colors), following it
+  when it switches.
 
 ## On a strict server
 
@@ -105,7 +106,7 @@ Gengfu keeps its settings in `%AppData%\Gengfu\settings.json`, saves each change
 connects by itself at start when a server is saved. **Open settings file** in Settings › General
 opens the file in the app Windows uses for .json files, or in Notepad. An edit you save there
 applies at once. If the file has an error, Settings says on which line, and Gengfu works with the
-settings it had, saving nothing, until you fix it.
+settings it had, or its defaults if it started that way, saving nothing, until you fix it.
 
 The server password and the bot's identity are not in that file. They sit beside it in
 `secrets.bin`, encrypted by Windows for your Windows user, so the settings file is safe to share.

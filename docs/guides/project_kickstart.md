@@ -363,6 +363,7 @@ In order:
 5. **Design new screens and restructures on a canvas** the assistant draws in the same session as the code (Claude Design; rich for web and desktop, thinner for TUI/CLI). The maintainer approves the drawing before code, and the build treats it as a strong draft, not a spec (reconcile invented data/backend assumptions, reuse your shipped primitives over its near-duplicates, drop embellishments).
    - A change you can state in one line goes straight to the code; one easier judged by eye is a design round like any other.
    - Where the canvas keeps a file per screen, **pair them in one table** — a row per shipped screen naming its design file and the sources that decide what it draws — and hold it with a test: every screen has a row, and no two rows claim the same screen. It costs a line at screen 2, and it is what stops a change to one screen becoming a second design file for it (`docs/guides/design_workflow.md` § *Round*).
+   - **Arrange the canvas by surface from the first round** — a page per screen with its states grouped by kind, one for the foundations, one for the round that's open — and keep its notes to what a reader would otherwise get wrong. History stays in the canvas's versions and the tracker, so the layout never grows a row per round (`docs/guides/design_workflow.md` § *Round*).
 
 The design language has a lifecycle, not just a document. Keep `docs/guides/design_workflow.md` (the *how* — found the foundation before screen 2, codify every design round back into it, evolve it on a trigger) alongside `docs/guides/design_language.md` (the *what* — the resolved tokens, components, and patterns). The same shape applies to a Textual/ratatui TUI or a Qt/Tauri desktop app.
 
@@ -639,7 +640,8 @@ JSON
 #   pick the component vocabulary (record in an ADR) · set tokens once, centrally (fonts, semantic
 #   colors, spacing, radius, elevation, motion) · write docs/guides/design_language.md · add the
 #   "every UI edit conforms to the reference" rule to AGENTS.md · pair each screen with its
-#   design file in one table, held by a test
+#   design file in one table, held by a test · arrange the canvas by surface, with a page for
+#   the open round
 ```
 
 After this checklist you have a repo that is wired end-to-end: CI runs on PRs, deploy runs on merge to master, docs have a home, issues have templates, contributions have a process, secrets are scanned, and the design foundation is set before the second screen.

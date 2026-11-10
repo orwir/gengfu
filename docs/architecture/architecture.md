@@ -108,7 +108,8 @@ events still say what they are.
   Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
   text is the user's to match. The voice list is read afresh each time, so a voice added in
   Windows counts without a restart. Windows adds a language's voices from that language's options
-  under Language & region; Speech › Add voices can fail silently.
+  under Language & region; Speech › Add voices can fail silently: in testing it showed Russian at
+  0 MB, and Add did nothing.
 - **Shape.** Silence is trimmed; an event's sound stops after 10 s, counted from where its sound
   starts, and fades out, so a wrong file can't hold the whisper; its loudest 400 ms sit at
   −16 LUFS with peaks 1 dB under full scale; 100 ms of silence lead it, so its start is never
@@ -173,7 +174,9 @@ stop for half a second. It writes only after a change in the app, so the comment
 file last until then, and never over a file it couldn't read, where the edit would be lost. It
 watches the file: an edit saved there applies at once, events, language and theme too, and calls
 already made stay made. A file with an error changes nothing, and Settings shows where the error is
-until it is fixed. A file written before 0.3 set a call's text and sound file once for every event;
+until it is fixed; started with one, Gengfu runs on its defaults. A file Windows won't let Gengfu
+read or write is tried again every 2 s. A file written before 0.3 set a call's text and sound file
+(`callText`, `soundFile`) once for every event;
 it opens with them moved into its events, the text into the jungle's and the file into every event
 without words of its own, and its next save writes them there. Open settings file writes it so
 before it opens it: read again with a preset's events pasted in, the old text and file would go to
@@ -193,7 +196,7 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Call ahead | 30 s; 15, 20, 30, 45 or 60 |
 | Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen; it speaks every event's words. A language chosen in Settings drops a chosen voice that can't speak it |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
-| Theme | the same as Windows, following it when it switches; or light or dark |
+| Theme | the same as Windows' app mode (Personalization › Colors), following it when it switches; or light or dark. In the file, `"theme"` is `null`, `"light"` or `"dark"` |
 | Events | the GvG jungle at 25:00, 20:00, 15:00, 10:00 and 05:00, set in Settings › Events or the file. Each event has its spawns, and may have a name, words and a sound file of its own; without a name it is the jungle, named in the app's language |
 | An event's words | its name and the lead, such as "Boss in thirty seconds"; they follow the name, the lead and the language until edited. Empty, its calls play the gong |
 | An event's sound file | none: its words are spoken. One that can't play gives way to the words |
@@ -269,7 +272,7 @@ How a privilege key ends, the same on TS3 3.13.7 and TS6 6.0 beta:
 
 | The server | sends | and Settings says |
 | --- | --- | --- |
-| takes the key | the bot's new group, then `ok` | the group the bot is in now |
+| takes the key | the bot's new group, then `ok` | the group the bot is in now; for a channel group's key, that the server gave the key's group |
 | doesn't know it: made up, mistyped, or used already, since it deletes a used key | `3840 invalid privilege key` | it doesn't know the key |
 | won't let the bot's groups use keys | `2568 insufficient client permissions`, whatever the key | it doesn't let the bot use keys |
 | refuses for any other reason | its error | the server's words |
