@@ -5,6 +5,8 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-11
+
 ### Added
 
 - Settings › Events adds, changes and removes the events whose spawns get calls, mid-match too (#38)
