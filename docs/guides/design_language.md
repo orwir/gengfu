@@ -58,9 +58,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   focus ring drawn inside it.
 - **Buttons:** accent (Start), standard (Stop, Connect, Change, Add event), subtle (Test call,
   the Settings icon, an event's bin), link (accent text: the status line's Settings, "Use a sound
-  file instead", Back to default); Fluent rest / hover / pressed / disabled. Start and Stop are one button that
-  flips, so keyboard focus stays on it. Test call is off unless Gengfu is connected with
-  someone to hear it, and reads "Calling…" while its call plays. An icon and its label share
+  file instead", Back to default); Fluent rest / hover / pressed / disabled. Start and Stop are
+  one button that flips, so keyboard focus stays on it. Test call is off unless Gengfu is
+  connected with someone to hear it and there is an event to call, and the one pressed reads
+  "Calling…" while its call plays, the others off meanwhile. An icon and its label share
   the centre of what holds them, the label's capitals rather than its line: the IconLabel
   style lifts a 14 px label 2.2 px beside its 16 px icon, and both hang from the top of a
   panel that centres the pair, so rounding to device pixels moves them together.
@@ -82,7 +83,7 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   first. When the calls don't fit, the card stops above the buttons and its rows scroll,
   keeping the call calling or next second from the top; it moves only when that call changes,
   so a scroll by wheel stays meanwhile. With no calls, secondary body text says why, no events or
-  no spawn times, with a Settings link after it.
+  no spawn times, with a Settings link under it.
 - **Status line:** dot + text, caption size — connected, naming who hears (success);
   connecting, or raising the bot's identity for the server (hollow dot: not yet whispering, and
   nothing to fix); trying again, saying why (hollow caution dot, caution text) and counting

@@ -89,6 +89,20 @@ public sealed class EventRowTests(WpfApp wpf)
         });
 
     [Fact]
+    public Task A_row_from_before_the_settings_file_changed_applies_its_times_to_nothing() =>
+        OnRow((session, row) =>
+        {
+            File.WriteAllText(session.SettingsFile, "{ \"events\": [] }");
+            session.Reload();
+
+            // Its field loses focus after the new rows are made, as WPF takes focus off a field it no longer shows.
+            row.SpawnsBox.Text = "15";
+            row.ApplySpawns();
+
+            Assert.Empty(session.Settings.Events);
+        });
+
+    [Fact]
     public Task The_rows_own_Test_call_reads_Calling_while_its_call_plays_and_says_under_it_when_nobody_heard() =>
         OnRow((_, row) =>
         {
@@ -103,7 +117,7 @@ public sealed class EventRowTests(WpfApp wpf)
         LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>()
             .SelectMany(child => child is Control control ? [control] : Controls(child));
 
-    // The jungle's row, open, in English, on a session in a folder of its own.
+    // The jungle's row, closed, in English, on a session in a folder of its own.
     private async Task OnRow(Action<Session, EventRow> check)
     {
         var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));

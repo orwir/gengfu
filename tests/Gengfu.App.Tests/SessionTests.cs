@@ -87,6 +87,25 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public void A_Test_call_goes_out_only_when_a_call_can_none_is_playing_and_there_is_an_event_to_call()
+    {
+        Assert.True(Session.CanTestFor(canCall: true, testing: false, events: 1));
+        Assert.False(Session.CanTestFor(canCall: true, testing: false, events: 0));
+        Assert.False(Session.CanTestFor(canCall: false, testing: false, events: 1));
+        Assert.False(Session.CanTestFor(canCall: true, testing: true, events: 1));
+    }
+
+    [Fact]
+    public void Calls_Test_call_plays_the_first_event_s_call_and_an_event_s_own_Test_call_its_call()
+    {
+        var boss = new MatchEvent { Name = "Boss", Spawns = [] };
+
+        Assert.Same(MatchEvent.Jungle, Session.TestedEvent([MatchEvent.Jungle, boss], null));
+        Assert.Same(boss, Session.TestedEvent([MatchEvent.Jungle, boss], boss));
+        Assert.Null(Session.TestedEvent([], null));
+    }
+
+    [Fact]
     public void Remove_and_Back_to_default_act_at_once_and_Undo_puts_the_events_back_until_they_change_again()
     {
         _session.AddEvent();

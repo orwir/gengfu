@@ -201,6 +201,8 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("{\n  \"events\": [{ \"spawns\": [] },\n    { \"spawns\": [], \"colour\": 1 }]\n}", 3, "events[1].colour")]
     [InlineData("{\n  \"events\": [{ \"spawns\": [],\n    \"spawns\": [\"25:00\"] }]\n}", 3, "events[0].spawns")]
     [InlineData("{\n  \"events\": [\n    { \"spawns\": [] },\n    null\n  ]\n}", 4, "events[1]")]
+    [InlineData("{\n  \"callText\": \"Go\",\n  \"events\": [\n    { \"spawns\": [] },\n    null\n  ]\n}", 5, "events[1]")]
+    [InlineData("{\n  \"soundFile\": \"C:\\\\go.mp3\",\n  \"events\": [\n    null\n  ]\n}", 4, "events[0]")]
     [InlineData("{\n  \"channels\": [null]\n}", 2, "channels[0]")]
     [InlineData("{\n  \"channels\": [{ \"id\": 3978 }]\n}", 2, "channels[0]")]
     [InlineData("", 1, null)]

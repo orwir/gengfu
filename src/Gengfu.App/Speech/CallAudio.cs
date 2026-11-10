@@ -24,7 +24,7 @@ public abstract record CallSound
     public sealed record Gong : CallSound;
 }
 
-/// <summary>Why a call plays the gong in place of what it was given.</summary>
+/// <summary>Why a call isn't what it was given: the gong in its place, or for a file that can't play, what plays otherwise.</summary>
 public enum CallProblem
 {
     None,

@@ -29,7 +29,7 @@ public sealed record MatchEvent
     /// <summary>The built-in GvG preset's one event.</summary>
     public static MatchEvent Jungle { get; } = new() { Spawns = CallSchedule.GvgSpawns };
 
-    [JsonConverter(typeof(WordsConverter))]
+    [JsonConverter(typeof(NotBlankConverter))]
     public string? Name { get; init; }
 
     /// <summary>Game times as the game shows them, from 35:00 down to 00:00.</summary>
@@ -40,7 +40,7 @@ public sealed record MatchEvent
     public string? Text { get; init; }
 
     /// <summary>A sound file its calls play in place of its words; null speaks the words.</summary>
-    [JsonConverter(typeof(WordsConverter))]
+    [JsonConverter(typeof(NotBlankConverter))]
     public string? SoundFile { get; init; }
 
     /// <summary>
@@ -129,6 +129,8 @@ public sealed class AppSettings : IJsonOnDeserialized
     private string? SoundFile { get; set; }
 
     // The text was the jungle's words, and the file played for every event without words of its own.
+    // The reader lets a null event in whatever the type says; it stays, for the file's own check,
+    // which names where it is.
     void IJsonOnDeserialized.OnDeserialized()
     {
         if (CallText is null && SoundFile is null)
@@ -138,11 +140,11 @@ public sealed class AppSettings : IJsonOnDeserialized
         var file = string.IsNullOrWhiteSpace(SoundFile) ? null : SoundFile;
         Events =
         [
-            .. Events.Select(matchEvent => matchEvent.Text is not null ? matchEvent : matchEvent with
+            .. Events.Select(matchEvent => matchEvent is { Text: null } ? matchEvent with
             {
                 Text = matchEvent.Name is null ? CallText : null,
                 SoundFile = matchEvent.SoundFile ?? file,
-            }),
+            } : matchEvent!),
         ];
         (CallText, SoundFile) = (null, null);
     }

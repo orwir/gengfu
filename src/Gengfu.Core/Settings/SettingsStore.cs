@@ -259,7 +259,7 @@ internal sealed class ListenersConverter : JsonConverter<ListenerKind>
 }
 
 /// <summary>An event's name or sound file with something in it: a blank one would show or play nothing.</summary>
-internal sealed class WordsConverter : JsonConverter<string>
+internal sealed class NotBlankConverter : JsonConverter<string>
 {
     public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         reader.TokenType == JsonTokenType.String && reader.GetString() is { } words && !string.IsNullOrWhiteSpace(words)

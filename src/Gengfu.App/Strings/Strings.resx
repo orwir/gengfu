@@ -362,7 +362,7 @@
   </data>
   <data name="Say" xml:space="preserve">
     <value>Say</value>
-    <comment>Settings › Calls: the call's text.</comment>
+    <comment>Label over an event's words, in Settings › Events.</comment>
   </data>
   <data name="CallText15" xml:space="preserve">
     <value>{0} in fifteen seconds</value>
@@ -410,7 +410,7 @@
   </data>
   <data name="SoundFile" xml:space="preserve">
     <value>Sound file</value>
-    <comment>Settings › Calls, in place of Say and Voice.</comment>
+    <comment>Label over an event's own sound file, in place of its words.</comment>
   </data>
   <data name="Change" xml:space="preserve">
     <value>Change</value>
@@ -422,11 +422,11 @@
   </data>
   <data name="UseSoundFile" xml:space="preserve">
     <value>Use a sound file instead</value>
-    <comment>Link in Settings › Calls.</comment>
+    <comment>Link under an event's words.</comment>
   </data>
   <data name="UseText" xml:space="preserve">
     <value>Use text instead</value>
-    <comment>Link in Settings › Calls while a sound file is chosen.</comment>
+    <comment>Link under an event while its sound file is chosen.</comment>
   </data>
   <data name="NobodyHeardGroup" xml:space="preserve">
     <value>Nobody heard the last call. Either no one in the group is online, or the server doesn’t allow the bot to whisper to them.</value>

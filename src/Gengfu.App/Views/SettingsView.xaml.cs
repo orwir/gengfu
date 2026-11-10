@@ -210,7 +210,7 @@ internal partial class SettingsView : UserControl
     private void ShowCallsTest()
     {
         var testing = _session.Caller.Testing && _tested is null;
-        TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing && _session.Settings.Events.Count > 0;
+        TestButton.IsEnabled = _session.CanTest;
         TestText.Text = testing ? Strings.TestCalling : Strings.TestCall;
         AutomationProperties.SetName(TestButton, testing || _session.Settings.Events.Count == 0
             ? TestText.Text
@@ -233,8 +233,8 @@ internal partial class SettingsView : UserControl
         BackToDefaultLink.Visibility = _session.Settings.EventsAreDefault ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    // A row for each event, open as <paramref name="open"/> says by place; Calls' bar takes back
-    // the "nobody heard" caution, as the row it showed under may be gone.
+    // A row for each event, each open as the list says for its place; Calls' bar takes back the
+    // "nobody heard" caution, as the row it showed under may be gone.
     private void MakeRows(IReadOnlyList<bool> open)
     {
         EventRows.Children.Clear();

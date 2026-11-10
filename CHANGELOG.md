@@ -11,7 +11,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Spawn times can be typed in whole minutes, such as 25, and in any order (#38)
 - Each event has a Test call of its own in Settings (#38)
 - An event can play a sound file of its own in place of its words (#38)
-- After an event is removed or the events go back to default, Undo puts them back until Settings closes (#38)
+- Undo puts back an event removed, or the events Back to default replaced (#38)
 - With no events, or none with spawn times, the main window's calls list says so (#38)
 
 ### Changed

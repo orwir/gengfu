@@ -66,9 +66,9 @@ Open Settings with the gear at the bottom right. Every change applies at once an
   as "Boss in thirty seconds", or words of your own, or a sound file of its own. Type spawn times
   as the game shows them or in whole minutes, such as `25:00, 15`; Enter or leaving the field
   applies them. Each event has its own **Test call**. **Add event** adds one, the bin beside a name
-  removes one, and **Back to default** puts the jungle alone back; until you leave Settings, Undo
-  puts back what they took. Every edit applies at once, mid-match too, and a call already made
-  stays made.
+  removes one, and **Back to default** puts the jungle alone back; Undo puts back what they took,
+  until you change the events again or leave Settings. Every edit applies at once, mid-match too,
+  and an event you rename or give other times keeps the calls it already made.
 - **Language.** English, Russian, or the same as Windows.
 - **Theme.** Light, dark, or the same as Windows.
 

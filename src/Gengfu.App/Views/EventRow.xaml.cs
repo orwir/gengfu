@@ -21,6 +21,10 @@ internal partial class EventRow : UserControl
     private readonly Action<int> _removed;
     private readonly Action<EventRow> _tested;
 
+    // The settings the row was made for. An edit of the file replaces them, and Settings makes new
+    // rows, but a field of this one may still lose focus after.
+    private readonly AppSettings _settings;
+
     // Set while the row writes a field, so only the user's own changes count.
     private bool _showing;
 
@@ -34,6 +38,7 @@ internal partial class EventRow : UserControl
     {
         InitializeComponent();
         _session = session;
+        _settings = session.Settings;
         Index = index;
         _typed = typed;
         _removed = removed;
@@ -92,7 +97,7 @@ internal partial class EventRow : UserControl
         SoundBar.Visibility = hint is null ? Visibility.Collapsed : Visibility.Visible;
         SoundBarText.Text = hint ?? "";
 
-        TestButton.IsEnabled = _session.CanCall && !_session.Caller.Testing;
+        TestButton.IsEnabled = _session.CanTest;
         TestText.Text = testing ? Strings.TestCalling : Strings.TestCall;
         AutomationProperties.SetName(TestButton, testing ? Strings.TestCalling : Copy.Format(Strings.TestCallFor, name));
         NobodyHeardBar.Visibility = nobodyHeard ? Visibility.Visible : Visibility.Collapsed;
@@ -160,6 +165,10 @@ internal partial class EventRow : UserControl
     /// </summary>
     internal void ApplySpawns()
     {
+        if (!ReferenceEquals(_session.Settings, _settings))
+        {
+            return;
+        }
         var (spawns, unreadable) = MatchEvent.ReadSpawns(SpawnsBox.Text);
         _unreadable = unreadable;
         if (unreadable is null)

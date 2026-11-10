@@ -227,6 +227,26 @@ public sealed class SettingsViewTests(WpfApp wpf)
         });
 
     [Fact]
+    public Task The_caution_that_nobody_heard_the_last_call_shows_under_the_Test_call_pressed_last() =>
+        OnView((session, view) =>
+        {
+            session.Settings.Group = new Named(1625, "GvG");
+            Click(view.AddEventButton);
+            var boss = Rows(view)[1];
+            session.Whispered(session.Target!, session.Connection.State, WhisperResult.ReachedNobody);
+            view.Refresh();
+            Assert.Equal((Visibility.Visible, Visibility.Collapsed), (view.NobodyHeardBar.Visibility, boss.NobodyHeardBar.Visibility));
+
+            Click(boss.TestButton);
+            view.Refresh();
+            Assert.Equal((Visibility.Collapsed, Visibility.Visible), (view.NobodyHeardBar.Visibility, boss.NobodyHeardBar.Visibility));
+
+            Click(view.TestButton);
+            view.Refresh();
+            Assert.Equal((Visibility.Visible, Visibility.Collapsed), (view.NobodyHeardBar.Visibility, boss.NobodyHeardBar.Visibility));
+        });
+
+    [Fact]
     public Task With_every_event_removed_Settings_says_no_calls_go_out() =>
         OnView((_, view) =>
         {

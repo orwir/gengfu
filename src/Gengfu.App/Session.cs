@@ -153,6 +153,9 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>Whether a call can go out now: connected, with someone to hear it.</summary>
     public bool CanCall => Target is not null && Connection.State.Status == ConnectionStatus.Connected;
 
+    /// <summary>Whether a Test call can go out now: a call can, none is playing, and there is an event to call.</summary>
+    public bool CanTest => CanTestFor(CanCall, Caller.Testing, Settings.Events.Count);
+
     /// <summary>
     /// Whether the server said the last call reached nobody. It holds until a whisper gets through,
     /// or the connection or the listeners change: it was about them.
@@ -359,7 +362,7 @@ internal sealed class Session : IAsyncDisposable
 
     /// <summary>Whispers the event's call once, now, or the first event's; false when it couldn't go out, there is no event, or nobody heard it.</summary>
     public Task<bool> TestAsync(MatchEvent? matchEvent = null) =>
-        (matchEvent ?? Settings.Events.FirstOrDefault()) is { } tested ? Caller.TestAsync(tested) : Task.FromResult(false);
+        TestedEvent(Settings.Events, matchEvent) is { } tested ? Caller.TestAsync(tested) : Task.FromResult(false);
 
     public void ChangeLead(TimeSpan lead)
     {
@@ -482,6 +485,11 @@ internal sealed class Session : IAsyncDisposable
     internal static bool CanUseKeyFor(ConnectionStatus status, string key, bool sending) =>
         !sending && key.Trim().Length > 0 && status == ConnectionStatus.Connected;
 
+    internal static bool CanTestFor(bool canCall, bool testing, int events) => canCall && !testing && events > 0;
+
+    // The Test call of Calls and of the main window plays the first event's call; an event's own, its call.
+    internal static MatchEvent? TestedEvent(IReadOnlyList<MatchEvent> events, MatchEvent? pressed) => pressed ?? events.FirstOrDefault();
+
     internal static string WordsOf(AppSettings settings, MatchEvent matchEvent, CultureInfo language) =>
         matchEvent.Text ?? Copy.DefaultWords(matchEvent, settings.Lead, language);
 
@@ -538,7 +546,7 @@ internal sealed class Session : IAsyncDisposable
         ChangeEvents([.. was.Select((matchEvent, i) => i == index ? edit(matchEvent) : matchEvent)], was);
     }
 
-    // Every change of the events comes here, and the offer to undo goes with each.
+    // Every edit of the events in the app comes here, and the offer to undo goes with each.
     private void ChangeEvents(IReadOnlyList<MatchEvent> events, IReadOnlyList<MatchEvent?>? was = null)
     {
         Settings.Events = events;
