@@ -32,6 +32,8 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Gengfu raises its identity's security level when a server asks for more, and joins (#35)
 - Icons and status dots beside small text line up with its capital letters (#28)
 - The update notice's "i" sits by its first line rather than between its two lines (#28)
+- In the settings file, `listeners` other than exactly "group" or "channels" shows as an error, not read as either (#32)
+- A setting written twice in the settings file shows as an error, not taken from its later copy (#32)
 
 ## [0.1.0] - 2026-11-09
 

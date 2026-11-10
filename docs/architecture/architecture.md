@@ -143,10 +143,10 @@ for the connection to leave the server.
 Settings live in `AppSettings` (Core) and in one file, `settings.json` in Gengfu's folder
 (`%AppData%\Gengfu`, or the one `GENGFU_HOME` names; see [The App](#the-app)), that
 `SettingsStore` reads and writes. It is JSON a person can edit, comments and trailing commas
-allowed. Every value is checked on reading, and an unknown setting is an error too, so a typo
-never passes unseen; the error names the line and the setting as the file spells it. A version
-that renames or drops a setting therefore still reads the old name, or every file written before
-it opens as an error.
+allowed. Every value is checked on reading, and an unknown setting or one written twice is an
+error too, so a hand edit never goes wrong unseen; the error names the line and the setting as the
+file spells it. A version that renames or drops a setting therefore still reads the old name, or
+every file written before it opens as an error.
 
 Each setting applies as soon as it changes, and Gengfu writes the file whole once the changes
 stop for half a second. It writes only after a change in the app, so the comments in a hand-edited
