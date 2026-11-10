@@ -4,7 +4,7 @@ A language-agnostic, tech-agnostic recipe for standing up a new project that sta
 
 Everything here is extracted from deployed production projects, not theory. Keep one of your own as the living reference (see *Keep a living reference* at the end).
 
-Upstream of this playbook sits `idea_gauntlet.md` (mirrored alongside it): the gauntlet decides *whether* a project gets built, and its filled instance — `IDEA.md` at the folder root — is this playbook's input. This playbook starts once the gauntlet's answer is yes, and hands day-to-day operation to `AGENTS.md` and the issue board.
+Upstream of this playbook sits `idea_gauntlet.md` (mirrored alongside it): the gauntlet decides *whether* a project gets built, and its filled instance — the idea's folder, moved out of the ideas home: `IDEA.md` at the root, with the evidence it links in `docs/product/` and `design/` — is this playbook's input. This playbook starts once the gauntlet's answer is yes, and hands day-to-day operation to `AGENTS.md` and the issue board.
 
 ---
 
@@ -36,10 +36,11 @@ project/
 ├── tests/                      # mirrors src/ layout
 ├── docs/
 │   ├── README.md               # docs index
-│   ├── product/                # vision incl. CUJs; idea.md (frozen origins)
+│   ├── product/                # vision incl. CUJs; competitors, feasibility; idea.md (frozen origins)
 │   ├── architecture/           # the "how" — components, data flow, design decisions
 │   ├── guides/                 # task-oriented howtos (deploy, extend, onboard)
 │   └── adr/                    # architecture decision records
+├── design/                     # design files, from the gauntlet's low-fi picture on (none if headless)
 ├── scripts/                    # setup, build, backup, one-off utilities
 ├── .env.example                # every env var the app reads, with comments
 ├── .gitignore
@@ -358,7 +359,7 @@ In order:
    - *Web / desktop / TUI:* two font families at most (one UI, one mono for ids/numerics), semantic color tokens only (no raw hex), light + dark from day one, one spacing rhythm — in a theme/config file.
    - *Plain CLI:* consistent verb/flag naming, a small fixed set of output modes (human · `--json` · `--quiet`), one color-and-symbol scheme, a uniform error + exit-code convention.
 3. **Don't build a design system.** At a handful of screens and one maintainer, a token package / Storybook / style crate costs more than it returns. Treat your stylesheet (or output helpers) as the de-facto system and write a one-page **design-language reference**: the component/output inventory, how each kind of data is rendered (ids, timestamps, money, counts), and the one canonical pattern per job (destructive confirm, empty state, pagination/scrolling, status indicator). Revisit only when the screen count doubles or a second surface appears.
-4. **Enforce it in the agent contract, not just the doc.** Add a rule to `AGENTS.md` (mirrored in `CLAUDE.md`) that *any* UI edit conforms to the reference — reuse what ships, don't introduce a parallel variant. A doc is advisory to a model; a first-read MUST-rule holds the line. The only hard guarantee is a lint, usually over-engineering at this size.
+4. **Enforce it in the agent contract, not just the doc.** Add a rule to `AGENTS.md` that *any* UI edit conforms to the reference — reuse what ships, don't introduce a parallel variant. A doc is advisory to a model; a first-read MUST-rule holds the line. The only hard guarantee is a lint, usually over-engineering at this size.
 5. **Design new screens and restructures on a canvas** the assistant draws in the same session as the code (Claude Design; rich for web and desktop, thinner for TUI/CLI). The maintainer approves the drawing before code, and the build treats it as a strong draft, not a spec (reconcile invented data/backend assumptions, reuse your shipped primitives over its near-duplicates, drop embellishments).
    - A change you can state in one line goes straight to the code; one easier judged by eye is a design round like any other.
    - Where the canvas keeps a file per screen, **pair them in one table** — a row per shipped screen naming its design file and the sources that decide what it draws — and hold it with a test: every screen has a row, and no two rows claim the same screen. It costs a line at screen 2, and it is what stops a change to one screen becoming a second design file for it (`docs/guides/design_workflow.md` § *Round*).
@@ -379,13 +380,14 @@ Each document answers a different question. If two docs are answering the same q
 | **Contribution** | `CONTRIBUTING.md`        | "How do I work in this repo?" — branching, setup, release, commit style                 |
 | **History**      | `CHANGELOG.md`           | "What changed between versions?"                                                        |
 | **Vision**       | `docs/product/vision.md` | "What problem does this solve? Who is it for? What does success look like?" — owns the CUJ inventory |
+| **Research**     | `docs/product/competitors.md`, `docs/product/feasibility.md` | "What exists already, and how do we compare?" · "What did we learn about building it?" — started in the gauntlet; the comparison stays living, the feasibility record feeds ADRs and architecture |
 | **Architecture** | `docs/architecture/architecture.md` | "How does the system work?" — components, data flow, how configuration is wired. One file until it outgrows itself |
 | **Guides**       | `docs/guides/*.md`       | "How do I do X?" — deploy, add a provider, extend a capability                          |
 | **Decisions**    | `docs/adr/NNNN-title.md` | "Why did we do it this way?" — one ADR per significant choice, numbered, status-tracked |
 
 ### `vision.md` is seeded, not written
 
-It is seeded from the graduated `IDEA.md` (gauntlet Phase 4) — which itself freezes as `docs/product/idea.md`, the never-edited origins artifact — and grows a **CUJ inventory** at the first UX review (`ux_review.md` § CUJs). One living file owns product intent end-to-end; the frozen one remembers where it came from. Don't add a separate requirements doc — that's `roadmap.md` with a different name; tracked work lives in issues, scope history lives in milestones and the CHANGELOG.
+It is started in the gauntlet — the CUJs in Phase 1, the IA in Phase 2 — and completed from the graduated `IDEA.md` (gauntlet Phase 4), which itself freezes as `docs/product/idea.md`, the never-edited origins artifact. The first UX review builds its **CUJ inventory** on those CUJs (`ux_review.md` § CUJs); a project that skipped the gauntlet creates them there. One living file owns product intent end-to-end; the frozen one remembers where it came from. Don't add a separate requirements doc — that's `roadmap.md` with a different name; tracked work lives in issues, scope history lives in milestones and the CHANGELOG.
 
 ### ADRs deserve a special note
 
@@ -423,15 +425,14 @@ Before merging a PR or closing an issue, verify: relevant docs updated, CHANGELO
 
 ### AI agent instructions
 
-If you use AI assistants to write code (Claude Code, Codex, Cursor, Gemini CLI, Copilot), codify the rules once in a file assistants will read. `AGENTS.md` has become the cross-vendor standard; the notable holdout is Claude Code:
+If you use AI assistants to write code (Claude Code, Codex, Cursor, Gemini CLI, Copilot), codify the rules once in a file assistants will read. `AGENTS.md` has become the cross-vendor standard, and Claude Code reads it natively too (v2.1.277+):
 
 | Tool                                                          | File it reads                                  |
 | ------------------------------------------------------------- | ---------------------------------------------- |
-| OpenAI Codex / Cursor / Windsurf / Gemini CLI / Copilot / most newer tools | `AGENTS.md` (cross-vendor standard) |
-| Claude Code                                                   | `CLAUDE.md` (supports `@AGENTS.md` import)     |
+| Claude Code / OpenAI Codex / Cursor / Windsurf / Gemini CLI / Copilot / most newer tools | `AGENTS.md` (cross-vendor standard) |
 | Aider                                                         | `CONVENTIONS.md` (passed via `--read`)         |
 
-**Pattern:** put the canonical rules in `AGENTS.md` at the repo root, then add a thin real-file `CLAUDE.md` shim containing `@AGENTS.md` (Claude Code's import syntax) plus any Claude-specific addendum. Symlinks don't work reliably on Windows, so keep shims as real files. Tool support shifts quarterly — when adopting a new assistant, check its current docs for which file it reads.
+**Pattern:** put the canonical rules in `AGENTS.md` at the repo root, and nothing beside it. Claude Code reads `AGENTS.md` only while no `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md` sits in the working directory or above it — any one of them switches it to `CLAUDE.md` only — so don't add one. Claude-only additions go in `.claude/rules/`, which loads alongside `AGENTS.md`. A session that can't read `AGENTS.md` directly (an older Claude Code, or its built-in AGENTS.md plugin turned off) needs a one-line `CLAUDE.md` containing `@AGENTS.md`. Tool support shifts quarterly — when adopting a new assistant, check its current docs for which file it reads.
 
 **What belongs in the rules file** (keep it under ~200 lines — longer files get ignored by humans and models alike):
 

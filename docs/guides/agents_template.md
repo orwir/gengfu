@@ -11,7 +11,7 @@ Companion to `project_kickstart.md`: the kickstart explains *why* each rule exis
 1. **Copy** the section under "Template" (everything inside the fenced block) into a new `AGENTS.md` at your repo root.
 2. **Fill placeholders.** Every `{{token}}` is a fill-in. The comments after each one tell you what kind of value goes there.
 3. **Prune by project type.** Some sections include alternative paragraphs marked `[web-service]`, `[desktop]`, `[mobile]`, `[cli]`, `[library]` — keep the one that matches and delete the others. Sections with no marker apply to all project types.
-4. **Add vendor shims if needed.** `AGENTS.md` is read natively by most tools (Codex, Cursor, Windsurf, Gemini CLI, Copilot). The notable holdout is Claude Code: add a real-file `CLAUDE.md` shim containing `@AGENTS.md` (its import syntax) plus any Claude-specific addendum. Symlinks don't work reliably on Windows; tool support shifts quarterly, so check the current docs of each assistant you adopt.
+4. **No vendor shims.** `AGENTS.md` is read natively by most tools (Claude Code from v2.1.277, Codex, Cursor, Windsurf, Gemini CLI, Copilot). Don't add a `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md`: any one of them makes Claude Code read `CLAUDE.md` only. Put Claude-only additions in `.claude/rules/`; a one-line `CLAUDE.md` containing `@AGENTS.md` is only for sessions that can't read `AGENTS.md` directly (an older Claude Code). Tool support shifts quarterly, so check the current docs of each assistant you adopt.
 5. **Keep it under ~200 lines.** Longer files get skimmed instead of read. Push rationale into `CONTRIBUTING.md` and the kickstart; keep `AGENTS.md` as the compressed contract.
 
 ### What belongs in AGENTS.md (and what doesn't)
@@ -132,7 +132,7 @@ Releases run in three explicit phases too, mirroring the task workflow. Full mec
   * `README.md` — end-user entry point (install, use)
   * `CONTRIBUTING.md` — how to work in the repo (branching, release, commit style)
   * `CHANGELOG.md` — release history
-  * `docs/product/` — vision incl. CUJs, the "what" and "why"; `idea.md` is the frozen origins record — never edit it
+  * `docs/product/` — vision incl. CUJs, the "what" and "why"; competitors and feasibility, the research behind them; `idea.md` is the frozen origins record — never edit it
   * `docs/architecture/` — the "how": components, data flow, config reference
   * `docs/guides/` — task-oriented howtos (deploy / publish / package, extend, kickstart, comprehensive review)
   * `docs/adr/` — architecture decision records, one per significant choice
@@ -337,4 +337,4 @@ Where the template's defaults assume a long-running service, here's how each pro
 
 ## When to update the template itself
 
-If you've kickstarted two or more projects with this template and noticed the same paragraph getting hand-edited the same way each time, that paragraph is wrong and the template should be updated. Edit the mirror in the project that found it, push it to the gist at *Complete*, then re-sync the other projects' mirrors — improvements compound across every future project. Conversely, if a section keeps getting deleted on copy, consider whether it belongs in `project_kickstart.md` instead, since the template should be terser than the playbook.
+If you've kickstarted two or more projects with this template and noticed the same paragraph getting hand-edited the same way each time, that paragraph is wrong and the template should be updated. Fix it in the gist, never in a mirror, which the next re-sync overwrites: propose the fix, make it on the maintainer's go-ahead, then re-sync every project's mirrors — improvements compound across every future project. Conversely, if a section keeps getting deleted on copy, consider whether it belongs in `project_kickstart.md` instead, since the template should be terser than the playbook.

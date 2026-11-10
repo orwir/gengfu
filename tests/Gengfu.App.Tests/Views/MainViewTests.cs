@@ -122,6 +122,40 @@ public sealed class MainViewTests(WpfApp wpf)
         }
     }
 
+    [Theory]
+    [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]
+    public Task Each_mark_beside_words_centres_on_the_capitals_of_their_first_line(double scale) =>
+        OnView((session, time, view) =>
+        {
+            // A call not sent and the next one calling, at 25:29 and a call later.
+            session.Clock.Start();
+            time.Advance(TimeSpan.FromSeconds(571));
+            var notSent = Assert.Single(session.Schedule.TakeDue());
+            session.Schedule.MarkNotSent(notSent);
+            time.Advance(notSent.At - session.Schedule.Calls[notSent.Index + 1].At);
+            var calling = Assert.Single(session.Schedule.TakeDue());
+            view.Refresh();
+            WpfApp.Lay(view, scale);
+            List<double> offsets = [Mark(view, notSent, scale), Mark(view, calling, scale), WpfApp.Capitals(view.StatusDot, view.StatusText, scale)];
+
+            // The update notice, with the clock stopped; its words take two lines.
+            session.Clock.Stop();
+            view.UpdateNotice.Visibility = Visibility.Visible;
+            view.UpdateLayout();
+            Assert.True(view.UpdateText.ActualHeight >= 2 * view.UpdateText.LineHeight);
+            offsets.Add(WpfApp.Capitals((FrameworkElement)((Panel)view.UpdateText.Parent).Children[0], view.UpdateText, scale));
+
+            Assert.All(offsets, offset => Assert.InRange(offset, -0.5, 0.5));
+        });
+
+    // A row in the calls list holds its columns; the last but one holds the call's mark and its words.
+    private static double Mark(MainView view, Call call, double scale)
+    {
+        var columns = (Panel)((Panel)view.CallRows.Children[call.Index]).Children[1];
+        var status = (Panel)columns.Children[1];
+        return WpfApp.Capitals((FrameworkElement)((Label)status.Children[0]).Content, (TextBlock)status.Children[1], scale);
+    }
+
     // The line under the clock: its words, and the value after them in the accent.
     private static (string Text, string Value) Line(MainView view) => (view.LineText.Text, view.LineValue.Text);
 

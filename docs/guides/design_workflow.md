@@ -61,7 +61,9 @@ screen's design file, draws on it, and publishes it for the maintainer to review
 (Claude Design, through the assistant's artifact tool). A round is one conversation with the
 codebase, the tokens and the tracker in reach, so nothing is copied between tools and no
 message is shaped for a reader on the other side. Use it for new screens and restructures; the
-canvas is rich for web and desktop, thinner for TUI/CLI. The loop:
+canvas is rich for web and desktop, thinner for TUI/CLI. A project that came through the
+gauntlet starts with a low-fidelity picture of its main journeys in `design/`: its first rounds
+bring those files to full fidelity instead of drawing beside them. The loop:
 
 1. **Prepare.** Settle what the drawing must respect before anything is drawn: the *fixed*
    functional constraints (fidelity guarantees, platform conventions, the accessibility floor,

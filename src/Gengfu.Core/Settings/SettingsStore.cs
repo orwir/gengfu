@@ -35,7 +35,7 @@ public abstract record SettingsLoad
 /// <summary>
 /// The settings file: JSON a person can read and edit, comments and trailing commas allowed. Gengfu
 /// writes it whole, so comments go with the next save. Every value is checked on reading, and a
-/// misspelt setting is an error too, so a hand edit never goes wrong unseen.
+/// misspelt setting or one written twice is an error too, so a hand edit never goes wrong unseen.
 /// </summary>
 public sealed class SettingsStore(string filePath)
 {
@@ -48,9 +48,9 @@ public sealed class SettingsStore(string filePath)
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        AllowDuplicateProperties = false,
         RespectNullableAnnotations = true,
         RespectRequiredConstructorParameters = true,
-        Converters = { new JsonStringEnumConverter<ListenerKind>(JsonNamingPolicy.CamelCase, allowIntegerValues: false) },
     };
 
     public string FilePath { get; } = filePath;
@@ -240,6 +240,22 @@ internal sealed class ThemeConverter : JsonConverter<Theme>
 
     public override void Write(Utf8JsonWriter writer, Theme value, JsonSerializerOptions options) =>
         writer.WriteStringValue(value == Theme.Light ? "light" : "dark");
+}
+
+/// <summary>"group" or "channels", spelt exactly, for the reason <see cref="ThemeConverter"/> gives.</summary>
+internal sealed class ListenersConverter : JsonConverter<ListenerKind>
+{
+    public override ListenerKind Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType != JsonTokenType.String ? throw new JsonException()
+        : reader.GetString() switch
+        {
+            "group" => ListenerKind.Group,
+            "channels" => ListenerKind.Channels,
+            _ => throw new JsonException(),
+        };
+
+    public override void Write(Utf8JsonWriter writer, ListenerKind value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value == ListenerKind.Group ? "group" : "channels");
 }
 
 /// <summary>An event's name or text with something in it: a blank one would show or say nothing.</summary>

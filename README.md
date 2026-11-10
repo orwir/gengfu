@@ -50,16 +50,44 @@ Open Settings with the gear at the bottom right. Every change applies at once an
 
 - **TeamSpeak.** Enter the server address as your TeamSpeak client takes it, the server password
   if it has one, and a nickname for the bot, then press **Connect**. Gengfu stays connected by
-  itself; the line at the top of the main window says how it stands.
+  itself; the line at the top of the main window says how it stands, and while Gengfu waits to
+  try again, how long until it does. A privilege key from the server's admin goes under **Use a
+  privilege key** ([On a strict server](#on-a-strict-server)).
 - **Who hears the calls.** Pick a server group, and everyone in it hears the calls in whatever
   channel they are, or tick the channels that should. The lists come from the server once Gengfu
   is connected, and the server has to allow the bot to whisper. Connecting to another server
   clears the choice.
 - **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
   default. *Say* is what the call speaks, and *Voice* is any Windows voice, or the gong. You can
-  use a sound file instead. **Test call** whispers the call once, now.
+  use a sound file instead. **Test call** whispers the call once, now. If the server says nobody
+  heard it, a note under Test call says why that may be.
 - **Language.** English, Russian, or the same as Windows.
 - **Theme.** Light, dark, or the same as Windows.
+
+## On a strict server
+
+Gengfu joins as an ordinary TeamSpeak client, so a server that takes ordinary clients takes it. A
+stricter server asks its admin for three things:
+
+- **Whisper power.** The bot's server group needs at least the whisper power the listeners' groups
+  ask for (`i_client_whisper_power` against `i_client_needed_whisper_power`). Without it the server
+  tells Gengfu that nobody heard the calls, and Gengfu says so. The admin gives the bot such a group
+  while it is online, or, without being online then, makes a privilege key for that group (in
+  TeamSpeak, Permissions › Privilege Keys) and sends it to you. In Settings › TeamSpeak press **Use
+  a privilege key**, paste the key and press **Use**: the bot joins the group at once and keeps it.
+  A key works once. A later key also needs the bot's group to allow privilege keys
+  (`b_virtualserver_token_use`), as Guest does.
+- **No idle limit.** Between matches the bot stays silent. When the server's own idle limit
+  (`i_client_max_idletime`) kicks it, Gengfu is back within a second, but a call due that moment
+  is lost. An admin bot that kicks idle clients stops Gengfu, as a person's kick does. So exempt
+  the bot's group from both.
+- **A security level up to 32.** If the server asks for a stronger identity, Gengfu raises the
+  bot's once and keeps it; the status line says so, and it can take minutes. Above 32 the wait
+  would pass half an hour and double with each level, so Gengfu stays off and the line names the
+  level the server asks for.
+
+If the server's flood protection blocks your PC, your own TeamSpeak can't connect either. Gengfu
+then waits 5 minutes before trying again, so the block can lift.
 
 ## Your settings
 
@@ -93,8 +121,14 @@ gets it pastes it over the `events` in their own file through **Open settings fi
 
 The calls list has every call of the match: the next one with the time left until it, a check once
 a call went out, and ✕ *Not sent* when nobody heard it: Gengfu was off the server, nobody was
-chosen to hear the calls, the whisper failed, or the clock was moved past the spawn first. When
-there are more calls than fit, the list scrolls to keep the next one in view.
+chosen to hear the calls, the whisper failed, the server said it reached nobody, or the clock was
+moved past the spawn first. When there are more calls than fit, the list scrolls to keep the next
+one in view.
+
+When the server says a call or a Test call reached nobody, the line at the top of the main window
+says so until a call gets through, Gengfu connects anew, or you choose other listeners. The server
+can't tell why: nobody who should hear it is online, or the server doesn't let the bot whisper to
+them.
 
 Under the clock, a line asks you to match the in-game timer until the last call; while a call goes
 out, it says what the squads hear instead.

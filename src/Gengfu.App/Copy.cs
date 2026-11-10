@@ -2,6 +2,7 @@ using System.Globalization;
 using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
+using Gengfu.TeamSpeak;
 
 namespace Gengfu.App;
 
@@ -29,6 +30,17 @@ internal static class Copy
         { Line: null } => Strings.SettingsFileUnreadable,
         { Setting: null } => Format(Strings.SettingsFileErrorOnLine, error.Line),
         _ => Format(Strings.SettingsFileError, error.Line, error.Setting),
+    };
+
+    /// <summary>What the bar under the privilege key says of how the server took it.</summary>
+    public static string KeyAnswer(KeyResult answer) => answer switch
+    {
+        { Outcome: KeyOutcome.Taken, Detail: { } group } => Format(Strings.KeyTaken, group),
+        { Outcome: KeyOutcome.Taken } => Strings.KeyTakenNoGroup,
+        { Outcome: KeyOutcome.Unknown } => Strings.KeyUnknown,
+        { Outcome: KeyOutcome.NotAllowed } => Strings.KeyNotAllowed,
+        { Outcome: KeyOutcome.Refused } => Format(Strings.KeyRefused, answer.Detail ?? ""),
+        _ => Strings.KeyNoAnswer,
     };
 
     /// <summary>The line under the version in Settings › General; none for a copy that doesn't update.</summary>

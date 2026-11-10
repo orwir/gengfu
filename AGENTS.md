@@ -63,7 +63,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 - The version string lives in exactly one place: `Directory.Build.props` → `<Version>`. The About entry (`AppVersion.Current`) and the release workflow read it from the build. **Do not duplicate it.**
 - Update `CHANGELOG.md` for any user-visible change: **one claim per entry, at most 120 characters before the `(#N)`**, grouped Added / Changed / Fixed / Removed once per version, no rationale prose.
-- Releases follow the numbered checklist in [CONTRIBUTING.md § Releasing](CONTRIBUTING.md), in three phases: **Prepare** (pick the semver bump, bump `<Version>`, date the CHANGELOG, open the `develop → master` PR), **Review** (stop, surface the PR URL and a summary, wait for "proceed"), **Ship — on explicit approval only** (merge, which tags and publishes through `release.yml`; fast-forward `develop`, close the milestone, verify). A prior "do the release" does not extend past the review checkpoint.
+- Releases follow the numbered checklist in [CONTRIBUTING.md § Releasing](CONTRIBUTING.md), in three phases: **Prepare** (pick the semver bump, bump `<Version>`, date the CHANGELOG, count the copies in use, open the `develop → master` PR), **Review** (stop, surface the PR URL and a summary, wait for "proceed"), **Ship — on explicit approval only** (merge, which tags and publishes through `release.yml`; fast-forward `develop`, close the milestone, verify). A prior "do the release" does not extend past the review checkpoint.
 
 ## Tests and quality gates
 
@@ -94,7 +94,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 | New or removed user journey | `docs/product/vision.md` § CUJs |
 | Change to vendored code | `lib/README.md` § Local patches |
 | Release or packaging change | `docs/guides/release.md` (created with the release issue) |
-| Process / workflow change | `CONTRIBUTING.md`; also `docs/guides/project_kickstart.md` if reusable |
+| Process / workflow change | `CONTRIBUTING.md`; if reusable, propose it for the gist's `project_kickstart.md`, which `docs/guides/` mirrors |
 
 ### Task-closing checklist
 
@@ -118,7 +118,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 - Never commit secrets: server passwords, the bot identity, tokens, signing material. Local test settings live in git-ignored `*.local.*` files.
 - Never log or print the server password or the identity's private key — log the server address and nickname instead, and refer to secrets by name only.
 - New CI workflows declare least-privilege `permissions:` blocks.
-- v0.1 releases are unsigned. When code signing is added, document the certificate's location and rotation in `docs/guides/release.md`.
+- Releases are unsigned so far. When code signing is added, document the certificate's location and rotation in `docs/guides/release.md`.
 
 ## Executing actions
 

@@ -66,7 +66,7 @@ its SDK knows, so a patch release after a monthly .NET update brings it to playe
 
 ## Signing
 
-v0.1 releases are unsigned, so Windows warns about an unknown publisher, and Smart App Control
+Releases are unsigned so far, so Windows warns about an unknown publisher, and Smart App Control
 blocks Gengfu. When signing is added, record here where the certificate lives and how it rotates.
 
 ## Checking a release
@@ -76,3 +76,20 @@ blocks Gengfu. When signing is added, record here where the certificate lives an
   tools (Windows Sandbox will do), or let an installed Gengfu update itself. Settings › General
   then shows the new version.
 - When an install or an update goes wrong, Velopack's log is `%LocalAppData%\velopack\velopack_Gengfu.log`.
+
+## Copies in use
+
+Gengfu sends no telemetry, so a release's downloads are the only count of the copies that run it.
+An installed copy fetches a release's delta package once when it updates, or its full package when
+it is too far behind for a delta; Setup brings the app with it, so a new install counts as a Setup
+download alone. At step 4 of the checklist, before the merge, the previous release's counts go in
+the table: once merged, the release job's `vpk download github` fetches the previous full package
+once more.
+
+```bash
+gh api repos/orwir/gengfu/releases/tags/v<X.Y.Z> --jq '.assets[] | "\(.name): \(.download_count)"'
+```
+
+| Release | Setup | Delta + full | Counted |
+| --- | --- | --- | --- |
+| 0.1.0 | 1 | 0 + 2 | 2026-11-10 |

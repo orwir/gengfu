@@ -64,6 +64,7 @@ Canonical home: `docs/product/vision.md` § Critical user journeys. The review p
 ### Phase 0 sub-checks — baseline & inventory
 
 - **CUJ inventory** — read it from `docs/product/vision.md` § Critical user journeys; on the first review, create that section there (format above). Then pull the support / feedback / "how do I" questions since the last review — each maps to a CUJ or exposes a missing one.
+- **Competitor baseline** — where `docs/product/competitors.md` holds a walk of the alternatives (the gauntlet's Phase 2), carry its per-CUJ counts into the baseline table next to yours: the product should stay ahead of the tools it was built to beat. Re-walk an alternative after it ships a major change, and update the file.
 - **Surface counts**, mechanically: screens / commands / flags, user-facing settings, distinct user-facing error messages. These are the bloat radar and the delta denominators.
 - **Ground-rules read:** `docs/product/vision.md` (who this is for), the design-language reference, and — from the latest review of each kind, not only the last UX one — the open `[ ]` items and the Decision register's Open and untriggered Accepted-risk rows.
 - **Instrumentation check:** can you tell from logs which commands / screens / flags are actually used, and where journeys abandon? If not, that's the first finding — Phase 7 runs on this evidence.

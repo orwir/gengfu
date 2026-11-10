@@ -112,8 +112,8 @@ and one `area/…` when one fits — create the area label first if it's new.
 [SemVer](https://semver.org). Each `MAJOR.MINOR` maps to a milestone; patches
 reuse it. How the release is built, published and rolled back:
 [release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`, publishes as
-a pre-release, which only installed test builds update to; it skips steps 1
-and 8, keeps its CHANGELOG entries under `[Unreleased]`, and puts that section
+a pre-release, which only installed test builds update to; it skips steps 1,
+4 and 9, keeps its CHANGELOG entries under `[Unreleased]`, and puts that section
 in the PR body. The checklist is literal — execute it in order, no shortcuts:
 
 1. **Confirm the milestone is clean.** `gh issue list --milestone v<X.Y>
@@ -122,16 +122,19 @@ in the PR body. The checklist is literal — execute it in order, no shortcuts:
    source of truth.
 3. **Update `CHANGELOG.md`**: date the new section, group entries under
    Added / Changed / Fixed / Removed, reference issues (`#N`).
-4. **Open the release PR** `develop` → `master`, titled `Release v<X.Y.Z>`,
+4. **Count the copies in use.** Before the merge, add the previous release's
+   downloads to [release.md § Copies in use](docs/guides/release.md#copies-in-use).
+   Gengfu sends no telemetry, so they are the only count of who runs it.
+5. **Open the release PR** `develop` → `master`, titled `Release v<X.Y.Z>`,
    body = the new CHANGELOG section.
-5. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
-   for explicit approval. Step 6 is irreversible and ships to users; a prior
+6. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
+   for explicit approval. Step 7 is irreversible and ships to users; a prior
    "do the release" does not extend past this line.
-6. **Merge after CI is green.** The merge to `master` runs the release
+7. **Merge after CI is green.** The merge to `master` runs the release
    workflow: it builds the app, installs it on the CI machine, and publishes
    the GitHub Release with its tag `v<X.Y.Z>` and the CHANGELOG section as its
    notes. Follow it to the end with `gh run watch`.
-7. **Fast-forward `develop`** onto the release merge commit so the branches
+8. **Fast-forward `develop`** onto the release merge commit so the branches
    don't diverge:
 
    ```bash
@@ -141,10 +144,10 @@ in the PR body. The checklist is literal — execute it in order, no shortcuts:
 
    If `develop` moved during the release, use a regular merge instead of
    `--ff-only`.
-8. **Close the milestone.**
-9. **Verify the release**: run the published Setup on a Windows 11 PC (or let
-   an installed Gengfu update itself) and check that Settings › General shows
-   the new version. A release isn't done until this passes.
+9. **Close the milestone.**
+10. **Verify the release**: run the published Setup on a Windows 11 PC (or let
+    an installed Gengfu update itself) and check that Settings › General shows
+    the new version. A release isn't done until this passes.
 
 ## Hotfixes
 
@@ -154,7 +157,7 @@ For urgent fixes to a released version:
 2. Fix, with a test that fails before and passes after.
 3. Bump the patch version, add the CHANGELOG entry.
 4. PR back to `master`; merge after CI. The merge publishes the release with
-   its tag, as in step 6 above.
+   its tag, as in step 7 above.
 5. Forward-merge `master` → `develop` so the next regular release doesn't lose
    the patch.
 6. Delete the hotfix branch — remote and local.

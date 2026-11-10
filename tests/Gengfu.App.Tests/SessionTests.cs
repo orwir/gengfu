@@ -79,6 +79,134 @@ public sealed class SessionTests : IAsyncLifetime
     }
 
     [Fact]
+    public void A_call_the_server_says_reached_nobody_was_not_heard_until_a_whisper_gets_through()
+    {
+        _session.Settings.Group = new Named(1625, "GvG");
+        var gvg = _session.Target!;
+        var on = _session.Connection.State;
+
+        Assert.False(_session.Whispered(gvg, on, WhisperResult.ReachedNobody));
+        _session.Tick();
+        Assert.True(_session.NobodyHeard);
+
+        // A whisper that couldn't go out says nothing of who hears.
+        Assert.False(_session.Whispered(gvg, on, WhisperResult.NotSent));
+        Assert.True(_session.NobodyHeard);
+
+        Assert.True(_session.Whispered(gvg, on, WhisperResult.Sent));
+        Assert.False(_session.NobodyHeard);
+    }
+
+    [Fact]
+    public void Other_listeners_start_afresh_even_when_the_first_are_chosen_again()
+    {
+        _session.Settings.Listeners = ListenerKind.Channels;
+        _session.Settings.Channels = [new Named(3977, "Push 1"), new Named(3978, "Push 2")];
+        _session.Whispered(_session.Target!, _session.Connection.State, WhisperResult.ReachedNobody);
+
+        // The same channels, chosen anew, are the ones nobody heard.
+        _session.Settings.Channels = [new Named(3977, "Push 1"), new Named(3978, "Push 2")];
+        _session.Tick();
+        Assert.True(_session.NobodyHeard);
+
+        _session.Settings.Channels = [new Named(3978, "Push 2")];
+        Assert.False(_session.NobodyHeard);
+        _session.Tick();
+
+        _session.Settings.Channels = [new Named(3977, "Push 1"), new Named(3978, "Push 2")];
+        Assert.False(_session.NobodyHeard);
+    }
+
+    [Fact]
+    public async Task A_new_connection_starts_afresh()
+    {
+        _session.Settings.Group = new Named(1625, "GvG");
+        var on = _session.Connection.State;
+        _session.Whispered(_session.Target!, on, WhisperResult.ReachedNobody);
+
+        // Nothing answers on the discard port; the connection keeps trying until the test ends.
+        _session.Settings.Server = "127.0.0.1:9";
+        await _session.ConnectAsync();
+        for (var tries = 0; tries < 100 && ReferenceEquals(_session.Connection.State, on); tries++)
+        {
+            await Task.Delay(20);
+        }
+
+        Assert.False(_session.NobodyHeard);
+    }
+
+    [Fact]
+    public async Task A_privilege_key_waits_for_a_connection_and_is_never_saved()
+    {
+        _session.TypeKey(" v2Rk+Qc8XyT1aZ9mBf3LwN0pHs7uJd5EgKoYiC4 ");
+
+        Assert.False(_session.CanUseKey);
+        await _session.UseKeyAsync();
+        Assert.Null(_session.KeyAnswer);
+
+        _session.SaveNow();
+        await _session.DisposeAsync();
+        _session = NewSession();
+        Assert.Equal("", _session.PrivilegeKey);
+        Assert.DoesNotContain("v2Rk", await File.ReadAllTextAsync(SettingsFile), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_key_the_server_took_is_spent_and_one_it_didn_t_take_stays_until_another_is_typed()
+    {
+        _session.TypeKey("first");
+
+        _session.KeyUsed(new KeyResult(KeyOutcome.Taken, "Callers"));
+        Assert.Equal("", _session.PrivilegeKey);
+        Assert.Equal(new KeyResult(KeyOutcome.Taken, "Callers"), _session.KeyAnswer);
+
+        _session.TypeKey("second");
+        Assert.Null(_session.KeyAnswer);
+        _session.KeyUsed(new KeyResult(KeyOutcome.Unknown));
+        _session.Tick();
+        Assert.Equal("second", _session.PrivilegeKey);
+        Assert.Equal(new KeyResult(KeyOutcome.Unknown), _session.KeyAnswer);
+
+        // The same text again is no new key.
+        _session.TypeKey("second");
+        Assert.Equal(new KeyResult(KeyOutcome.Unknown), _session.KeyAnswer);
+        _session.TypeKey("second2");
+        Assert.Null(_session.KeyAnswer);
+    }
+
+    [Fact]
+    public void Use_sends_a_key_only_while_connected_with_one_typed_and_none_on_its_way()
+    {
+        Assert.True(Session.CanUseKeyFor(ConnectionStatus.Connected, " v2Rk+Qc8 ", sending: false));
+        Assert.False(Session.CanUseKeyFor(ConnectionStatus.Connected, " \t", sending: false));
+        Assert.False(Session.CanUseKeyFor(ConnectionStatus.Connected, "v2Rk+Qc8", sending: true));
+        Assert.False(Session.CanUseKeyFor(ConnectionStatus.Connecting, "v2Rk+Qc8", sending: false));
+        Assert.False(Session.CanUseKeyFor(ConnectionStatus.Disconnected, "v2Rk+Qc8", sending: false));
+    }
+
+    [Fact]
+    public async Task A_key_s_answer_stands_through_the_connection_s_own_retries_until_Connect_is_pressed()
+    {
+        _session.KeyUsed(new KeyResult(KeyOutcome.Taken, "Callers"));
+        await _session.DisconnectAsync();
+        Assert.Equal(new KeyResult(KeyOutcome.Taken, "Callers"), _session.KeyAnswer);
+
+        // Nothing answers on the discard port; the connection keeps trying until the test ends.
+        _session.Settings.Server = "127.0.0.1:9";
+        await _session.ConnectAsync();
+        Assert.Null(_session.KeyAnswer);
+        _session.KeyUsed(new KeyResult(KeyOutcome.NoAnswer));
+        var on = _session.Connection.State;
+        for (var tries = 0; tries < 100 && ReferenceEquals(_session.Connection.State, on); tries++)
+        {
+            await Task.Delay(20);
+        }
+        _session.Tick();
+        Assert.NotSame(on, _session.Connection.State);
+        Assert.Equal(new KeyResult(KeyOutcome.NoAnswer), _session.KeyAnswer);
+    }
+
+    [Fact]
     public void A_call_plays_the_sound_file_or_the_gong_when_chosen_and_speaks_the_text_otherwise()
     {
         var settings = new AppSettings { Voice = "zira" };

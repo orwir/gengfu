@@ -88,29 +88,53 @@
     <value>Connected · choose who hears the calls</value>
     <comment>Status line: connected, but no group or channel chosen. Followed by a Settings link.</comment>
   </data>
+  <data name="StatusNobodyHeard" xml:space="preserve">
+    <value>Connected · nobody heard the last call</value>
+    <comment>Status line: connected, but the server said the last call reached nobody. No Settings link: the fix is on the server or in the game.</comment>
+  </data>
   <data name="StatusConnecting" xml:space="preserve">
     <value>Connecting to {0}…</value>
     <comment>Status line. {0}: the server address.</comment>
   </data>
+  <data name="StatusRaisingIdentity" xml:space="preserve">
+    <value>Raising the bot’s security level to {0} — can take minutes</value>
+    <comment>Status line: the server asks for a stronger identity and Gengfu raises the bot's; each level doubles the time. {0}: the level the server asks for.</comment>
+  </data>
   <data name="StatusNoAnswer" xml:space="preserve">
-    <value>No answer from {0} — trying again</value>
-    <comment>Status line: the server doesn't answer or stopped answering; Gengfu retries by itself. {0}: the server address.</comment>
+    <value>No answer from {0} — {1}</value>
+    <comment>Status line: the server doesn't answer or stopped answering; Gengfu retries by itself. {0}: the server address. {1}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusAddressNotFound" xml:space="preserve">
-    <value>Can’t find {0} — trying again</value>
-    <comment>Status line: the address resolves to nothing. {0}: the server address.</comment>
+    <value>Can’t find {0} — {1}</value>
+    <comment>Status line: the address resolves to nothing. {0}: the server address. {1}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusServerShutdown" xml:space="preserve">
-    <value>The server shut down — trying again</value>
-    <comment>Status line.</comment>
+    <value>The server shut down — {0}</value>
+    <comment>Status line. {0}: TryingAgainIn or TryingAgainNow.</comment>
+  </data>
+  <data name="StatusKickedByServer" xml:space="preserve">
+    <value>The server kicked the bot — {0}</value>
+    <comment>Status line: the server itself kicked the bot, as an idle limit does; Gengfu reconnects by itself. {0}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusServerFull" xml:space="preserve">
-    <value>The server is full — trying again</value>
-    <comment>Status line.</comment>
+    <value>The server is full — {0}</value>
+    <comment>Status line. {0}: TryingAgainIn or TryingAgainNow.</comment>
+  </data>
+  <data name="StatusFloodProtection" xml:space="preserve">
+    <value>The server is limiting connections — {0}</value>
+    <comment>Status line: the server's flood protection blocks this PC, and Gengfu waits 5 minutes before it tries again. {0}: TryingAgainIn or TryingAgainNow.</comment>
   </data>
   <data name="StatusRefused" xml:space="preserve">
-    <value>The server refused: {0} — trying again</value>
-    <comment>Status line. {0}: the server's own message, often in English.</comment>
+    <value>The server refused: {0} — {1}</value>
+    <comment>Status line. {0}: the server's own message, often in English. {1}: TryingAgainIn or TryingAgainNow.</comment>
+  </data>
+  <data name="TryingAgainIn" xml:space="preserve">
+    <value>trying again in {0}</value>
+    <comment>Ends a status line while Gengfu waits to try the server again. {0}: the time left, such as 0:25, as the calls list counts to the next call.</comment>
+  </data>
+  <data name="TryingAgainNow" xml:space="preserve">
+    <value>trying again…</value>
+    <comment>Ends a status line while Gengfu tries the server again.</comment>
   </data>
   <data name="StatusNotConnected" xml:space="preserve">
     <value>Not connected</value>
@@ -127,6 +151,10 @@
   <data name="StatusBanned" xml:space="preserve">
     <value>Not connected — banned from the server</value>
     <comment>Status line, followed by a Settings link.</comment>
+  </data>
+  <data name="StatusLevelTooHigh" xml:space="preserve">
+    <value>Not connected — server wants security level {0}</value>
+    <comment>Status line, followed by a Settings link: the server asks for an identity above the level Gengfu raises to. {0}: the level it asks for.</comment>
   </data>
   <data name="StatusNotSetUp" xml:space="preserve">
     <value>TeamSpeak isn’t set up</value>
@@ -186,7 +214,7 @@
   </data>
   <data name="NotSent" xml:space="preserve">
     <value>Not sent</value>
-    <comment>A call's row: it came due while Gengfu couldn't whisper.</comment>
+    <comment>A call's row: nobody heard it. It came due while Gengfu couldn't whisper, or the server said it reached nobody, or the clock was moved past its spawn first.</comment>
   </data>
   <data name="ServerAddress" xml:space="preserve">
     <value>Server address</value>
@@ -212,6 +240,50 @@
     <value>Disconnect</value>
     <comment>Settings › TeamSpeak.</comment>
   </data>
+  <data name="UsePrivilegeKey" xml:space="preserve">
+    <value>Use a privilege key</value>
+    <comment>Settings › TeamSpeak: a link under Connect that opens the privilege key's field in its place.</comment>
+  </data>
+  <data name="PrivilegeKey" xml:space="preserve">
+    <value>Privilege key</value>
+    <comment>Settings › TeamSpeak: a one-time key from a server admin that puts the bot in a server group. TeamSpeak's own word for it.</comment>
+  </data>
+  <data name="PrivilegeKeyPlaceholder" xml:space="preserve">
+    <value>From the server’s admin</value>
+    <comment>Placeholder of the privilege key.</comment>
+  </data>
+  <data name="UseKey" xml:space="preserve">
+    <value>Use</value>
+    <comment>Button beside the privilege key: sends it to the server Gengfu is on.</comment>
+  </data>
+  <data name="UseKeyName" xml:space="preserve">
+    <value>Use the privilege key</value>
+    <comment>What a screen reader says of Use beside the privilege key.</comment>
+  </data>
+  <data name="KeyTaken" xml:space="preserve">
+    <value>Key used — Gengfu is in {0} now.</value>
+    <comment>Under the privilege key: the server took it. {0} is the server group it put the bot in, as the server names it.</comment>
+  </data>
+  <data name="KeyTakenNoGroup" xml:space="preserve">
+    <value>Key used — the server gave Gengfu the key’s group.</value>
+    <comment>Under the privilege key: the server took it and named no server group, as for a key to a channel group.</comment>
+  </data>
+  <data name="KeyUnknown" xml:space="preserve">
+    <value>The server doesn’t know this key: it’s used already, or mistyped.</value>
+    <comment>Under the privilege key. The server deletes a key once used, so it answers a used key as it does a made-up one.</comment>
+  </data>
+  <data name="KeyNotAllowed" xml:space="preserve">
+    <value>The server doesn’t let the bot use privilege keys: an admin has to give it the group.</value>
+    <comment>Under the privilege key: the bot's groups may not use keys, whatever the key.</comment>
+  </data>
+  <data name="KeyRefused" xml:space="preserve">
+    <value>The server refused the key: {0}</value>
+    <comment>Under the privilege key: any other refusal. {0} is the server's own words, in English.</comment>
+  </data>
+  <data name="KeyNoAnswer" xml:space="preserve">
+    <value>The connection dropped before the server answered. Try again once connected.</value>
+    <comment>Under the privilege key: the connection ended before the server answered the key.</comment>
+  </data>
   <data name="Connected" xml:space="preserve">
     <value>Connected</value>
     <comment>Beside Disconnect in Settings.</comment>
@@ -231,6 +303,10 @@
   <data name="Banned" xml:space="preserve">
     <value>Banned from the server</value>
     <comment>Beside Connect in Settings.</comment>
+  </data>
+  <data name="LevelTooHigh" xml:space="preserve">
+    <value>Server wants security level {0}</value>
+    <comment>Beside Connect in Settings. {0}: the identity level the server asks for.</comment>
   </data>
   <data name="WhoHears" xml:space="preserve">
     <value>Who hears the calls</value>
@@ -351,6 +427,14 @@
   <data name="UseText" xml:space="preserve">
     <value>Use text instead</value>
     <comment>Link in Settings › Calls while a sound file is chosen.</comment>
+  </data>
+  <data name="NobodyHeardGroup" xml:space="preserve">
+    <value>Nobody heard the last call. Either no one in the group is online, or the server doesn’t allow the bot to whisper to them.</value>
+    <comment>Caution under Test call in Settings › Calls once the server said the last call reached nobody, with a server group chosen.</comment>
+  </data>
+  <data name="NobodyHeardChannels" xml:space="preserve">
+    <value>Nobody heard the last call. Either no one is in the chosen channels, or the server doesn’t allow the bot to whisper to them.</value>
+    <comment>The same caution, with channels chosen.</comment>
   </data>
   <data name="ChooseSoundFile" xml:space="preserve">
     <value>Choose a sound file</value>

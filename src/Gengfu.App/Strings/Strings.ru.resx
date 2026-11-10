@@ -69,23 +69,41 @@
   <data name="StatusNoListeners" xml:space="preserve">
     <value>Подключено · выберите, кто слышит</value>
   </data>
+  <data name="StatusNobodyHeard" xml:space="preserve">
+    <value>Подключено · последнее объявление никто не услышал</value>
+  </data>
   <data name="StatusConnecting" xml:space="preserve">
     <value>Подключение к {0}…</value>
   </data>
+  <data name="StatusRaisingIdentity" xml:space="preserve">
+    <value>Повышаю уровень безопасности до {0} — займёт минуты</value>
+  </data>
   <data name="StatusNoAnswer" xml:space="preserve">
-    <value>{0} не отвечает — пробую снова</value>
+    <value>{0} не отвечает — {1}</value>
   </data>
   <data name="StatusAddressNotFound" xml:space="preserve">
-    <value>Не нахожу {0} — пробую снова</value>
+    <value>Не нахожу {0} — {1}</value>
   </data>
   <data name="StatusServerShutdown" xml:space="preserve">
-    <value>Сервер выключился — пробую снова</value>
+    <value>Сервер выключился — {0}</value>
+  </data>
+  <data name="StatusKickedByServer" xml:space="preserve">
+    <value>Сервер выгнал бота — {0}</value>
   </data>
   <data name="StatusServerFull" xml:space="preserve">
-    <value>Сервер заполнен — пробую снова</value>
+    <value>Сервер заполнен — {0}</value>
+  </data>
+  <data name="StatusFloodProtection" xml:space="preserve">
+    <value>Сервер ограничил подключения — {0}</value>
   </data>
   <data name="StatusRefused" xml:space="preserve">
-    <value>Сервер отказал: {0} — пробую снова</value>
+    <value>Сервер отказал: {0} — {1}</value>
+  </data>
+  <data name="TryingAgainIn" xml:space="preserve">
+    <value>повторю через {0}</value>
+  </data>
+  <data name="TryingAgainNow" xml:space="preserve">
+    <value>пробую снова…</value>
   </data>
   <data name="StatusNotConnected" xml:space="preserve">
     <value>Не подключено</value>
@@ -98,6 +116,9 @@
   </data>
   <data name="StatusBanned" xml:space="preserve">
     <value>Не подключено — бот забанен на сервере</value>
+  </data>
+  <data name="StatusLevelTooHigh" xml:space="preserve">
+    <value>Не подключено — требуется уровень {0}</value>
   </data>
   <data name="StatusNotSetUp" xml:space="preserve">
     <value>TeamSpeak не настроен</value>
@@ -162,6 +183,39 @@
   <data name="Disconnect" xml:space="preserve">
     <value>Отключиться</value>
   </data>
+  <data name="UsePrivilegeKey" xml:space="preserve">
+    <value>Применить ключ привилегий</value>
+  </data>
+  <data name="PrivilegeKey" xml:space="preserve">
+    <value>Ключ привилегий</value>
+  </data>
+  <data name="PrivilegeKeyPlaceholder" xml:space="preserve">
+    <value>От администратора сервера</value>
+  </data>
+  <data name="UseKey" xml:space="preserve">
+    <value>Применить</value>
+  </data>
+  <data name="UseKeyName" xml:space="preserve">
+    <value>Применить ключ привилегий</value>
+  </data>
+  <data name="KeyTaken" xml:space="preserve">
+    <value>Ключ применён — Gengfu теперь в группе {0}.</value>
+  </data>
+  <data name="KeyTakenNoGroup" xml:space="preserve">
+    <value>Ключ применён — сервер выдал Gengfu группу этого ключа.</value>
+  </data>
+  <data name="KeyUnknown" xml:space="preserve">
+    <value>Сервер не знает этот ключ: его уже применили или в нём опечатка.</value>
+  </data>
+  <data name="KeyNotAllowed" xml:space="preserve">
+    <value>Сервер не разрешает боту применять ключи привилегий: группу ему должен выдать администратор.</value>
+  </data>
+  <data name="KeyRefused" xml:space="preserve">
+    <value>Сервер отклонил ключ: {0}</value>
+  </data>
+  <data name="KeyNoAnswer" xml:space="preserve">
+    <value>Связь прервалась раньше, чем ответил сервер. Попробуйте снова после подключения.</value>
+  </data>
   <data name="Connected" xml:space="preserve">
     <value>Подключено</value>
   </data>
@@ -176,6 +230,9 @@
   </data>
   <data name="Banned" xml:space="preserve">
     <value>Бот забанен на сервере</value>
+  </data>
+  <data name="LevelTooHigh" xml:space="preserve">
+    <value>Сервер требует уровень безопасности {0}</value>
   </data>
   <data name="WhoHears" xml:space="preserve">
     <value>Кто слышит объявления</value>
@@ -266,6 +323,12 @@
   </data>
   <data name="UseText" xml:space="preserve">
     <value>Озвучивать текст</value>
+  </data>
+  <data name="NobodyHeardGroup" xml:space="preserve">
+    <value>Последнее объявление никто не услышал. Либо никого из группы нет в сети, либо сервер не разрешает боту им шептать.</value>
+  </data>
+  <data name="NobodyHeardChannels" xml:space="preserve">
+    <value>Последнее объявление никто не услышал. Либо в выбранных каналах никого нет, либо сервер не разрешает боту шептать в них.</value>
   </data>
   <data name="ChooseSoundFile" xml:space="preserve">
     <value>Выберите звуковой файл</value>

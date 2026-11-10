@@ -71,18 +71,29 @@ public sealed class WpfApp : IDisposable
 
     /// <summary>
     /// In device pixels at the scale laid out, below being positive: how far an icon's centre sits
-    /// from the centre of what holds it, and how far its label's capitals sit from the icon's
-    /// centre. The capitals, not the line, so a descender doesn't count.
+    /// from the centre of what holds it, and how far its label's capitals sit from the icon's centre.
     /// </summary>
     public static (double Icon, double Capitals) Offsets(FrameworkElement holder, FrameworkElement icon, TextBlock label, double scale)
     {
-        Assert.Equal(scale, VisualTreeHelper.GetDpi(label).DpiScaleY);
-        var typeface = new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch);
-        Assert.True(typeface.TryGetGlyphTypeface(out var glyphs));
-        var line = new FormattedText(label.Text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, label.FontSize, Brushes.Black, scale);
-        var capitals = label.TransformToAncestor(holder).Transform(new Point(0, line.Baseline - (glyphs.CapsHeight * label.FontSize / 2))).Y;
         var centre = icon.TransformToAncestor(holder).Transform(new Point(0, icon.ActualHeight / 2)).Y;
-        return ((centre - (holder.ActualHeight / 2)) * scale, (capitals - centre) * scale);
+        return ((centre - (holder.ActualHeight / 2)) * scale, Capitals(icon, label, scale));
+    }
+
+    /// <summary>
+    /// In device pixels at the scale laid out, below being positive: how far the capitals of a text's
+    /// first line sit from a mark's centre. The capitals, not the line, so a descender doesn't count.
+    /// The first line's baseline is the font's own: a taller line height adds its room under the
+    /// baseline, and wrapping only adds lines below.
+    /// </summary>
+    public static double Capitals(FrameworkElement mark, TextBlock text, double scale)
+    {
+        Assert.Equal(scale, VisualTreeHelper.GetDpi(text).DpiScaleY);
+        var typeface = new Typeface(text.FontFamily, text.FontStyle, text.FontWeight, text.FontStretch);
+        Assert.True(typeface.TryGetGlyphTypeface(out var glyphs));
+        var line = new FormattedText(text.Text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, text.FontSize, Brushes.Black, scale);
+        var capitals = line.Baseline - (glyphs.CapsHeight * text.FontSize / 2);
+        var centre = mark.ActualHeight / 2;
+        return (text.TransformToVisual(mark).Transform(new Point(0, capitals)).Y - centre) * scale;
     }
 
     private static void Arrange(Control view)

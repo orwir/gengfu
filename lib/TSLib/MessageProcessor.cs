@@ -99,7 +99,9 @@ internal sealed class AsyncMessageProcessor(Func<string, NotificationType> findT
 	{
 		if (errorStatus.ReturnCode is null)
 		{
-			return new LazyNotification([errorStatus], ntfyType);
+			// gengfu patch: the generated InvokeEvent casts the notifications to CommandError[]; built as
+			// [errorStatus], the array is an INotification[], the cast throws, and the error is lost.
+			return new LazyNotification(new CommandError[] { errorStatus }, ntfyType);
 		}
 
 		// otherwise it is the result status code to a request

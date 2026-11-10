@@ -171,7 +171,7 @@ Add repo-specific rows (open issues, project-board state, deploy version) when t
 
 Read these end-to-end before changing anything:
 
-- `CLAUDE.md` / `AGENTS.md` / `CONTRIBUTING.md` — the operating contract.
+- `AGENTS.md` / `CONTRIBUTING.md` — the operating contract. A `CLAUDE.md` or `CLAUDE.local.md` that doesn't import `@AGENTS.md` is a finding: it hides `AGENTS.md` from Claude Code.
 - `README.md` — what the project claims to do.
 - `docs/architecture/` (or equivalent) — load-bearing diagrams and decision records.
 - `docs/reviews/` (or equivalent) — past review docs. Read the latest review *of each kind* (code, UX, design): carry its unresolved `[ ]` action items in as starting findings, and every Open or untriggered Accepted-risk row of its [Decision register](#decision-register) into this plan's register, origin pointing back.

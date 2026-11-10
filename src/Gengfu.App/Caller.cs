@@ -5,13 +5,13 @@ using Gengfu.Core.Settings;
 namespace Gengfu.App;
 
 /// <summary>
-/// Makes the calls. Each call the schedule finds due goes out as a whisper, and one that can't is
-/// marked not sent at once, so the list never shows it calling. A test call goes out the same way,
-/// outside the schedule.
+/// Makes the calls. Each call the schedule finds due goes out as a whisper. One that can't is marked
+/// not sent at once, so the list never shows it calling, and one nobody heard once it has played. A
+/// test call goes out the same way, outside the schedule.
 /// </summary>
 /// <param name="canSend">Whether a whisper can go out now: connected, with someone to hear it.</param>
 /// <param name="render">A call of the event as it sounds now; null asks for the sound Settings sets, which Test call plays.</param>
-/// <param name="whisper">Sends the frames; false when they couldn't go out.</param>
+/// <param name="whisper">Sends the frames; false when they couldn't go out, or the server said they reached nobody.</param>
 internal sealed class Caller(
     CallSchedule schedule,
     Func<bool> canSend,
@@ -24,7 +24,7 @@ internal sealed class Caller(
     /// <summary>Makes the calls due now. Call it on every tick, before reading any call's state.</summary>
     public IReadOnlyList<Task> Tick() => [.. schedule.TakeDue().Select(SendAsync)];
 
-    /// <summary>Whispers the call once, now; false when it couldn't go out.</summary>
+    /// <summary>Whispers the call once, now; false when it couldn't go out, or the server said it reached nobody.</summary>
     public async Task<bool> TestAsync()
     {
         if (Testing || !canSend())

@@ -204,7 +204,7 @@ breached.
 - **Self-enforcing rules, one assertion each:** a lint banning raw values outside the token file
   `[web]`; a snapshot of the token set; the component-reuse rule in `AGENTS.md`; and, where the project keeps a design file per screen, the screen-to-file pairing (`design_workflow.md` § *Round*). A doc is
   advisory; a lint holds the line — add it now that the system is worth enforcing.
-- **Update the agent contract** (`AGENTS.md` / `CLAUDE.md`) so every future UI edit, including
+- **Update the agent contract** (`AGENTS.md`) so every future UI edit, including
   AI-driven ones, conforms.
 
 ### Phase 8 — Close-out

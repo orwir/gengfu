@@ -59,6 +59,7 @@ public sealed class AppSettings
 
     public string Nickname { get; set; } = DefaultNickname;
 
+    [JsonConverter(typeof(ListenersConverter))]
     public ListenerKind Listeners { get; set; }
 
     public Named? Group { get; set; }

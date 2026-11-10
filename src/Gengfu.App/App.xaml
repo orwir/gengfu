@@ -168,7 +168,8 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
 
-        <!-- Hints under a setting: informational (the no-voice hint) or a caution (a call that plays the gong). -->
+        <!-- Hints under a setting: informational (the no-voice hint) or a caution (a call that plays the
+             gong); and how a privilege key went, a success or an error. -->
         <Style x:Key="InfoBar" TargetType="Border">
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="CornerRadius" Value="4" />
@@ -179,6 +180,14 @@
 
         <Style x:Key="CautionBar" TargetType="Border" BasedOn="{StaticResource InfoBar}">
             <Setter Property="Background" Value="{DynamicResource InfoBarWarningSeverityBackgroundBrush}" />
+        </Style>
+
+        <Style x:Key="SuccessBar" TargetType="Border" BasedOn="{StaticResource InfoBar}">
+            <Setter Property="Background" Value="{DynamicResource InfoBarSuccessSeverityBackgroundBrush}" />
+        </Style>
+
+        <Style x:Key="ErrorBar" TargetType="Border" BasedOn="{StaticResource InfoBar}">
+            <Setter Property="Background" Value="{DynamicResource InfoBarErrorSeverityBackgroundBrush}" />
         </Style>
 
         <!-- Icons are strokes in the text's colour, 16 px, as the design draws them. -->
@@ -200,6 +209,38 @@
         <Style x:Key="IconLabel" TargetType="TextBlock">
             <Setter Property="Margin" Value="8,-2.2,0,-0.4" />
             <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
+        <!-- Caption-size words, 12 px on 16 px lines, beside a mark: their capitals' centre falls 0.75 px
+             below the line's middle. That is a pixel and a half at 200%, so the styles below move 0.74 px
+             and rounding takes the nearer pixel. A mark and its words hang from one top, so rounding to
+             device pixels moves them together. -->
+
+        <!-- A bar's words, lifted to its 16 px icon so a one-line bar stays centred; the bottom margin
+             gives the lift back, so the bar keeps its height. -->
+        <Style x:Key="BarText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="16" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,-0.74,0,0.74" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+
+        <!-- In a line, the mark comes down to its words instead, which stay in line with the words around
+             them: the status dot, hanging from its words' top... -->
+        <Style x:Key="StatusDot" TargetType="Ellipse">
+            <Setter Property="DockPanel.Dock" Value="Left" />
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="Margin" Value="0,4.74,8,0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
+        <!-- ...and a call's 16 px mark in the calls list. -->
+        <Style x:Key="CallMark" TargetType="Label" BasedOn="{StaticResource DefaultLabelStyle}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0.74,0,-0.74" />
         </Style>
     </Application.Resources>
 </Application>

@@ -5,6 +5,38 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-10
+
+### Added
+
+- Gengfu reconnects when the server itself kicks it, as an idle limit does (#13)
+- When a server's flood protection blocks Gengfu, it waits 5 minutes and tries again (#13)
+- The status line says when Gengfu raises its identity's security level for a server (#13)
+- A server that wants an identity above security level 32 leaves Gengfu off (#13)
+- When a server wants more than security level 32, the status line names the level it wants (#13)
+- While Gengfu waits to connect again, the status line counts down to its next attempt (#13)
+- The status line says when the server reports that the last call reached nobody (#37)
+- In Settings, a note under Test call says when nobody heard the last call, and why that may be (#37)
+- Settings › TeamSpeak takes a privilege key from a server admin, so the bot joins the key's group (#36)
+
+### Changed
+
+- A full server, or one that refuses for another reason, is tried again every 30 s (#13)
+
+### Fixed
+
+- Gengfu's retries no longer trip a server's flood protection (#13)
+- A call the server says reached nobody shows as Not sent, not as called (#37)
+- A wrong server password shows as such, not as "no answer" retried every 5 s (#35)
+- A ban from the server shows as such, not as "no answer" retried every 5 s (#35)
+- A full server shows as full, not as "no answer" (#35)
+- Any other refusal from the server shows the server's own words, not "no answer" (#35)
+- Gengfu raises its identity's security level when a server asks for more, and joins (#35)
+- Icons and status dots beside small text line up with its capital letters (#28)
+- The update notice's "i" sits by its first line rather than between its two lines (#28)
+- In the settings file, `listeners` other than exactly "group" or "channels" shows as an error, not read as either (#32)
+- A setting written twice in the settings file shows as an error, not taken from its later copy (#32)
+
 ## [0.1.0] - 2026-11-09
 
 ### Added

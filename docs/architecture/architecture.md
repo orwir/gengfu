@@ -16,8 +16,8 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
 | `tests/Gengfu.App.Tests` | Tests mirroring `Gengfu.App`, against this machine's own voices and media stack | App |
 
-`Gengfu.Core` never references WPF, Windows-only APIs or TSLib, so a second transport (Discord in
-v0.2) plugs in without touching it.
+`Gengfu.Core` never references WPF, Windows-only APIs or TSLib, so it is tested without the UI or a
+server, and another transport would plug in without touching it.
 
 ## Data flow
 
@@ -32,6 +32,7 @@ v0.2) plugs in without touching it.
 4. TeamSpeak sends the frames in real time as a whisper to the chosen listeners — a server group
    or chosen channels — then an empty frame to end the talk. A call that can't go out, with Gengfu
    off the server or nobody chosen, is marked not sent at once, so the list never shows it calling.
+   One the server says reached nobody is marked not sent once it has played.
 
 ## The App
 
@@ -49,7 +50,11 @@ v0.2) plugs in without touching it.
 - `Session` is one running Gengfu: the settings and their file, the clock and its schedule, the
   calls' sound, the TeamSpeak connection, which it starts when a server is saved, and its updates.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
-  line's words.
+  line's words. When the server says a call reached nobody, `Session` keeps that for the status line
+  and Settings until a whisper gets through, the connection is new, or other listeners are chosen.
+  It holds a privilege key typed in Settings, in memory only, uses it through the connection, and
+  keeps the server's answer for Settings until another key is typed or Connect is pressed: the
+  connection's own reconnects leave the bot's group as it was.
 - `MainWindow` draws its own title bar: Settings' way back sits in it, and maximize is left out.
   Its surface is flat, with no Mica backdrop: under a Mica frame Windows draws its own caption
   buttons too. Windows 11 rounds the corners on request.
@@ -76,8 +81,8 @@ timer up, as the display does.
 A call fires once while the clock is between its game time and its spawn, and shows as calling
 for 3 s: on time as the clock counts down, or late when a correction lands the clock in that
 window, since a late call still helps. After the spawn it never fires — the mob is already farmed
-— and shows as not sent, as does a call that couldn't go out. A correction back above its game
-time re-arms it; a changed lead moves every call but never makes one twice.
+— and shows as not sent, as does a call that couldn't go out or that nobody heard. A correction
+back above its game time re-arms it; a changed lead moves every call but never makes one twice.
 
 ## Call audio
 
@@ -138,10 +143,10 @@ for the connection to leave the server.
 Settings live in `AppSettings` (Core) and in one file, `settings.json` in Gengfu's folder
 (`%AppData%\Gengfu`, or the one `GENGFU_HOME` names; see [The App](#the-app)), that
 `SettingsStore` reads and writes. It is JSON a person can edit, comments and trailing commas
-allowed. Every value is checked on reading, and an unknown setting is an error too, so a typo
-never passes unseen; the error names the line and the setting as the file spells it. A version
-that renames or drops a setting therefore still reads the old name, or every file written before
-it opens as an error.
+allowed. Every value is checked on reading, and an unknown setting or one written twice is an
+error too, so a hand edit never goes wrong unseen; the error names the line and the setting as the
+file spells it. A version that renames or drops a setting therefore still reads the old name, or
+every file written before it opens as an error.
 
 Each setting applies as soon as it changes, and Gengfu writes the file whole once the changes
 stop for half a second. It writes only after a change in the app, so the comments in a hand-edited
@@ -150,7 +155,8 @@ watches the file: an edit saved there applies at once, events, language and them
 already made stay made. A file with an error changes nothing, and Settings shows where the error is
 until it is fixed.
 
-The server password and the bot's identity stay out of the file, so it can be shared. `Secrets`
+The server password and the bot's identity stay out of the file, so it can be shared; a privilege
+key is kept nowhere, since a used one is worthless. `Secrets`
 (App) keeps them beside it in `secrets.bin`, encrypted with Windows' data protection for this
 Windows user; one another user or PC wrote reads as empty, and Gengfu makes a new identity. One
 Windows won't let Gengfu read, perhaps held by another program, is never written over: the
@@ -172,16 +178,74 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 
 - Gengfu resolves server addresses itself — [ADR-0003](../adr/0003-own-address-resolver.md).
 - The connection keeps itself up: a failed attempt is retried after 1 and 2 s, then every 5 s,
-  until the user disconnects, or the server kicks, bans or refuses the password. An attempt the
-  server doesn't answer gives up after 5 s: on our server, an attempt made during an outage never
-  succeeds once the link is back — likely because its opening packet carries the time it was
+  until the user disconnects or the server refuses for good, as the table below says. An attempt
+  the server doesn't answer gives up after 5 s: on our server, an attempt made during an outage
+  never succeeds once the link is back — likely because its opening packet carries the time it was
   made — so only a fresh one gets through. A server that comes back is reached within about 10 s.
+- A refusal is tried again only every 30 s, because every attempt a server answers earns flood
+  points for the IP. At 250, the default, the server's flood protection blocks the IP: every
+  client from it, the player's own TeamSpeak too. Retries every 5 s got there within 90 s, and
+  every 30 s not in 12 minutes, on either server. TS3 lifted the block within 20 s, but TS6 held it
+  while attempts kept coming, and lifted it only after about 4 quiet minutes; so Gengfu waits 5
+  minutes before trying again.
+- While the connection waits to try again, its state says when the next attempt starts, on the
+  App's clock, which the App hands it. The status line counts down to it on each tick, and says
+  Gengfu is trying while the attempt runs.
 - A connection silent for 10 s counts as lost: TSLib pings every second, and our server drops a
   client silent for about 20 s. TSLib's own 30 s is patched down
   ([lib/README.md](../../lib/README.md)); with it, a dead connection shows as connected for half
   a minute while every whisper is lost.
+- While a whisper reaches nobody, TS3 3.13.7 and TS6 6.0 beta both send `1804 no whisper targets
+  found`, about three times a second, the first a quarter of a second into the whisper; while
+  anyone hears it, nothing. Nobody hears when nobody in the group or channels is online, when the
+  group or channel is gone, or when every listener needs more whisper power than the bot has; the
+  error doesn't say which. It names no whisper either, so the connection counts it for the one on
+  air, from its first frame, and says how a whisper went once it has played, waiting at least 1 s
+  from that frame for the word of a far server.
+- A whisper reaches a listener only when the bot's `i_client_whisper_power` is at least the
+  listener's `i_client_needed_whisper_power`. Stock TS3 and TS6 set neither, so a bot in Guest
+  reaches everyone. A group with enough power, given to the bot while it is connected, counts at
+  once, with no reconnect.
+- A privilege key gives the bot such a group with no admin online. TSLib sends an empty
+  `client_default_token` when it connects, so Gengfu uses a key once connected (`privilegekeyuse`).
+  The server says which group it put the bot in (`notifyservergroupclientadded`) just before it
+  answers, and the connection names that group from the server's group list. The server checks
+  `b_virtualserver_token_use` before it looks the key up, so a refusal for it leaves the key unspent.
+  Guest has it by default; a group made from scratch doesn't, so after one key a second may fail.
 - The server sends its group list a moment after the connection is up; group ids come from the
   book's keys, because TSLib leaves the group's own `Id` at 0.
 - The bot's identity is created once and kept, so a server group can be assigned to it; its
   security level is raised when a server asks. The connection hands it out in the official
   client's export format, and the App keeps it with the server password.
+- Raising the level costs about 2^level hashes, about 4.5 million a second on one core: level 28
+  takes about a minute, 30 about 4, 32 about 17. TSLib's raise can't be cancelled, and above 160
+  it never ends, so Gengfu raises to 32 at most; a server that asks for more leaves it off.
+
+How each refusal ends, the same on TS3 3.13.7 and TS6 6.0 beta, as found against local servers:
+
+| The server | sends | and Gengfu |
+| --- | --- | --- |
+| refuses the password | `1028 invalid server password` | stops |
+| has banned the bot | `3329 you are banned`, with "You are banned …" | stops |
+| bans or kicks it while connected, a person doing so | a leave, reason ban or kick, from that person | stops |
+| kicks it itself, as an idle limit does | a leave, reason kick, from client 0, "server" | reconnects after 1 s |
+| is full | `1027 server maxclient reached` | tries again every 30 s |
+| refuses for any other reason | its error | tries again every 30 s, showing the server's words |
+| blocks the IP for flooding | `3329 you are banned`, with "flood prevention, please try again later" | waits 5 minutes, then tries again |
+| asks for a stronger identity | `519 could not validate client identity`, with the level | raises the identity and tries again at once; above 32, or at a level it already has, stops |
+| has the nickname in use | nothing: it names the bot "Gengfu1" | joins |
+| sets a minimum client version | nothing: TSLib announces a build from the far future | joins |
+
+Gengfu takes `3331 flood ban` as flood protection too, though neither server sent it. TSLib keeps
+only why the bot left. Who kicked it comes with the leave notice, which TSLib raises as an event
+before it ends the connection, so the connection reads it there. An admin bot's kick carries the
+bot's own client id, so it stops Gengfu as a person's kick does.
+
+How a privilege key ends, the same on TS3 3.13.7 and TS6 6.0 beta:
+
+| The server | sends | and Settings says |
+| --- | --- | --- |
+| takes the key | the bot's new group, then `ok` | the group the bot is in now |
+| doesn't know it: made up, mistyped, or used already, since it deletes a used key | `3840 invalid privilege key` | it doesn't know the key |
+| won't let the bot's groups use keys | `2568 insufficient client permissions`, whatever the key | it doesn't let the bot use keys |
+| refuses for any other reason | its error | the server's words |

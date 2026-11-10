@@ -19,15 +19,15 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData(Theme.Light)]
-    [InlineData(Theme.Dark)]
-    public void Saved_settings_load_back_the_same(Theme theme)
+    [InlineData(Theme.Light, ListenerKind.Group)]
+    [InlineData(Theme.Dark, ListenerKind.Channels)]
+    public void Saved_settings_load_back_the_same(Theme theme, ListenerKind listeners)
     {
         var settings = new AppSettings
         {
             Server = "teal.example.com:9608",
             Nickname = "Гэнфу",
-            Listeners = ListenerKind.Channels,
+            Listeners = listeners,
             Group = new Named(1625, "ГВГ"),
             Channels = [new Named(3977, "Пуш 1"), new Named(3978, "Пуш 2")],
             ListenersServer = "teal.example.com:9608",
@@ -49,8 +49,8 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Equal(SettingsStore.Serialize(settings), SettingsStore.Serialize(loaded));
         Assert.Equal(settings.Channels, loaded.Channels);
-        Assert.Equal((settings.Server, settings.Nickname, settings.Group, settings.Lead, settings.Voice, settings.SoundFile, settings.Language, settings.Theme),
-            (loaded.Server, loaded.Nickname, loaded.Group, loaded.Lead, loaded.Voice, loaded.SoundFile, loaded.Language, loaded.Theme));
+        Assert.Equal((settings.Server, settings.Nickname, settings.Listeners, settings.Group, settings.Lead, settings.Voice, settings.SoundFile, settings.Language, settings.Theme),
+            (loaded.Server, loaded.Nickname, loaded.Listeners, loaded.Group, loaded.Lead, loaded.Voice, loaded.SoundFile, loaded.Language, loaded.Theme));
     }
 
     [Fact]
@@ -130,9 +130,13 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("{\n  \"server\": \"a\",\n  \"lead\": 25\n}", 3, "lead")]
     [InlineData("{\n  \"lead\": \"30\"\n}", 2, "lead")]
     [InlineData("{\n  \"nickame\": \"Gengfu\"\n}", 2, "nickame")]
+    [InlineData("{\n  \"theme\": \"dark\",\n  \"theme\": null\n}", 3, "theme")]
     [InlineData("{\n  \"server\": null\n}", 2, "server")]
     [InlineData("{\n  \"listeners\": \"squad\"\n}", 2, "listeners")]
     [InlineData("{\n  \"listeners\": 1\n}", 2, "listeners")]
+    [InlineData("{\n  \"listeners\": \"Group\"\n}", 2, "listeners")]
+    [InlineData("{\n  \"listeners\": \"group, channels\"\n}", 2, "listeners")]
+    [InlineData("{\n  \"listeners\": \" group\"\n}", 2, "listeners")]
     [InlineData("{\n  \"group\": { \"name\": \"GvG\" }\n}", 2, "group")]
     [InlineData("{\n  \"language\": \"de\"\n}", 2, "language")]
     [InlineData("{\n  \"theme\": \"blue\"\n}", 2, "theme")]
@@ -148,6 +152,7 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("{\n  \"events\": [{ \"name\": \" \", \"spawns\": [] }]\n}", 2, "events[0].name")]
     [InlineData("{\n  \"events\": [{ \"spawns\": [], \"text\": \"\" }]\n}", 2, "events[0].text")]
     [InlineData("{\n  \"events\": [{ \"spawns\": [] },\n    { \"spawns\": [], \"colour\": 1 }]\n}", 3, "events[1].colour")]
+    [InlineData("{\n  \"events\": [{ \"spawns\": [],\n    \"spawns\": [\"25:00\"] }]\n}", 3, "events[0].spawns")]
     [InlineData("{\n  \"events\": [\n    { \"spawns\": [] },\n    null\n  ]\n}", 4, "events[1]")]
     [InlineData("{\n  \"channels\": [null]\n}", 2, "channels[0]")]
     [InlineData("{\n  \"channels\": [{ \"id\": 3978 }]\n}", 2, "channels[0]")]
