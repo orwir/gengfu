@@ -92,10 +92,10 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
   Settings link follows only when the fix is in Settings: a call nobody heard is fixed on the
   server or in the game, so its line has none. Every state's copy is in the strings and on the
   canvas's Foundations.
-- **Update notice:** a bar above the footer, in the card's colours with an accent "i", once a
-  downloaded version is ready: it applies on next start, and Restart applies it now. It shows only
-  while the clock is stopped, so a match is never interrupted. Restart closes Gengfu the usual way,
-  off the server and saved, and Velopack opens it again.
+- **Update notice:** a bar above the footer, in the card's colours with an accent "i" beside its
+  first line, once a downloaded version is ready: it applies on next start, and Restart applies it
+  now. It shows only while the clock is stopped, so a match is never interrupted. Restart closes
+  Gengfu the usual way, off the server and saved, and Velopack opens it again.
 - **App icon:** the title bar's gong mark in Windows blue, #0078D4, a fixed colour that reads on
   light and dark taskbars, since an icon can't follow the accent. Up to 32 px it has a simpler
   drawing of its own. `scripts/make-icon.cs` draws `Gengfu.ico`, 16–256 px; the title bar keeps
@@ -157,6 +157,12 @@ Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private unt
 - **Settings apply at once:** no Save or OK. A new language remakes the views; Settings stays
   where it was, with focus on Language. A new theme does the same, with focus on Theme. A call's
   default text follows the lead and the language until the user edits it.
+- **Marks beside words:** an icon or a dot centres on the capitals of the words beside it, those
+  of the first line where they wrap, as in buttons. Caption words, 12 px on 16 px lines, have
+  their capitals' centre 0.75 px under the line's middle: in a bar the words lift to the icon
+  (BarText), so a one-line bar stays centred; in a line of words the mark comes down to them
+  (StatusDot, CallMark), so they stay in line with the words around them. A mark hangs from its
+  words' top, so rounding to device pixels moves the two together.
 - **Copy:** short and plain; units always written ("30 s" / "30 с"); in Russian, decimal
   comma and «» quotes. Event names and call text are user data, not copy; the file's own words,
   such as settings.json and a setting's key, stay as the file spells them in both languages.

@@ -43,7 +43,7 @@
                     <Ellipse Width="1.9" Height="1.9" Canvas.Left="7.05" Canvas.Top="10.15" Fill="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
                 </Canvas>
                 <StackPanel>
-                    <TextBlock x:Name="FileErrorText" FontSize="12" LineHeight="16" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock x:Name="FileErrorText" Style="{StaticResource BarText}" />
                     <Button Style="{StaticResource LinkButton}" Height="20" Padding="0" Margin="0,4,0,0" FontSize="12"
                             HorizontalAlignment="Left" Content="{x:Static app:Strings.OpenSettingsFile}" Click="OnOpenSettingsFile" />
                 </StackPanel>
@@ -83,8 +83,11 @@
                         </Grid>
                         <DockPanel Margin="0,12,0,0">
                             <Button x:Name="ConnectButton" DockPanel.Dock="Left" Height="32" Padding="12,0" VerticalAlignment="Top" Click="OnConnect" />
-                            <Ellipse x:Name="ConnectionDot" DockPanel.Dock="Left" Width="8" Height="8" StrokeThickness="1.5" Margin="12,12,8,0" VerticalAlignment="Top" />
-                            <TextBlock x:Name="ConnectionText" FontSize="12" LineHeight="16" Margin="0,8,0,0" TextWrapping="Wrap" />
+                            <!-- The first line centres on Connect. -->
+                            <DockPanel Margin="12,8,0,0">
+                                <Ellipse x:Name="ConnectionDot" Style="{StaticResource StatusDot}" />
+                                <TextBlock x:Name="ConnectionText" FontSize="12" LineHeight="16" TextWrapping="Wrap" />
+                            </DockPanel>
                         </DockPanel>
                         <!-- A privilege key is rare, so its field waits behind a link, which opens it in place. -->
                         <Button x:Name="KeyLink" Style="{StaticResource LinkButton}" Height="32" Margin="-8,12,0,0" HorizontalAlignment="Left"
@@ -111,7 +114,7 @@
                                     <Path x:Name="KeyMark" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                           Stroke="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
                                 </Canvas>
-                                <TextBlock x:Name="KeyText" FontSize="12" LineHeight="16" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock x:Name="KeyText" Style="{StaticResource BarText}" />
                             </DockPanel>
                         </Border>
                     </StackPanel>
@@ -198,7 +201,7 @@
                                     <Ellipse x:Name="HintDot" Width="1.9" Height="1.9" Canvas.Left="7.05" />
                                 </Canvas>
                                 <StackPanel>
-                                    <TextBlock x:Name="HintText" FontSize="12" LineHeight="16" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="HintText" Style="{StaticResource BarText}" />
                                     <Button x:Name="HintLink" Style="{StaticResource LinkButton}" Height="20" Padding="0" Margin="0,4,0,0" FontSize="12"
                                             HorizontalAlignment="Left" Content="{x:Static app:Strings.OpenLanguageRegion}" Click="OnOpenLanguageRegion" />
                                 </StackPanel>
@@ -223,7 +226,7 @@
                                           Stroke="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
                                     <Ellipse Width="1.9" Height="1.9" Canvas.Left="7.05" Canvas.Top="10.15" Fill="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
                                 </Canvas>
-                                <TextBlock x:Name="NobodyHeardText" FontSize="12" LineHeight="16" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock x:Name="NobodyHeardText" Style="{StaticResource BarText}" />
                             </DockPanel>
                         </Border>
                     </StackPanel>

@@ -213,7 +213,7 @@ internal partial class MainView : UserControl
         private readonly TextBlock _name = new() { TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
         private readonly Run _event = new();
         private readonly Run _spawn = new() { FontSize = 12 };
-        private readonly Label _mark = new() { Padding = new Thickness(0), Focusable = false };
+        private readonly Label _mark = new() { Style = (Style)Application.Current.FindResource("CallMark") };
         private readonly Path _icon = new() { Style = (Style)Application.Current.FindResource("Icon"), StrokeThickness = 1.4 };
         private readonly TextBlock _status = new() { FontSize = 12, LineHeight = 16, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         private CallState? _shown;

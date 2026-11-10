@@ -235,4 +235,55 @@ public sealed class SettingsViewTests(WpfApp wpf)
             }
         }
     }
+
+    [Theory]
+    [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]
+    public async Task Each_bar_s_icon_and_the_connection_dot_centre_on_the_capitals_of_their_words_first_line(double scale)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        // A settings file with an error, for its bar; with no voice at all, the no-voice hint shows.
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "settings.json"), "{\n  \"server\": \"ts.example.com\"\n  \"lead\": 30\n}");
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder);
+        session.Settings.Group = new Named(1625, "GvG");
+        try
+        {
+            // The hint follows the call's sound, which renders off the UI thread.
+            Assert.True(SpinWait.SpinUntil(() => session.Clip is not null, TimeSpan.FromSeconds(10)));
+            var offsets = wpf.Invoke(() =>
+            {
+                var view = new SettingsView(session, () => { }, () => { });
+                session.KeyUsed(new KeyResult(KeyOutcome.Unknown));
+                session.Whispered(session.Target!, session.Connection.State, WhisperResult.ReachedNobody);
+                view.Refresh();
+                WpfApp.Lay(view, scale);
+                Assert.All([view.FileBar, view.KeyBar, view.SoundHint, view.NobodyHeardBar], bar => Assert.Equal(Visibility.Visible, bar.Visibility));
+                return new[]
+                {
+                    WpfApp.Capitals(Icon(view.FileBar), view.FileErrorText, scale),
+                    WpfApp.Capitals(Icon(view.KeyBar), view.KeyText, scale),
+                    WpfApp.Capitals(Icon(view.SoundHint), view.HintText, scale),
+                    WpfApp.Capitals(Icon(view.NobodyHeardBar), view.NobodyHeardText, scale),
+                    WpfApp.Capitals(view.ConnectionDot, view.ConnectionText, scale),
+                };
+            });
+
+            Assert.All(offsets, offset => Assert.InRange(offset, -0.5, 0.5));
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    // A bar's icon leads the panel it holds.
+    private static FrameworkElement Icon(Border bar) => (FrameworkElement)((Panel)bar.Child).Children[0];
 }

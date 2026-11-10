@@ -30,6 +30,8 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - A full server shows as full, not as "no answer" (#35)
 - Any other refusal from the server shows the server's own words, not "no answer" (#35)
 - Gengfu raises its identity's security level when a server asks for more, and joins (#35)
+- Icons and status dots beside small text line up with its capital letters (#28)
+- The update notice's "i" sits by its first line rather than between its two lines (#28)
 
 ## [0.1.0] - 2026-11-09
 
