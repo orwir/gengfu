@@ -5,9 +5,9 @@ using System.Text.Json;
 namespace Gengfu.App;
 
 /// <summary>
-/// The server password and the bot's identity, kept out of the settings file so that file can be
-/// shared. They sit beside it, encrypted by Windows for this Windows user: another user, or another
-/// PC, can't read them, and Gengfu then starts without them, with a new identity.
+/// The server password and the bot's identity, kept out of the settings file, which a person reads
+/// and edits in the clear. They sit beside it, encrypted by Windows for this Windows user: another
+/// user, or another PC, can't read them, and Gengfu then starts without them, with a new identity.
 /// </summary>
 internal sealed class Secrets(string path)
 {

@@ -121,9 +121,6 @@ public sealed class AppSettings : IJsonOnDeserialized
     [JsonIgnore]
     public bool EventsAreDefault => Events is [{ Name: null } jungle] && jungle.Spawns.SequenceEqual(CallSchedule.GvgSpawns);
 
-    /// <summary>Whether the file these were read from set a call's text or sound file once for every event, as before 0.3.</summary>
-    internal bool FromOldFile { get; private set; }
-
     // Before 0.3 a call's text and sound file were set once for every event. A file that still has
     // them opens, with them moved into its events, and its next save writes them there.
     [JsonInclude]
@@ -152,6 +149,6 @@ public sealed class AppSettings : IJsonOnDeserialized
                 SoundFile = matchEvent.SoundFile ?? file,
             } : matchEvent!),
         ];
-        (CallText, SoundFile, FromOldFile) = (null, null, true);
+        (CallText, SoundFile) = (null, null);
     }
 }

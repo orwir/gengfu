@@ -15,8 +15,7 @@ to the in-game timer. This page is for players and guild officers; contributors 
   chosen channels, on TeamSpeak 3 and 6 servers.
 - **Your language.** The app comes in English and Russian, and calls speak in a Windows voice for
   your language. If Windows has none, they strike a gong until you add one.
-- **Your own calls.** Add calls for other spawns in Settings, and share them with your guild as a
-  preset.
+- **Your own calls.** Add calls for other spawns in Settings.
 - **Keeps itself current.** New versions download in the background and apply the next time
   Gengfu starts — never in the middle of a match.
 
@@ -103,15 +102,15 @@ then waits 5 minutes before trying again, so the block can lift.
 ## Your settings
 
 Gengfu keeps its settings in `%AppData%\Gengfu\settings.json`, saves each change there, and
-connects by itself at start when a server is saved. **Open settings file** in Settings › General
-opens the file in the app Windows uses for .json files, or in Notepad. An edit you save there
-applies at once. If the file has an error, Settings says on which line, and Gengfu works with the
-settings it had, or its defaults if it started that way, saving nothing, until you fix it.
+connects by itself at start when a server is saved. You can also edit the file by hand: an edit
+you save there applies at once. If the file has an error, Settings says on which line and offers
+**Open settings file**, and Gengfu works with the settings it had, or its defaults if it started
+that way, saving nothing, until you fix it.
 
 The server password and the bot's identity are not in that file. They sit beside it in
-`secrets.bin`, encrypted by Windows for your Windows user, so the settings file is safe to share.
+`secrets.bin`, encrypted by Windows for your Windows user.
 
-### Events and presets
+### Events in the file
 
 The file's `events` are the ones Settings › Events shows. Each lists its `spawns` as the game shows
 them, and may have a `name` for the calls list, a `text` its calls say in place of its name and
@@ -124,10 +123,7 @@ the lead, and a `soundFile` they play in place of the words. An event without a 
 ]
 ```
 
-To share a preset, send the `events` part; the file holds no password or identity anyway. Whoever
-gets it pastes it over the `events` in their own file through **Open settings file**. A sound file
-is a path on the PC that chose it: where it isn't, the event's calls say its words instead, and
-Settings says so.
+If an event's `soundFile` isn't on this PC, its calls say its words instead, and Settings says so.
 
 ## The calls
 

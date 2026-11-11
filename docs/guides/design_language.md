@@ -126,10 +126,9 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   didn't stays, so a typo can be fixed. The field stays open, and opens again when Settings is
   made anew while a key is typed or an answer stands.
   General starts with Language and Theme, each offering Same as Windows first, then its fixed
-  choices. It ends with the version and an Open settings file link, which opens the file in the app
-  Windows uses for .json files, or in Notepad. Under the version, across the card, a caption says
-  where updates stand: checking, up to date, downloading, installed, or couldn't check; a copy
-  Setup didn't install shows none.
+  choices. It ends with the version, in a row as tall as theirs. Under the version, across the
+  card, a caption says where updates stand: checking, up to date, downloading, installed, or
+  couldn't check; a copy Setup didn't install shows none.
 - **Calls and Events:** Calls holds what every call shares: Call ahead, Voice, and a Test call
   that plays the first event's call. Events, under it, lists the events whose spawns get calls,
   one card each, as Windows 11's own settings expanders: closed, the event's name and, under it in
@@ -160,8 +159,9 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   bar, above Settings' scroll, so it shows however far Settings is scrolled. It names the line
   and the setting, or the line alone for an error outside any setting, such as a missing comma,
   or says Gengfu can't read the file when Windows won't let it. It says Gengfu works with the
-  settings shown and saves nothing until then, and links to Open settings file. The main window
-  doesn't change for it.
+  settings shown and saves nothing until then, and links to Open settings file, which opens the
+  file in the app Windows uses for .json files, or in Notepad. Settings opens the file nowhere
+  else: it edits everything the file holds. The main window doesn't change for it.
 - **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
   (the language in its own tongue), the app language's first. Any voice may be picked; a new
   language chosen in General drops one that can't speak it, for the language's own.

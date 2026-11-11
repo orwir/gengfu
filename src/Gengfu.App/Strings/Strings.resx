@@ -478,7 +478,7 @@
   </data>
   <data name="OpenSettingsFile" xml:space="preserve">
     <value>Open settings file</value>
-    <comment>Link in Settings › General and in the settings-file bar; opens settings.json in an editor.</comment>
+    <comment>Link in the bar at the top of Settings when settings.json has an error; opens the file in an editor.</comment>
   </data>
   <data name="SettingsFileError" xml:space="preserve">
     <value>settings.json has an error on line {0} ({1}). Until it’s fixed, Gengfu works with the settings shown here and saves nothing.</value>

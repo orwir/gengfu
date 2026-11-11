@@ -5,6 +5,10 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+### Removed
+
+- Settings › General no longer opens the settings file (#57)
+
 ## [0.3.0] - 2026-11-11
 
 ### Added

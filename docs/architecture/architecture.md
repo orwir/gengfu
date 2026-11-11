@@ -114,8 +114,7 @@ back above its game time re-arms it; a changed lead moves every call but never m
 A call plays words in a Windows voice, an audio file, or the gong: a small gong struck twice, made
 in code. It is never silent: a file that can't play, missing on this PC or not something Windows
 plays, gives way to its event's words, and words that can't be spoken play the gong; the clip says
-why, for Settings to show. A preset made on another PC names files that aren't on this one, so its
-events still say what they are.
+why, for Settings to show.
 
 - **Voice.** The chosen voice while it is installed, else the first in the app's language with
   Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
@@ -195,17 +194,15 @@ until it is fixed; started with one, Gengfu runs on its defaults. A file Windows
 read or write is tried again every 2 s. A file written before 0.3 set a call's text and sound file
 (`callText`, `soundFile`) once for every event;
 it opens with them moved into its events, the text into the jungle's and the file into every event
-without words of its own, and its next save writes them there. Open settings file writes it so
-before it opens it: read again with a preset's events pasted in, the old text and file would go to
-them too.
+without words of its own, and its next save writes them there.
 
 Gengfu's folder also holds the log, `gengfu.log` ([The App](#the-app)). Once the file would pass
 1 MB, hundreds of matches' worth, the log starts afresh and keeps the full one as `gengfu.old.log`,
 so it never takes more than 2 MB. A line Windows won't let Gengfu write is lost rather than stop a
 call.
 
-The server password and the bot's identity stay out of the file, so it can be shared; a privilege
-key is kept nowhere, since a used one is worthless. `Secrets`
+The server password and the bot's identity stay out of the file, which a person reads and edits in
+the clear; a privilege key is kept nowhere, since a used one is worthless. `Secrets`
 (App) keeps them beside it in `secrets.bin`, encrypted with Windows' data protection for this
 Windows user; one another user or PC wrote reads as empty, and Gengfu makes a new identity. One
 Windows won't let Gengfu read, perhaps held by another program, is never written over: the

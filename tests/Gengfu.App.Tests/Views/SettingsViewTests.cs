@@ -193,6 +193,49 @@ public sealed class SettingsViewTests(WpfApp wpf)
         }
     }
 
+    [Fact]
+    public async Task General_ends_with_the_version_and_only_the_bar_for_a_file_with_an_error_opens_the_file()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "settings.json"), "{ \"server\": }");
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder,
+            new Log(folder));
+        try
+        {
+            var (last, barShown, barLinks, barFixed) = wpf.Invoke(() =>
+            {
+                var view = new SettingsView(session, () => { }, () => { });
+                // Tab follows the tree, so nothing after Theme takes it.
+                var last = Controls((DependencyObject)view.Scroller.Content).Last().Name;
+                var barShown = view.FileBar.Visibility;
+                var barLinks = Controls(view.FileBar).OfType<Button>().Select(button => (string)button.Content).ToList();
+                // Fixed, the file reads cleanly, and its bar and link go.
+                File.WriteAllText(Path.Combine(folder, "settings.json"), "{ }");
+                session.Reload();
+                view.Refresh();
+                return (last, barShown, barLinks, view.FileBar.Visibility);
+            });
+
+            Assert.Equal("ThemeBox", last);
+            Assert.Equal(Visibility.Visible, barShown);
+            Assert.Equal([Strings.OpenSettingsFile], barLinks);
+            Assert.Equal(Visibility.Collapsed, barFixed);
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
     // The controls under an element in tree order, which is the order Tab takes.
     private static IEnumerable<Control> Controls(DependencyObject parent) =>
         LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>()

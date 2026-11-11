@@ -356,7 +356,6 @@ public sealed partial class SessionTests : IAsyncLifetime
         await _session.UseKeyAsync();
         Assert.Null(_session.KeyAnswer);
 
-        _session.SaveNow();
         await _session.DisposeAsync();
         _session = NewSession();
         Assert.Equal("", _session.PrivilegeKey);
@@ -637,7 +636,7 @@ public sealed partial class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_file_from_before_0_3_is_written_afresh_when_opened_to_edit_so_a_pasted_preset_reads_as_pasted()
+    public async Task A_file_from_before_0_3_is_written_in_the_new_form_once_a_setting_changes_in_the_app()
     {
         const string Old = """{ "callText": "Jungle, go", "soundFile": "C:\\Sounds\\jungle.mp3", "events": [{ "spawns": ["25:00"] }] }""";
         await RestartAsync(() => File.WriteAllText(SettingsFile, Old));
@@ -645,12 +644,13 @@ public sealed partial class SessionTests : IAsyncLifetime
         // Nothing changed in the app, so nothing is written.
         Assert.Equal(Old, File.ReadAllText(SettingsFile));
 
-        // As Open settings file does before it opens the file.
-        _session.SaveNow();
+        _session.Settings.Nickname = "Gengfu 2";
+        Settle();
         var written = File.ReadAllText(SettingsFile);
         Assert.DoesNotContain("callText", written, StringComparison.Ordinal);
         Assert.Contains("\"text\": \"Jungle, go\"", written, StringComparison.Ordinal);
 
+        // In the new form, an event added by hand reads as written: the old text and file stay with the jungle.
         File.WriteAllText(SettingsFile, written.Replace("\"events\": [", "\"events\": [\n    { \"name\": \"Boss\", \"spawns\": [\"28:00\"] },", StringComparison.Ordinal));
         _session.Reload();
         Assert.Equal(
@@ -669,7 +669,6 @@ public sealed partial class SessionTests : IAsyncLifetime
 
         _session.Settings.Server = "ts.example.com";
         Settle();
-        _session.SaveNow();
         await _session.DisposeAsync();
         Assert.Equal(Broken, File.ReadAllText(SettingsFile));
         _session = NewSession();

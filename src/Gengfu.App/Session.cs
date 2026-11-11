@@ -63,9 +63,6 @@ internal sealed class Session : IAsyncDisposable
     private string? _settingsWritten;
     private (string, string?) _secretsWritten;
 
-    // The file on disk still sets a call's text or sound file once for every event, as before 0.3.
-    private bool _oldFile;
-
     // The listeners the last whisper reached nobody among, as the server said, and the connection's
     // state when it went out. The connection replaces its state whenever it changes, so while that
     // state stands, the connection is the same one.
@@ -95,7 +92,6 @@ internal sealed class Session : IAsyncDisposable
             case SettingsLoad.Loaded loaded:
                 Settings = loaded.Settings;
                 _settingsWritten = SettingsStore.Serialize(Settings);
-                _oldFile = loaded.Old;
                 break;
             case SettingsLoad.Broken broken:
                 FileError = broken.Error;
@@ -449,19 +445,6 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>What listeners hear from one call of <paramref name="events"/>, at one spawn time, in words, for the line under the clock.</summary>
     public string HeardFor(IReadOnlyList<MatchEvent> events) => HeardAs(Settings, events, Language, ClipFor);
 
-    /// <summary>
-    /// Writes what changed at once, so the file opened in an editor holds it. A file from before 0.3
-    /// is written afresh too: read again with events pasted in, its text and sound file would go to them.
-    /// </summary>
-    public void SaveNow()
-    {
-        if (_oldFile)
-        {
-            _settingsWritten = null;
-        }
-        Save(flush: true);
-    }
-
     public async ValueTask DisposeAsync()
     {
         _watch.Dispose();
@@ -520,7 +503,6 @@ internal sealed class Session : IAsyncDisposable
             case SettingsLoad.Loaded loaded:
                 FileError = null;
                 Apply(loaded.Settings);
-                _oldFile = loaded.Old;
                 break;
             case SettingsLoad.Broken broken:
                 FileError = broken.Error;
@@ -529,7 +511,6 @@ internal sealed class Session : IAsyncDisposable
                 // Deleted: the next save writes what Gengfu holds, so the file is there to open again.
                 FileError = null;
                 _settingsWritten = null;
-                _oldFile = false;
                 break;
             case SettingsLoad.Unreadable:
                 // An error already found stays shown until the file reads again.
@@ -867,7 +848,6 @@ internal sealed class Session : IAsyncDisposable
             if (_store.Save(Settings))
             {
                 _settingsWritten = settings;
-                _oldFile = false;
                 saved = true;
             }
             else
