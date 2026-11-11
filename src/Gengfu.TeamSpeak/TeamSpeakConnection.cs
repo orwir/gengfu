@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Gengfu.Core;
 using TSLib;
 using TSLib.Full;
@@ -56,9 +58,15 @@ public enum ConnectionProblem
 /// only when it changes: while a connection lasts, its Connected state stands, and the App takes a new
 /// one for a new connection. <paramref name="RetryAt"/> is when the next attempt starts, on the time
 /// source the connection was given; null while an attempt runs, and once it has stopped trying.
+/// <paramref name="ServerUid"/> is the unique id of the server a Connected state is on, the same
+/// however its address is spelled; null in every other state.
 /// </summary>
 public sealed record ConnectionState(
-    ConnectionStatus Status, ConnectionProblem Problem = ConnectionProblem.None, string? Detail = null, TimeSpan? RetryAt = null);
+    ConnectionStatus Status,
+    ConnectionProblem Problem = ConnectionProblem.None,
+    string? Detail = null,
+    TimeSpan? RetryAt = null,
+    string? ServerUid = null);
 
 /// <summary>A regular server group, as the server lists it.</summary>
 public sealed record ServerGroupInfo(ulong Id, string Name);
@@ -152,6 +160,9 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
     // The server group the server last put the bot in; read and written on TSLib's thread.
     private ServerGroupId? _joined;
 
+    // The unique id of the server this attempt's handshake reached; read and written on TSLib's thread.
+    private string? _serverUid;
+
     /// <param name="identity">The bot's identity as <see cref="Identity"/> gave it; null or unreadable makes a new one.</param>
     /// <param name="time">The clock its states' <see cref="ConnectionState.RetryAt"/> is on: the App's own.</param>
     public TeamSpeakConnection(string? identity, ITimeSource time)
@@ -195,6 +206,9 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
                 _joined = added.ServerGroupId;
             }
         };
+        // The server proves its key in the handshake, by either key exchange, before it lets the bot in.
+        _client.OnEachInitIvExpand += (_, init) => _serverUid = UidOf(init.Omega);
+        _client.OnEachInitIvExpand2 += (_, init) => _serverUid = UidOf(init.Omega);
     }
 
     /// <summary>
@@ -373,6 +387,12 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             { } other => new KeyResult(KeyOutcome.Refused, other.Message),
         };
 
+    /// <summary>
+    /// A server's unique id, from the key it proves itself with: base64 of the SHA-1 of the key as
+    /// sent, which TS3 shows as its id. TS6 shows the SHA-256 instead; either way, one key is one server.
+    /// </summary>
+    internal static string UidOf(string key) => Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(key)));
+
     /// <summary>The identity level a refusal asks for; the server puts it in the error's extra message.</summary>
     internal static int? RequiredSecurityLevel(CommandError? error) =>
         error?.Id == TsErrorCode.client_could_not_validate_identity
@@ -509,6 +529,7 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             var ended = new TaskCompletionSource<DisconnectEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
             _ended = ended;
             _kicker = null;
+            _serverUid = null;
             var connecting = _client.Connect(new ConnectionDataFull(
                 endPoint.ToString(),
                 _identity,
@@ -522,7 +543,7 @@ public sealed class TeamSpeakConnection : IAsyncDisposable
             var result = await connecting;
             if (result.Ok)
             {
-                Report(new ConnectionState(ConnectionStatus.Connected));
+                Report(new ConnectionState(ConnectionStatus.Connected, ServerUid: _serverUid));
             }
             var end = await ended.Task;
             stop.ThrowIfCancellationRequested();

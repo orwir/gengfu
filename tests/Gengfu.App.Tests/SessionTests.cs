@@ -8,6 +8,7 @@ using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
 using Gengfu.TeamSpeak;
+using Gengfu.TeamSpeak.Tests;
 
 namespace Gengfu.App.Tests;
 
@@ -527,23 +528,79 @@ public sealed partial class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_group_and_channels_chosen_on_one_server_are_cleared_on_connecting_to_another()
+    public async Task The_listeners_outlast_a_mistyped_address_and_its_fix_and_clear_once_another_server_answers()
     {
-        // Nothing answers on the discard port; the connection keeps trying until the test ends.
+        using var english = new UiCulture("en-US");
+        using var guild = new LocalTsServer("");
+        using var other = new LocalTsServer("");
+        await ReachAsync(guild.Address);
+        _session.ChooseGroup(new Named(1625, "GvG"));
+
+        // Nothing answers on the discard port; the connection keeps trying until the next Connect.
         _session.Settings.Server = "127.0.0.1:9";
         await _session.ConnectAsync();
-        _session.ChooseGroup(new Named(1625, "ГВГ"));
-        _session.ChooseChannels([new Named(3978, "Пуш 2")]);
+        _session.Tick();
+        Assert.Equal(new Named(1625, "GvG"), _session.Settings.Group);
 
-        await _session.ConnectAsync();
-        Assert.Equal(new Named(1625, "ГВГ"), _session.Settings.Group);
-        Assert.Single(_session.Settings.Channels);
+        await ReachAsync(guild.Address);
+        Assert.Equal("Connected · whispering to the GvG group", _session.Status.Text);
 
-        _session.Settings.Server = "127.0.0.2:9";
-        await _session.ConnectAsync();
+        _session.ChooseChannels([new Named(3978, "Push 2")]);
+        await ReachAsync(other.Address);
         Assert.Null(_session.Settings.Group);
         Assert.Empty(_session.Settings.Channels);
-        Assert.Null(_session.Target);
+        Assert.Equal(other.Uid, _session.Settings.ListenersServer);
+    }
+
+    [Fact]
+    public async Task Channels_ticked_while_the_connection_is_down_clear_once_another_server_answers()
+    {
+        using var guild = new LocalTsServer("");
+        using var other = new LocalTsServer("");
+        await ReachAsync(guild.Address);
+
+        // The channel list stays open while Gengfu tries a server that never answers.
+        _session.Settings.Server = "127.0.0.1:9";
+        await _session.ConnectAsync();
+        _session.ChooseChannels([new Named(3978, "Push 2")]);
+        await ReachAsync(other.Address);
+
+        Assert.Empty(_session.Settings.Channels);
+    }
+
+    [Fact]
+    public async Task Listeners_a_file_names_by_their_server_s_address_stay_once_Gengfu_reaches_it_there()
+    {
+        // Files saved before 0.4 name the server by the address it was reached at.
+        using var guild = new LocalTsServer("");
+        await RestartAsync(() => File.WriteAllText(
+            SettingsFile,
+            $$"""{ "server": "{{guild.Address}}", "group": { "id": 1625, "name": "GvG" }, "listenersServer": "{{guild.Address}}" }"""));
+
+        await ReachAsync(guild.Address);
+
+        Assert.Equal(new Named(1625, "GvG"), _session.Settings.Group);
+        Assert.Equal(guild.Uid, _session.Settings.ListenersServer);
+    }
+
+    [Fact]
+    public void Listeners_belong_to_the_server_of_the_id_they_name_or_of_the_address_an_older_file_names()
+    {
+        Assert.True(Session.ChosenOn("server-a", "server-a", "ts.example.com"));
+        Assert.False(Session.ChosenOn("server-a", "server-b", "ts.example.com"));
+        Assert.True(Session.ChosenOn("TS.example.com", "server-a", "ts.example.com"));
+        Assert.False(Session.ChosenOn("ts.example.com:9988", "server-a", "ts.example.com"));
+        Assert.True(Session.ChosenOn(null, "server-a", "ts.example.com"));
+    }
+
+    [Fact]
+    public void The_log_says_whispering_only_to_listeners_chosen_on_the_server_reached()
+    {
+        var settings = new AppSettings { Group = new Named(1625, "GvG"), ListenersServer = "server-a" };
+        string Line(string server) => Session.ConnectionLine(new(ConnectionStatus.Connected, ServerUid: server), "ts.example.com", "Gengfu", settings, TimeSpan.Zero);
+
+        Assert.Equal("Connected · whispering to the GvG group", Line("server-a"));
+        Assert.Equal("Connected · choose who hears the calls", Line("server-b"));
     }
 
     [Fact]
@@ -1164,6 +1221,20 @@ public sealed partial class SessionTests : IAsyncLifetime
         await _session.DisposeAsync();
         meanwhile?.Invoke();
         _session = NewSession(install);
+    }
+
+    // Connects as Connect does, waits until the server lets the bot in, and ticks, as the window does.
+    private async Task ReachAsync(string address)
+    {
+        var was = _session.Connection.State;
+        _session.Settings.Server = address;
+        await _session.ConnectAsync();
+        for (var tries = 0; tries < 500 && _session.Connection.State is var state && (ReferenceEquals(state, was) || state.Status != ConnectionStatus.Connected); tries++)
+        {
+            await Task.Delay(20);
+        }
+        Assert.Equal(ConnectionStatus.Connected, _session.Connection.State.Status);
+        _session.Tick();
     }
 }
 

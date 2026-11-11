@@ -63,6 +63,9 @@ server, and another transport would plug in without touching it.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
   line's words. When the server says a call reached nobody, `Session` keeps that for the status line
   and Settings until a whisper gets through, the connection is new, or other listeners are chosen.
+  The listeners belong to the server they were chosen on, known by its unique id: once a connection
+  reaches another server, `Session` clears them before any call goes out, so a mistyped address and
+  its fix leave them as they were.
   It holds a privilege key typed in Settings, in memory only, uses it through the connection, and
   keeps the server's answer for Settings until another key is typed or Connect is pressed: the
   connection's own reconnects leave the bot's group as it was.
@@ -211,7 +214,7 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Setting | Default |
 | --- | --- |
 | Server address, bot nickname, server password | none, "Gengfu", none |
-| Who hears the calls | a server group, none chosen; or chosen channels. Cleared on connecting to another server, where the same ids name other groups or channels |
+| Who hears the calls | a server group, none chosen; or chosen channels. Cleared once Gengfu reaches another server, where the same ids name other groups or channels. In the file, `"listenersServer"` names their server by its unique id, or, in a file from before 0.4, by the address Gengfu reaches it at |
 | Call ahead | 30 s; 15, 20, 30, 45 or 60 |
 | Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen; it speaks every event's words. A language chosen in Settings drops a chosen voice that can't speak it |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
@@ -266,6 +269,12 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 - Raising the level costs about 2^level hashes, about 4.5 million a second on one core: level 28
   takes about a minute, 30 about 4, 32 about 17. TSLib's raise can't be cancelled, and above 160
   it never ends, so Gengfu raises to 32 at most; a server that asks for more leaves it off.
+- A server proves its key in the handshake, `omega` in `initivexpand2` (or `initivexpand`, which
+  TSLib keeps for older servers), before it lets the client in. Neither TS3 3.13.7 nor TS6 6.0 beta
+  sends its unique id in `initserver`, but TS3 shows base64 of the SHA-1 of that key as its
+  `virtualserver_unique_identifier`, and TS6 the SHA-256. The connection's Connected state names the
+  server by the SHA-1 form, so one server has one id however its address is spelled: `localhost`
+  and `127.0.0.1:9987`, or our server's TSDNS name and its IP.
 
 How each refusal ends, the same on TS3 3.13.7 and TS6 6.0 beta, as found against local servers:
 

@@ -25,6 +25,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The TeamSpeak tests' fake server, for sessions that connect through the real connection. -->
+    <Compile Include="..\Gengfu.TeamSpeak.Tests\LocalTsServer.cs" Link="LocalTsServer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- A 1 s, 440 Hz tone made for the tests and encoded by Windows' own MP3 encoder. -->
     <None Include="Speech\tone.mp3" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

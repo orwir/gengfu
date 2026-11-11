@@ -93,7 +93,11 @@ public sealed class AppSettings : IJsonOnDeserialized
     /// <summary>The chosen channels, in the server's tree order.</summary>
     public IReadOnlyList<Named> Channels { get; set; } = [];
 
-    /// <summary>The server <see cref="Group"/> and <see cref="Channels"/> were chosen on: their ids mean nothing on another.</summary>
+    /// <summary>
+    /// The server <see cref="Group"/> and <see cref="Channels"/> belong to, by its unique id: the one
+    /// Gengfu last reached. Their ids mean nothing on another. A file saved before 0.4 names it by the
+    /// address it was reached at.
+    /// </summary>
     public string? ListenersServer { get; set; }
 
     [JsonConverter(typeof(LeadConverter))]

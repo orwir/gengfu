@@ -66,6 +66,9 @@ internal sealed class LocalTsServer : IDisposable
 
     public string Address => $"127.0.0.1:{((IPEndPoint)_udp.Client.LocalEndPoint!).Port}";
 
+    /// <summary>Its unique id, which TeamSpeak makes from its key as from any identity's.</summary>
+    public string Uid => _key.ClientUid.Value;
+
     /// <summary>How many attempts have reached the server.</summary>
     public int Attempts => Volatile.Read(ref _attemptCount);
 
@@ -82,7 +85,8 @@ internal sealed class LocalTsServer : IDisposable
     /// <summary>
     /// The lines it answers each command of the bot's with once the bot is in, as a server answers a
     /// privilege key; the last, its error line, gets the command's return code, which TSLib counts
-    /// from 1 on each connection. None leaves the commands unanswered.
+    /// from 1 on each connection. With none, the bot's only command is its leave, which it confirms
+    /// as a server does: unconfirmed, TSLib takes 10 s to leave.
     /// </summary>
     public string[] CommandAnswer { get; init; } = [];
 
@@ -147,7 +151,7 @@ internal sealed class LocalTsServer : IDisposable
                 }
                 if (CommandAnswer.Length == 0)
                 {
-                    return [];
+                    return [joining.Next($"notifyclientleftview cfid=1 ctid=0 reasonid=8 reasonmsg=leaving clid={BotId}")];
                 }
                 var returnCode = ++joining.Answered;
                 return [.. CommandAnswer[..^1].Select(joining.Next), joining.Next($"{CommandAnswer[^1]} return_code={returnCode}")];

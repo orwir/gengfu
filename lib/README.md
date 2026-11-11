@@ -30,3 +30,6 @@ Changes against upstream, each marked `gengfu patch` in the source. Re-apply the
 3. Match the `ignore` list in [`.github/dependabot.yml`](../.github/dependabot.yml) to the packages
    these projects reference, so Dependabot leaves them to the next re-sync.
 4. Run `scripts/check.sh`.
+5. Connect to a TS3 and a TS6 server, and check that the Connected state names the server
+   (`ConnectionState.ServerUid`). It comes from the key in the server's `initivexpand2`, which the
+   tests' fake server never sends; without it, listeners chosen on one server stay on the next.
