@@ -71,7 +71,7 @@ public sealed class StatusLineTests : IDisposable
 
         using var russian = new UiCulture("ru-RU");
         Assert.Equal(
-            "Подключено · последнее объявление никто не услышал",
+            "Подключено · объявление никто не услышал",
             StatusLine.Of(Connected, Server, _settings, Russian, Now, nobodyHeard: true).Text);
     }
 
