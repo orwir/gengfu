@@ -23,6 +23,9 @@ public partial class ClockDigits : UserControl
     // The field Enter or Esc left last; Tab from the digits as a whole goes on from it.
     private Field? _left;
 
+    // The minutes typed last, which seconds typed right after them land by.
+    private TypedMinutes? _typedMinutes;
+
     public ClockDigits(MatchClock clock)
     {
         InitializeComponent();
@@ -77,7 +80,7 @@ public partial class ClockDigits : UserControl
         _clock.Move(direction * field.Step);
         if (field.Input is not null)
         {
-            field.Input = new SyncInput(_clock, field.Kind);
+            field.Input = NewInput(field);
         }
         Refresh();
     }
@@ -85,17 +88,21 @@ public partial class ClockDigits : UserControl
     private void OnFocused(object sender, KeyboardFocusChangedEventArgs e)
     {
         var field = FieldOf(sender);
-        field.Input = new SyncInput(_clock, field.Kind);
+        field.Input = NewInput(field);
         field.Box.SelectAll();
     }
 
+    // Every way out of a field ends here, Enter too, which applies and then hands focus on.
     private void OnUnfocused(object sender, KeyboardFocusChangedEventArgs e)
     {
         var field = FieldOf(sender);
         field.Input?.Leave(field.Box.Text);
+        _typedMinutes = field.Input?.Minutes ?? _typedMinutes;
         field.Input = null;
         Refresh();
     }
+
+    private SyncInput NewInput(Field field) => new(_clock, field.Kind, _typedMinutes);
 
     // A click selects the whole value, so typing replaces it, instead of placing the caret.
     private void OnPressed(object sender, MouseButtonEventArgs e)

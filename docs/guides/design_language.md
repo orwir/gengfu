@@ -184,9 +184,11 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
 - **Sync:** Start sets 35:00. Correct with the arrows or by typing; every future call
   moves with the clock. Typed minutes keep the running seconds; typed seconds land on the
   nearest minute and are timed from the first keystroke (from Enter after a pause, for
-  typing ahead). Enter applies, and so does leaving the field, never read as typing ahead;
-  Esc cancels, ↑ ↓ nudge. Verify the rounding against the real game timer — the sync
-  offsets depend on it.
+  typing ahead). Seconds typed within a minute after typed minutes, with nothing else
+  moving the clock in between, land in the minute typed instead, or in the one below once
+  the game has crossed into it. Enter applies, and so does leaving the field, never read as
+  typing ahead; Esc cancels, ↑ ↓ nudge. Verify the rounding against the real game timer —
+  the sync offsets depend on it.
 - **No sync claims:** Gengfu can't see the game timer, so it shows no sync status and never
   says it is "in sync" — the clock itself is the feedback. Out-of-range typed values are
   ignored. No dialogs, no toasts; Windows' own file picker is the one exception.

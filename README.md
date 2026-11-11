@@ -155,8 +155,10 @@ it drifts from the game's timer, match it while the match runs:
   field, ↑ and ↓ do the same.
 - **Type** what the game shows: click the minutes or seconds, or press Tab, then type and press
   Enter. Leaving the field — Tab, a click elsewhere, switching to the game — applies too; Esc
-  cancels. Typed minutes keep the running seconds. Typed seconds count from your first keystroke
-  and land on the nearest minute, so 58 typed while the clock shows 22:02 gives 21:58.
+  cancels. Typed minutes keep the running seconds. Typed seconds count from your first keystroke.
+  Within a minute after the minutes, with nothing else changing the clock in between, they land in
+  the minute you typed, or in the one below if the game has moved into it by then. Otherwise they
+  land on the nearest minute, so 58 typed while the clock shows 22:02 gives 21:58.
 - **Type ahead** for the closest match: type the seconds the game will reach a few seconds from
   now, wait, and press Enter the moment it reaches them. Without a pause of more than a second
   before Enter, Gengfu counts from your first keystroke instead, as it always does when you leave

@@ -12,6 +12,7 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 - Tab after Enter or Esc in the clock goes on to the next field, not back to the minutes (#54)
 - Tab from an event's name in Settings goes to its spawn times, not to its bin (#54)
 - Test call keeps keyboard focus while it calls, so Space repeats it once the call ends (#54)
+- Typing the clock's minutes and then its seconds no longer leaves it a minute off the game (#58)
 
 ### Removed
 

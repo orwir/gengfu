@@ -106,6 +106,13 @@ the game can show, and are timed from the first keystroke, or from Enter after a
 ahead; leaving the field never counts as typing ahead. Its lag constants assume the game rounds its
 timer up, as the display does.
 
+Seconds typed right after typed minutes, within a minute of their first keystroke and with nothing
+else moving the clock in between, land on the minute nearest the middle of the minute typed instead:
+the clock's seconds are still the running ones and say nothing of the game's. That middle is taken
+as the game showed it when the minutes were read, `TypingLag` before their first keystroke, and
+carried on to the seconds' moment. `ClockDigits` hands the minutes typed last, a `TypedMinutes`, to
+the next field's `SyncInput`.
+
 A call fires once while the clock is between its game time and its spawn, and shows as calling
 for 3 s: on time as the clock counts down, or late when a correction lands the clock in that
 window, since a late call still helps. After the spawn it never fires — the mob is already farmed

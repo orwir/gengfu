@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Gengfu.App.Controls;
@@ -30,6 +31,59 @@ public sealed class ClockDigitsTests(WpfApp wpf)
             Assert.Equal("26:04", clock.Display);
         });
 
+    // By keyboard, Enter and Tab; by mouse, a click on the seconds, which applies the minutes too.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Seconds_typed_after_the_minutes_land_in_the_minute_typed(bool byMouse) =>
+        OnDigits((time, clock, digits, _) =>
+        {
+            // The game shows 26:05; the clock, started late, reads 34:48, its seconds 43 s off.
+            time.Advance(TimeSpan.FromSeconds(12));
+            digits.Refresh();
+
+            digits.MinutesBox.Focus();
+            WpfApp.Type("26");
+            if (byMouse)
+            {
+                Click(digits.SecondsBox);
+            }
+            else
+            {
+                WpfApp.Press(Key.Enter);
+                WpfApp.Press(Key.Tab);
+            }
+            WpfApp.Type("05");
+            WpfApp.Press(Key.Enter);
+
+            // On the minute nearest the clock's 26:48, 05 would have put it at 27:04.
+            Assert.Equal("26:04", clock.Display);
+        });
+
+    // Back in the minutes and out again untouched, as on a switch to the game and back, which hands
+    // focus back to the field left: the minutes typed still hold for the seconds.
+    [Fact]
+    public void Minutes_left_again_untouched_still_hold_for_the_seconds() =>
+        OnDigits((time, clock, digits, _) =>
+        {
+            time.Advance(TimeSpan.FromSeconds(12));
+            digits.Refresh();
+
+            digits.MinutesBox.Focus();
+            WpfApp.Type("26");
+            WpfApp.Press(Key.Tab);
+            using (WpfApp.Hold(Key.LeftShift))
+            {
+                WpfApp.Press(Key.Tab);
+            }
+            Assert.Same(digits.MinutesBox, WpfApp.Focused());
+            WpfApp.Press(Key.Tab);
+            WpfApp.Type("05");
+            WpfApp.Press(Key.Enter);
+
+            Assert.Equal("26:04", clock.Display);
+        });
+
     [Fact]
     public void Tab_after_Esc_in_the_seconds_goes_on_past_the_clock_with_nothing_applied() =>
         OnDigits((_, clock, digits, after) =>
@@ -56,6 +110,16 @@ public sealed class ClockDigitsTests(WpfApp wpf)
 
             Assert.Same(digits.MinutesBox, WpfApp.Focused());
         });
+
+    // A left button's press as it reaches the element under the mouse, which a field takes focus on.
+    private static void Click(UIElement element)
+    {
+        element.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+        {
+            RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent,
+        });
+        WpfApp.Settle();
+    }
 
     // The digits of a running clock in a window, with the stop that follows them, as Stop follows
     // them in the main window while the clock runs.
