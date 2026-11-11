@@ -15,8 +15,8 @@ to the in-game timer. This page is for players and guild officers; contributors 
   chosen channels, on TeamSpeak 3 and 6 servers.
 - **Your language.** The app comes in English and Russian, and calls speak in a Windows voice for
   your language. If Windows has none, they strike a gong until you add one.
-- **Your own calls.** Add calls for other spawns in the settings file, and share them with your
-  guild as a preset.
+- **Your own calls.** Add calls for other spawns in Settings, and share them with your guild as a
+  preset.
 - **Keeps itself current.** New versions download in the background and apply the next time
   Gengfu starts — never in the middle of a match.
 

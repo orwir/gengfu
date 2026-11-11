@@ -11,6 +11,7 @@ in the root [README](../README.md); how to work in the repo is in [CONTRIBUTING]
 | [architecture/architecture.md](architecture/architecture.md) | Projects, data flow, clock model, threading, configuration |
 | [guides/design_language.md](guides/design_language.md) | Tokens, components, patterns; each screen's design file |
 | `guides/*.md` (other) | Process playbooks mirrored from the shared template gist |
+| [reviews/](reviews/) | Review plans and records: what each review found and decided, for the next to start from |
 | `adr/` | Decision records — index below |
 
 ## Decision records
