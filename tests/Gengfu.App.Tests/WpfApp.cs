@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -21,7 +23,10 @@ public sealed class WpfApp : IDisposable
         Dispatcher? dispatcher = null;
         _thread = new Thread(() =>
         {
-            new App().InitializeComponent();
+            var app = new App();
+            app.InitializeComponent();
+            // Tests open windows of their own and close them; the App lasts until Dispose ends it.
+            app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             dispatcher = Dispatcher.CurrentDispatcher;
             ready.Set();
             Dispatcher.Run();
@@ -45,6 +50,85 @@ public sealed class WpfApp : IDisposable
 
     /// <summary>Runs on the App's thread, where views can be made and laid out.</summary>
     public T Invoke<T>(Func<T> work) => _dispatcher.Invoke(work);
+
+    /// <summary>
+    /// Shows a view in a window of its own, as Gengfu's window holds it, so it can take keyboard focus.
+    /// The window is off screen, never activated and out of the taskbar, so a test run leaves the
+    /// user's own windows alone. Close it when done.
+    /// </summary>
+    public static Window Show(UIElement view)
+    {
+        var window = new Window
+        {
+            Content = view,
+            Width = 380,
+            Height = 616,
+            WindowStyle = WindowStyle.None,
+            ShowInTaskbar = false,
+            ShowActivated = false,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -20000,
+            Top = -20000,
+        };
+        window.Show();
+        Settle();
+        return window;
+    }
+
+    /// <summary>
+    /// What has keyboard focus in the window shown. Windows may take activation from that window,
+    /// which is never the foreground one, and WPF then drops keyboard focus but remembers where it
+    /// was: this puts it back there first, as activating the window would.
+    /// </summary>
+    public static IInputElement? Focused()
+    {
+        if (Keyboard.FocusedElement is null)
+        {
+            var window = Application.Current.Windows.OfType<Window>().Single();
+            Keyboard.Focus(FocusManager.GetFocusedElement(window) ?? window);
+        }
+        return Keyboard.FocusedElement;
+    }
+
+    /// <summary>
+    /// Presses and releases a key where focus is, through WPF's input as a typed key goes, so WPF's
+    /// own handling of it runs too: Tab moves focus, Space presses a button.
+    /// </summary>
+    public static void Press(Key key)
+    {
+        var focused = Focused() ?? throw new InvalidOperationException($"Nothing has keyboard focus to take {key}.");
+        var source = PresentationSource.FromVisual((Visual)focused);
+        foreach (var stroke in new[] { Keyboard.PreviewKeyDownEvent, Keyboard.PreviewKeyUpEvent })
+        {
+            InputManager.Current.ProcessInput(new KeyEventArgs(Keyboard.PrimaryDevice, source, Environment.TickCount, key) { RoutedEvent = stroke });
+        }
+        Settle();
+    }
+
+    /// <summary>
+    /// Holds a key down for the App's thread alone until disposed, as Windows reports it to WPF, such
+    /// as Shift for Shift+Tab. The thread's own key state changes; the user's keyboard doesn't.
+    /// </summary>
+    public static IDisposable Hold(Key key)
+    {
+        var before = new byte[256];
+        GetKeyboardState(before);
+        var held = (byte[])before.Clone();
+        held[KeyInterop.VirtualKeyFromKey(key)] |= 0x80;
+        SetKeyboardState(held);
+        return new Released(before);
+    }
+
+    /// <summary>Types text where focus is, as a keyboard's characters arrive.</summary>
+    public static void Type(string text)
+    {
+        var focused = Focused() ?? throw new InvalidOperationException($"Nothing has keyboard focus to take “{text}”.");
+        TextCompositionManager.StartComposition(new TextComposition(InputManager.Current, focused, text));
+        Settle();
+    }
+
+    /// <summary>Lets the App's thread finish what is queued, such as moving focus off a control turned off.</summary>
+    public static void Settle() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Background);
 
     public void Dispose()
     {
@@ -103,6 +187,14 @@ public sealed class WpfApp : IDisposable
         view.UpdateLayout();
     }
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetKeyboardState(byte[] state);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetKeyboardState(byte[] state);
+
     private static void Invalidate(DependencyObject element)
     {
         if (element is UIElement laid)
@@ -115,6 +207,11 @@ public sealed class WpfApp : IDisposable
         {
             Invalidate(VisualTreeHelper.GetChild(element, i));
         }
+    }
+
+    private sealed class Released(byte[] before) : IDisposable
+    {
+        public void Dispose() => SetKeyboardState(before);
     }
 }
 

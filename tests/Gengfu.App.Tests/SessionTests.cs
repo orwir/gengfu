@@ -104,12 +104,16 @@ public sealed partial class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public void A_Test_call_goes_out_only_when_a_call_can_none_is_playing_and_there_is_an_event_to_call()
+    public void Test_call_is_on_when_a_call_can_go_out_with_an_event_to_call_and_while_one_plays_only_the_one_calling()
     {
-        Assert.True(Session.CanTestFor(canCall: true, testing: false, events: 1));
-        Assert.False(Session.CanTestFor(canCall: true, testing: false, events: 0));
-        Assert.False(Session.CanTestFor(canCall: false, testing: false, events: 1));
-        Assert.False(Session.CanTestFor(canCall: true, testing: true, events: 1));
+        Assert.True(Session.TestOnFor(canCall: true, events: 1, testing: false, calling: false));
+        Assert.False(Session.TestOnFor(canCall: true, events: 0, testing: false, calling: false));
+        Assert.False(Session.TestOnFor(canCall: false, events: 1, testing: false, calling: false));
+
+        // The one calling keeps keyboard focus; a press on it does nothing until the call ends.
+        Assert.True(Session.TestOnFor(canCall: true, events: 1, testing: true, calling: true));
+        Assert.False(Session.TestOnFor(canCall: true, events: 1, testing: true, calling: false));
+        Assert.False(Session.TestOnFor(canCall: false, events: 1, testing: true, calling: true));
     }
 
     [Fact]
@@ -1223,18 +1227,20 @@ public sealed partial class SessionTests : IAsyncLifetime
         _session = NewSession(install);
     }
 
-    // Connects as Connect does, waits until the server lets the bot in, and ticks, as the window does.
-    private async Task ReachAsync(string address)
+    private Task ReachAsync(string address) => ReachAsync(_session, address);
+
+    /// <summary>Connects as Connect does, waits until the server lets the bot in, and ticks, as the window does.</summary>
+    internal static async Task ReachAsync(Session session, string address)
     {
-        var was = _session.Connection.State;
-        _session.Settings.Server = address;
-        await _session.ConnectAsync();
-        for (var tries = 0; tries < 500 && _session.Connection.State is var state && (ReferenceEquals(state, was) || state.Status != ConnectionStatus.Connected); tries++)
+        var was = session.Connection.State;
+        session.Settings.Server = address;
+        await session.ConnectAsync();
+        for (var tries = 0; tries < 500 && session.Connection.State is var state && (ReferenceEquals(state, was) || state.Status != ConnectionStatus.Connected); tries++)
         {
             await Task.Delay(20);
         }
-        Assert.Equal(ConnectionStatus.Connected, _session.Connection.State.Status);
-        _session.Tick();
+        Assert.Equal(ConnectionStatus.Connected, session.Connection.State.Status);
+        session.Tick();
     }
 }
 

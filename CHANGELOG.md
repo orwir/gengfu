@@ -9,6 +9,9 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 - A mistyped server address no longer clears the group or channels chosen to hear the calls (#55)
 - Reaching the same server at another address, such as its IP, keeps the group or channels chosen (#55)
+- Tab after Enter or Esc in the clock goes on to the next field, not back to the minutes (#54)
+- Tab from an event's name in Settings goes to its spawn times, not to its bin (#54)
+- Test call keeps keyboard focus while it calls, so Space repeats it once the call ends (#54)
 
 ### Removed
 

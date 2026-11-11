@@ -2,10 +2,12 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Gengfu.App.Speech;
 using Gengfu.App.Views;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
+using Gengfu.TeamSpeak.Tests;
 using static Gengfu.Core.CallState;
 
 namespace Gengfu.App.Tests.Views;
@@ -133,6 +135,66 @@ public sealed class MainViewTests(WpfApp wpf)
             view.Refresh();
             Assert.Equal((Visibility.Visible, "No events, so no calls."), (view.NoCalls.Visibility, view.NoCallsText.Text));
         });
+
+    [Fact]
+    public async Task A_Test_call_pressed_by_keyboard_keeps_focus_while_it_calls_so_Space_calls_again_once_it_has_played()
+    {
+        using var server = new LocalTsServer("");
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder,
+            new Log(folder));
+        Window? window = null;
+        try
+        {
+            await SessionTests.ReachAsync(session, server.Address);
+            session.ChooseGroup(new Named(1625, "GvG"));
+
+            var (view, calling) = wpf.Invoke(() =>
+            {
+                using var english = new UiCulture("en-US");
+                var view = new MainView(session, () => { });
+                window = WpfApp.Show(view);
+                view.TestButton.Focus();
+                WpfApp.Press(Key.Space);
+                view.Refresh();
+                // A press while it calls does nothing.
+                WpfApp.Press(Key.Space);
+                view.Refresh();
+                WpfApp.Settle();
+                return (view, (session.Caller.Testing, view.TestText.Text, view.TestButton.IsEnabled, ReferenceEquals(WpfApp.Focused(), view.TestButton)));
+            });
+            Assert.Equal((true, "Calling…", true, true), calling);
+
+            Assert.True(SpinWait.SpinUntil(() => !session.Caller.Testing, TimeSpan.FromSeconds(10)));
+            var again = wpf.Invoke(() =>
+            {
+                view.Refresh();
+                WpfApp.Settle();
+                var focused = ReferenceEquals(WpfApp.Focused(), view.TestButton);
+                WpfApp.Press(Key.Space);
+                return (focused, session.Caller.Testing);
+            });
+            Assert.Equal((true, true), again);
+            Assert.True(SpinWait.SpinUntil(() => !session.Caller.Testing, TimeSpan.FromSeconds(10)));
+        }
+        finally
+        {
+            wpf.Invoke(() =>
+            {
+                window?.Close();
+                return true;
+            });
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
 
     [Theory]
     [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]

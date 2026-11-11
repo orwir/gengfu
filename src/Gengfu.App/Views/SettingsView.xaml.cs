@@ -216,7 +216,7 @@ internal partial class SettingsView : UserControl
     private void ShowCallsTest()
     {
         var testing = ReadsCalling(_session.Caller.Testing, _tested, null);
-        TestButton.IsEnabled = _session.CanTest;
+        TestButton.IsEnabled = _session.TestOn(calling: testing);
         TestText.Text = testing ? Strings.TestCalling : Strings.TestCall;
         AutomationProperties.SetName(TestButton, testing || _session.Settings.Events.Count == 0
             ? TestText.Text

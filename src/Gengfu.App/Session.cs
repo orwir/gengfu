@@ -175,8 +175,12 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>Why no call can go out now, in the log's words; null when one can.</summary>
     internal string? WhyNoCall => WhyNoCallFor(Connection.State.Status, Target);
 
-    /// <summary>Whether a Test call can go out now: a call can, none is playing, and there is an event to call.</summary>
-    public bool CanTest => CanTestFor(CanCall, Caller.Testing, Settings.Events.Count);
+    /// <summary>
+    /// Whether a Test call button is on: a call can go out and there is an event to call. While a
+    /// Test call plays, the button calling stays on, so keyboard focus stays on it, and the others are off.
+    /// </summary>
+    /// <param name="calling">Whether the button reads "Calling…": the Test call playing is its own.</param>
+    public bool TestOn(bool calling) => TestOnFor(CanCall, Settings.Events.Count, Caller.Testing, calling);
 
     /// <summary>
     /// Whether the server said the last call reached nobody. It holds until a whisper gets through,
@@ -566,7 +570,7 @@ internal sealed class Session : IAsyncDisposable
     internal static bool CanUseKeyFor(ConnectionStatus status, string key, bool sending) =>
         !sending && key.Trim().Length > 0 && status == ConnectionStatus.Connected;
 
-    internal static bool CanTestFor(bool canCall, bool testing, int events) => canCall && !testing && events > 0;
+    internal static bool TestOnFor(bool canCall, int events, bool testing, bool calling) => canCall && events > 0 && (!testing || calling);
 
     internal static WhisperTarget? TargetOf(AppSettings settings) => settings.Listeners switch
     {

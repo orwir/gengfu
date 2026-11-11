@@ -51,7 +51,8 @@ internal partial class MainView : UserControl
         ShowLine();
         ShowCalls();
         FollowCalls();
-        TestButton.IsEnabled = _session.CanTest;
+        // The window's one Test call reads "Calling…" for any Test call playing, Settings' too.
+        TestButton.IsEnabled = _session.TestOn(calling: _session.Caller.Testing);
         TestText.Text = _session.Caller.Testing ? Strings.TestCalling : Strings.TestCall;
         UpdateNotice.Visibility = ShowsUpdate(_session.Updates.State, _session.Clock.State) ? Visibility.Visible : Visibility.Collapsed;
     }

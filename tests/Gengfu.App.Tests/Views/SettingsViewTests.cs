@@ -3,11 +3,13 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Gengfu.App.Speech;
 using Gengfu.App.Views;
 using Gengfu.Core.Settings;
 using Gengfu.TeamSpeak;
+using Gengfu.TeamSpeak.Tests;
 
 namespace Gengfu.App.Tests.Views;
 
@@ -307,6 +309,79 @@ public sealed class SettingsViewTests(WpfApp wpf)
             Assert.False(SettingsView.ReadsCalling(testing: true, pressed: boss, button: jungle));
             Assert.False(SettingsView.ReadsCalling(testing: false, pressed: boss, button: boss));
         });
+
+    [Fact]
+    public async Task A_Test_call_pressed_by_keyboard_keeps_focus_while_it_calls_and_the_others_are_off_meanwhile()
+    {
+        using var server = new LocalTsServer("");
+        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
+        var session = new Session(
+            CultureInfo.GetCultureInfo("en-US"),
+            new FakeTimeSource(),
+            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
+            folder,
+            new Log(folder));
+        session.AddEvent();
+        Window? window = null;
+        try
+        {
+            await SessionTests.ReachAsync(session, server.Address);
+            session.ChooseGroup(new Named(1625, "GvG"));
+
+            var (view, calling) = wpf.Invoke(() =>
+            {
+                using var english = new UiCulture("en-US");
+                var view = new SettingsView(session, () => { }, () => { });
+                window = WpfApp.Show(view);
+                var added = Rows(view)[1];
+                added.Row.IsExpanded = true;
+                WpfApp.Settle();
+                added.TestButton.Focus();
+                WpfApp.Press(Key.Space);
+                view.Refresh();
+                WpfApp.Settle();
+                var pressed = (added.TestText.Text, added.TestButton.IsEnabled, ReferenceEquals(WpfApp.Focused(), added.TestButton));
+                return (view, (pressed, view.TestButton.IsEnabled, Rows(view)[0].TestButton.IsEnabled));
+            });
+            Assert.Equal((("Calling…", true, true), false, false), calling);
+
+            Assert.True(SpinWait.SpinUntil(() => !session.Caller.Testing, TimeSpan.FromSeconds(10)));
+            var after = wpf.Invoke(() =>
+            {
+                view.Refresh();
+                WpfApp.Settle();
+                return (ReferenceEquals(WpfApp.Focused(), Rows(view)[1].TestButton), view.TestButton.IsEnabled, Rows(view)[0].TestButton.IsEnabled);
+            });
+            Assert.Equal((true, true, true), after);
+
+            // The Calls card's own, which plays the first event's call, does the same.
+            var calls = wpf.Invoke(() =>
+            {
+                using var english = new UiCulture("en-US");
+                view.TestButton.Focus();
+                WpfApp.Press(Key.Space);
+                view.Refresh();
+                WpfApp.Settle();
+                var pressed = (view.TestText.Text, view.TestButton.IsEnabled, ReferenceEquals(WpfApp.Focused(), view.TestButton));
+                return (pressed, Rows(view)[0].TestButton.IsEnabled, Rows(view)[1].TestButton.IsEnabled);
+            });
+            Assert.Equal((("Calling…", true, true), false, false), calls);
+            Assert.True(SpinWait.SpinUntil(() => !session.Caller.Testing, TimeSpan.FromSeconds(10)));
+        }
+        finally
+        {
+            wpf.Invoke(() =>
+            {
+                window?.Close();
+                return true;
+            });
+            await session.DisposeAsync();
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
 
     [Fact]
     public Task With_every_event_removed_Settings_says_no_calls_go_out() =>
