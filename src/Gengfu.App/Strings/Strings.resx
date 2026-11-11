@@ -90,7 +90,7 @@
   </data>
   <data name="StatusNobodyHeard" xml:space="preserve">
     <value>Connected · nobody heard the last call</value>
-    <comment>Status line: connected, but the server said the last call reached nobody. No Settings link: the fix is on the server or in the game.</comment>
+    <comment>Status line: connected, but the server said the last call reached nobody. No Settings link: it mostly clears by itself.</comment>
   </data>
   <data name="StatusConnecting" xml:space="preserve">
     <value>Connecting to {0}…</value>

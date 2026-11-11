@@ -303,7 +303,7 @@ action.
   - Decided (A) 2026-11-11: filed as #54 (bug, ui, tier-2, v0.4).
 - [x] **`listeners-survive-typo` [DEFERRED → #55]** — Clear the chosen listeners only once a
   different server answers. Addresses P1 #7. Filed as #55 (bug, settings, tier-3, v0.4).
-- [x] **`status-links` [DEFERRED → #56]** — Decide which status lines link to Settings. Addresses P1 #5, #6.
+- [x] **`status-links` [DONE]** — Decide which status lines link to Settings. Addresses P1 #5, #6.
   - **(A)** Link "nobody heard the last call" and "Can't find" an address to Settings too, and
     restate the rule: a Settings link follows wherever the player's next step is there, Connect
     after a fix on the server included, as for a ban today.
@@ -311,6 +311,10 @@ action.
   - **Recommended: (A).** In the walks, two of the three causes behind "nobody heard" and the one
     behind "Can't find" were fixed in Settings, and Settings opens on the server and the group.
   - Decided (A) 2026-11-11: filed as #56 (feature, ui, tier-3, v0.4).
+  - Reversed to (B) the same day at #56's design review, and #56 closed as not planned: these
+    lines mostly clear by themselves, so nothing should push a player to change a setup that
+    works; Settings is a button away; and with an address as long as the guild's, the link pushed
+    the countdown out of the line.
 - [x] **`settings-file-link` [DEFERRED → #57]** — Keep or drop *Open settings file*, a question the maintainer raised
   at #44's Clarify. Addresses P1 #8, #9.
   - **(A)** Drop it now. Sharing a preset loses its only door, and players find `settings.json`
@@ -369,6 +373,6 @@ Not run yet. Once #41, #46 and #47 land, and before the 0.4.0 release:
 | `cuj-set` | Six journeys, or the eight plus a ninth? | (A) six · (B) nine → **A** | P0 #1 | Decided (A) 2026-11-11 | [vision.md](../product/vision.md) |
 | `design-review-pass` | Pair a design review with this one before 0.4.0? | (A) not for 0.4.0 · (B) run one → **A** | design_workflow.md § Triggers | Accepted risk — revisit when the screens double or a walk finds a visual inconsistency | this row |
 | `keyboard-traps` | File the keyboard traps in v0.4? | (A) v0.4 · (B) Backlog → **A** | P1 #1–#3 | Decided (A) 2026-11-11 | #54 |
-| `status-links` | Which status lines link to Settings? | (A) also nobody heard and can't find · (B) as now → **A** | P1 #5, #6 | Decided (A) 2026-11-11 | #56 |
+| `status-links` | Which status lines link to Settings? | (A) also nobody heard and can't find · (B) as now → **A** | P1 #5, #6 | Decided (B) 2026-11-11 | #56's closing comment; [design_language.md](../guides/design_language.md) § Status line |
 | `settings-file-link` | Keep *Open settings file*? | (A) drop now · (B) keep until #40 · (C) keep → **B** | P1 #8, #9; #44 Clarify | Decided (A) 2026-11-11 | #57 |
 | `share-preset-journey` | Drop the Share a preset journey too? | (A) drop, close #40 · (B) keep, by the file's path → **A** | `settings-file-link` | Decided (A) 2026-11-11 | [vision.md](../product/vision.md); #40's closing comment |

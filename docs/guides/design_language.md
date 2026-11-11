@@ -95,9 +95,12 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   again…" while the attempt runs; connected with nobody chosen (caution); connected, but the
   server said the last call reached nobody (caution, until a whisper gets through, the
   connection is new or other listeners are chosen); not connected, saying why (critical). A
-  Settings link follows only when the fix is in Settings: a call nobody heard is fixed on the
-  server or in the game, so its line has none. Every state's copy is in the strings and on the
-  canvas's Foundations.
+  Settings link follows only a line that waits for the player in Settings: nobody chosen, or not
+  connected. A line that tries again, or says nobody heard the last call, has none, though a
+  typo or the chosen group can be the cause: it mostly clears by itself, and nothing should push
+  the player to change a setup that works; Settings is a button away, and on a retry line a link
+  would push out the countdown. Every state's copy is in the strings and on the canvas's
+  Foundations.
 - **Update notice:** a bar above the footer, in the card's colours with an accent "i" beside its
   first line, once a downloaded version is ready: it applies on next start, and Restart applies it
   now. It shows only while the clock is stopped, so a match is never interrupted. Restart closes
