@@ -1,8 +1,7 @@
 # Architecture
 
 How Gengfu is put together: projects, data flow, the clock model, threading and configuration. Why
-it is built this way lives in the [decision records](../README.md#decision-records). Parts marked
-*planned* are designed but not built yet.
+it is built this way lives in the [decision records](../README.md#decision-records).
 
 ## Projects
 
@@ -10,7 +9,7 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model and file; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
-| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; the log; hotkeys (*planned*). Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
+| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; the log. Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |

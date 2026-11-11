@@ -52,7 +52,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 ## Code layout
 
-- `src/Gengfu.App/` — the WPF shell and entry point: windows, input, speech (Windows TTS → Opus), hotkeys, updates. Thin: it wires Core to TeamSpeak.
+- `src/Gengfu.App/` — the WPF shell and entry point: windows, input, speech (Windows TTS → Opus), updates. Thin: it wires Core to TeamSpeak.
 - `src/Gengfu.TeamSpeak/` — TeamSpeak transport over TSLib: address lookup, connection, whisper, voice frames.
 - `src/Gengfu.Core/` — pure logic: match clock, call schedule, sync rules, settings model. **Never reference WPF, Windows-only APIs or TSLib from `Gengfu.Core`.** It must be testable without the UI or a server.
 - `tests/` mirrors `src/` 1:1: `src/Gengfu.Core/Foo.cs` → `tests/Gengfu.Core.Tests/FooTests.cs`.
