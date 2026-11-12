@@ -36,6 +36,7 @@ project/
 ├── tests/                      # mirrors src/ layout
 ├── docs/
 │   ├── README.md               # docs index
+│   ├── guide.md                # user guide, once it outgrows the front page
 │   ├── product/                # vision incl. CUJs; competitors, feasibility; idea.md (frozen origins)
 │   ├── architecture/           # the "how" — components, data flow, design decisions
 │   ├── guides/                 # task-oriented howtos (deploy, extend, onboard)
@@ -47,7 +48,7 @@ project/
 ├── .pre-commit-config.yaml     # or equivalent (husky, lefthook, …)
 ├── Dockerfile
 ├── docker-compose.yml
-├── README.md                   # entry point — what, install, use
+├── README.md                   # front page — what, install, links on
 ├── CHANGELOG.md                # release history
 ├── CONTRIBUTING.md             # how to work in this repo
 ├── LICENSE                     # or a proprietary notice
@@ -88,7 +89,7 @@ Every new project should have these on day zero. Each one has a single job; resi
 
 | File                                                             | Purpose                                                                                                                                              | Single source of truth for  |
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `README.md`                                                      | Entry point for anyone landing on the repo. What the project is, how to install, how to use, where to find more.                                     | Project identity            |
+| `README.md`                                                      | Front page for anyone landing on the repo: what the project is, how to install it, where to find more; how to use it, until that outgrows a minute's read. | Project identity            |
 | `CHANGELOG.md`                                                   | What changed between releases, grouped Added/Changed/Fixed/Removed.                                                                                  | Release history             |
 | `CONTRIBUTING.md`                                                | How to work in this repo: branching, local setup, release process, commit conventions.                                                               | Development workflow        |
 | `LICENSE`                                                        | Legal terms of use. MIT/Apache-2.0/BSD for OSS, or an "All rights reserved" notice for closed-source.                                                | Legal                       |
@@ -377,7 +378,8 @@ Each document answers a different question. If two docs are answering the same q
 
 | Layer            | File(s)                  | Answers                                                                                 |
 | ---------------- | ------------------------ | --------------------------------------------------------------------------------------- |
-| **Entry**        | `README.md`              | "What is this? How do I install it? How do I use it?"                                   |
+| **Entry**        | `README.md`              | "What is this? How do I install it?" — and "How do I use it?" until the user guide splits off |
+| **User guide**   | `docs/guide.md`          | "How do I use it?" — every task, setting and error path, in the order of the user journeys |
 | **Contribution** | `CONTRIBUTING.md`        | "How do I work in this repo?" — branching, setup, release, commit style                 |
 | **History**      | `CHANGELOG.md`           | "What changed between versions?"                                                        |
 | **Vision**       | `docs/product/vision.md` | "What problem does this solve? Who is it for? What does success look like?" — owns the CUJ inventory |
@@ -416,11 +418,19 @@ Write one when you make a non-obvious technical choice. Future-you (and any new 
 
 A short index file in `docs/` that tables the other docs with a one-line "what's in it" summary. Keeps the layering explicit — anyone landing in `docs/` can orient in ten seconds.
 
+### The front page stays short
+
+The forge renders `README.md` as the repository's front page, and a visitor decides there what this is, whether it fits, and how to get it. Keep it to a minute's read: a one-line pitch; a demo (a screenshot, GIF or short video where the product has a surface, a minimal example where it's a library); what it does, in a few bullets; install, in a few steps; links onward. While the whole user doc fits that minute, it can live in the README. Once it doesn't, everything past install moves to `docs/guide.md`, ordered by the user journeys, and the front page links to it. A demo is a doc too: a visible change to what it shows means capturing it again.
+
+### Translations come as twins
+
+When users read more than one language, translate the user-facing layers, the front page and the user guide, as twins beside the original: `README.ru.md`, `docs/guide.pt-BR.md`. Contributor, architecture and decision docs stay in the working language. Each page links its other languages on its first line, because the forge shows `README.md` to everyone. A change to one page updates every twin in the same commit, and a twin names controls by the product's own localized labels, so a reader finds on screen what the page says. A docs site (Pages, MkDocs, Docusaurus) can wait until a guide outgrows one file per language or needs search; its i18n folders keep the same rule.
+
 ### Doc maintenance is part of Definition of Done
 
 Documentation drift is the single most common way a well-organized project turns into an unreadable one. The cure is a rule, not discipline: **every code change that makes an existing doc wrong updates that doc in the same commit.** Deferred doc updates rot; a doc that lies is worse than a doc that's missing.
 
-Write the mapping down where it's read on every change: `AGENTS.md`. The template (`agents_template.md`) ships the standard **change → required doc** table pre-filled — that copy is the operative one; extend it there, not here. The shape, compressed: new env var → `.env.example` + `README.md`; new component or changed data flow → `docs/architecture/architecture.md`; non-obvious decision → new ADR; any user-visible change → `CHANGELOG.md`; reusable process change → `CONTRIBUTING.md` and this playbook.
+Write the mapping down where it's read on every change: `AGENTS.md`. The template (`agents_template.md`) ships the standard **change → required doc** table pre-filled — that copy is the operative one; extend it there, not here. The shape, compressed: new env var → `.env.example` + the user doc (the README, or the guide once split, with its twins); new component or changed data flow → `docs/architecture/architecture.md`; non-obvious decision → new ADR; any user-visible change → `CHANGELOG.md`; reusable process change → `CONTRIBUTING.md` and this playbook.
 
 Before merging a PR or closing an issue, verify: relevant docs updated, CHANGELOG entry exists, new env vars / commands / config options are documented, non-obvious decisions have an ADR. If the task introduced a reusable *pattern* rather than local code, that pattern belongs in `project_kickstart.md` so future projects inherit it.
 
