@@ -19,7 +19,7 @@ internal enum StatusTone
 
 /// <summary>
 /// What the main window's status line says about TeamSpeak: the dot, the words, and whether a Settings
-/// link follows, which it does only when the fix is in Settings.
+/// link follows, which it does only on a line that waits for the player in Settings.
 /// </summary>
 internal sealed record StatusLine(StatusTone Tone, string Text, bool LinksToSettings)
 {
@@ -30,7 +30,7 @@ internal sealed record StatusLine(StatusTone Tone, string Text, bool LinksToSett
         ConnectionState state, string? server, AppSettings settings, CultureInfo language, TimeSpan now, bool nobodyHeard = false) =>
         state.Status switch
         {
-            // Its fix is on the server or in the game, so no Settings link.
+            // It mostly clears by itself, so no Settings link sends the player to change a setup that works.
             ConnectionStatus.Connected when nobodyHeard => new(StatusTone.Caution, Strings.StatusNobodyHeard, false),
             ConnectionStatus.Connected => Listening(settings, language),
             ConnectionStatus.Connecting => Trying(state, server ?? settings.Server, now),

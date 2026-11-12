@@ -129,7 +129,7 @@ Releases run in three explicit phases too, mirroring the task workflow. Full mec
 ## Documentation
 
 - Respect the documentation layers:
-  * `README.md` — end-user entry point (install, use)
+  * `README.md` — end-user front page (what, install); `docs/guide.md` — the user guide, once split off; translated twins (`*.<lang>.md`) beside each, changed in the same commit
   * `CONTRIBUTING.md` — how to work in the repo (branching, release, commit style)
   * `CHANGELOG.md` — release history
   * `docs/product/` — vision incl. CUJs, the "what" and "why"; competitors and feasibility, the research behind them; `idea.md` is the frozen origins record — never edit it
@@ -161,13 +161,14 @@ Documentation is a first-class deliverable. **Before you commit any change, chec
 
 | Change                                                             | Must update                                                                                                                          |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| New user command, argument, response format, or UI surface         | `README.md`                                                                                                                          |
-| New env var, config option, or changed default                     | `.env.example` (or equivalent config schema) + `README.md`; also `docs/guides/{{deploy_or_publish_guide}}.md` if it affects shipping |
+| New user command, argument, response format, or UI surface         | the user guide (`README.md`, or `docs/guide.md` once split) and its twins; the front page when its bullets or install steps change  |
+| New env var, config option, or changed default                     | `.env.example` (or equivalent config schema) + the user guide and its twins; also `docs/guides/{{deploy_or_publish_guide}}.md` if it affects shipping |
 | New component, changed data flow, new integration                  | `docs/architecture/architecture.md`                                                                                                  |
 | Non-obvious design decision                                        | new ADR in `docs/adr/` (Status / Context / Decision / Consequences)                                                                  |
 | Any user-visible change                                            | `CHANGELOG.md` entry under Added / Changed / Fixed / Removed                                                                         |
 | New capability or extension point                                  | `docs/guides/extension_guide.md`                                                                                                     |
 | New/changed UI component or pattern (if the project has a surface) | the design-language reference (e.g. `docs/guides/design_language.md`)                                                                |
+| Visible change to what the front page's demo shows                 | the demo, captured again                                                                                                             |
 | New or removed user journey, or a major flow change                | `docs/product/vision.md` § CUJs                                                                                                      |
 | Process / workflow change                                          | `CONTRIBUTING.md`; also `docs/guides/project_kickstart.md` if the pattern is reusable across projects                                |
 

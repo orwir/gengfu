@@ -63,9 +63,6 @@ internal sealed class Session : IAsyncDisposable
     private string? _settingsWritten;
     private (string, string?) _secretsWritten;
 
-    // The file on disk still sets a call's text or sound file once for every event, as before 0.3.
-    private bool _oldFile;
-
     // The listeners the last whisper reached nobody among, as the server said, and the connection's
     // state when it went out. The connection replaces its state whenever it changes, so while that
     // state stands, the connection is the same one.
@@ -95,7 +92,6 @@ internal sealed class Session : IAsyncDisposable
             case SettingsLoad.Loaded loaded:
                 Settings = loaded.Settings;
                 _settingsWritten = SettingsStore.Serialize(Settings);
-                _oldFile = loaded.Old;
                 break;
             case SettingsLoad.Broken broken:
                 FileError = broken.Error;
@@ -179,8 +175,12 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>Why no call can go out now, in the log's words; null when one can.</summary>
     internal string? WhyNoCall => WhyNoCallFor(Connection.State.Status, Target);
 
-    /// <summary>Whether a Test call can go out now: a call can, none is playing, and there is an event to call.</summary>
-    public bool CanTest => CanTestFor(CanCall, Caller.Testing, Settings.Events.Count);
+    /// <summary>
+    /// Whether a Test call button is on: a call can go out and there is an event to call. While a
+    /// Test call plays, the button calling stays on, so keyboard focus stays on it, and the others are off.
+    /// </summary>
+    /// <param name="calling">Whether the button reads "Calling…": the Test call playing is its own.</param>
+    public bool TestOn(bool calling) => TestOnFor(CanCall, Settings.Events.Count, Caller.Testing, calling);
 
     /// <summary>
     /// Whether the server said the last call reached nobody. It holds until a whisper gets through,
@@ -220,6 +220,11 @@ internal sealed class Session : IAsyncDisposable
     /// </summary>
     public void Tick()
     {
+        // First, so no call goes out to listeners chosen on another server.
+        if (Connection.State is { Status: ConnectionStatus.Connected, ServerUid: { } server } && server != Settings.ListenersServer)
+        {
+            Reached(server);
+        }
         Caller.Tick();
         // Forgotten once it no longer holds, so the first listeners chosen again don't bring it back.
         if (_unheard is not null && !NobodyHeard)
@@ -243,13 +248,6 @@ internal sealed class Session : IAsyncDisposable
     public Task ConnectAsync()
     {
         var login = Login.Of(Settings, Password);
-        // Ids belong to one server: on another, the same ids name other groups or nothing.
-        if (Settings.ListenersServer is { } chosenOn && !string.Equals(chosenOn, login.Server, StringComparison.OrdinalIgnoreCase))
-        {
-            Settings.Group = null;
-            Settings.Channels = [];
-            Settings.ListenersServer = null;
-        }
         ConnectedWith = login;
         ForgetLists();
         KeyAnswer = null;
@@ -313,19 +311,14 @@ internal sealed class Session : IAsyncDisposable
         }
     }
 
-    /// <summary>Takes a group from the server Gengfu is connected to.</summary>
-    public void ChooseGroup(Named group)
-    {
-        Settings.Group = group;
-        Settings.ListenersServer = ConnectedWith?.Server;
-    }
+    /// <summary>Takes a group from the list of the server Gengfu last reached, which the listeners belong to.</summary>
+    public void ChooseGroup(Named group) => Settings.Group = group;
 
-    /// <summary>Takes the channels ticked on the server Gengfu is connected to, in its tree order.</summary>
-    public void ChooseChannels(IReadOnlyList<Named> channels)
-    {
-        Settings.Channels = channels;
-        Settings.ListenersServer = ConnectedWith?.Server;
-    }
+    /// <summary>
+    /// Takes the channels ticked in the list of the server Gengfu last reached, in its tree order. The
+    /// list stays open when the connection drops, and what is ticked then still belongs to that server.
+    /// </summary>
+    public void ChooseChannels(IReadOnlyList<Named> channels) => Settings.Channels = channels;
 
     /// <summary>Renames the event; an empty name, or the jungle's own, makes it the jungle.</summary>
     public void RenameEvent(int index, string name) =>
@@ -449,19 +442,6 @@ internal sealed class Session : IAsyncDisposable
     /// <summary>What listeners hear from one call of <paramref name="events"/>, at one spawn time, in words, for the line under the clock.</summary>
     public string HeardFor(IReadOnlyList<MatchEvent> events) => HeardAs(Settings, events, Language, ClipFor);
 
-    /// <summary>
-    /// Writes what changed at once, so the file opened in an editor holds it. A file from before 0.3
-    /// is written afresh too: read again with events pasted in, its text and sound file would go to them.
-    /// </summary>
-    public void SaveNow()
-    {
-        if (_oldFile)
-        {
-            _settingsWritten = null;
-        }
-        Save(flush: true);
-    }
-
     public async ValueTask DisposeAsync()
     {
         _watch.Dispose();
@@ -483,6 +463,20 @@ internal sealed class Session : IAsyncDisposable
             _ => _unheard,
         };
         return result == WhisperResult.Sent;
+    }
+
+    /// <summary>
+    /// Takes in the server a connection reached, by its unique id. Listeners chosen on another are
+    /// cleared: there their ids name other groups and channels, or none.
+    /// </summary>
+    internal void Reached(string server)
+    {
+        if (!ChosenOn(Settings.ListenersServer, server, ConnectedWith?.Server))
+        {
+            Settings.Group = null;
+            Settings.Channels = [];
+        }
+        Settings.ListenersServer = server;
     }
 
     /// <summary>Takes in how the server took the key; one it took is spent, so it is cleared.</summary>
@@ -520,7 +514,6 @@ internal sealed class Session : IAsyncDisposable
             case SettingsLoad.Loaded loaded:
                 FileError = null;
                 Apply(loaded.Settings);
-                _oldFile = loaded.Old;
                 break;
             case SettingsLoad.Broken broken:
                 FileError = broken.Error;
@@ -529,7 +522,6 @@ internal sealed class Session : IAsyncDisposable
                 // Deleted: the next save writes what Gengfu holds, so the file is there to open again.
                 FileError = null;
                 _settingsWritten = null;
-                _oldFile = false;
                 break;
             case SettingsLoad.Unreadable:
                 // An error already found stays shown until the file reads again.
@@ -566,11 +558,19 @@ internal sealed class Session : IAsyncDisposable
     internal static bool OffersConnectFor(ConnectionStatus status, Login? connectedWith, Login fields) =>
         status == ConnectionStatus.Disconnected || connectedWith != fields;
 
+    /// <summary>
+    /// Whether listeners chosen on <paramref name="chosenOn"/> belong to the server reached at
+    /// <paramref name="address"/>, whose unique id is <paramref name="server"/>. A file saved before
+    /// 0.4 names their server by the address it was reached at; listeners that name none stay.
+    /// </summary>
+    internal static bool ChosenOn(string? chosenOn, string? server, string? address) =>
+        chosenOn is null || chosenOn == server || string.Equals(chosenOn, address, StringComparison.OrdinalIgnoreCase);
+
     // A pasted key often brings spaces along; they are no key.
     internal static bool CanUseKeyFor(ConnectionStatus status, string key, bool sending) =>
         !sending && key.Trim().Length > 0 && status == ConnectionStatus.Connected;
 
-    internal static bool CanTestFor(bool canCall, bool testing, int events) => canCall && !testing && events > 0;
+    internal static bool TestOnFor(bool canCall, int events, bool testing, bool calling) => canCall && events > 0 && (!testing || calling);
 
     internal static WhisperTarget? TargetOf(AppSettings settings) => settings.Listeners switch
     {
@@ -666,7 +666,10 @@ internal sealed class Session : IAsyncDisposable
         var again = state.RetryAt is { } at && at > now ? "trying again in " + Copy.Span(at - now) : "trying again…";
         return state switch
         {
-            { Status: ConnectionStatus.Connected } => TargetOf(settings) is { } target ? "Connected · whispering to " + Whom(target, settings) : "Connected · choose who hears the calls",
+            // On another server than the listeners', they are cleared on the App's next tick.
+            { Status: ConnectionStatus.Connected } => TargetOf(settings) is { } target && ChosenOn(settings.ListenersServer, state.ServerUid, server)
+                ? "Connected · whispering to " + Whom(target, settings)
+                : "Connected · choose who hears the calls",
             { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.None } => $"Connecting to {server} as {nickname}…",
             { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.IdentityTooWeak } => $"Raising the bot's security level to {state.Detail} — can take minutes",
             { Status: ConnectionStatus.Connecting, Problem: ConnectionProblem.AddressNotFound } => $"Can't find {server} — {again}",
@@ -867,7 +870,6 @@ internal sealed class Session : IAsyncDisposable
             if (_store.Save(Settings))
             {
                 _settingsWritten = settings;
-                _oldFile = false;
                 saved = true;
             }
             else

@@ -8,6 +8,7 @@ using Gengfu.App.Speech;
 using Gengfu.Core;
 using Gengfu.Core.Settings;
 using Gengfu.TeamSpeak;
+using Gengfu.TeamSpeak.Tests;
 
 namespace Gengfu.App.Tests;
 
@@ -103,12 +104,16 @@ public sealed partial class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public void A_Test_call_goes_out_only_when_a_call_can_none_is_playing_and_there_is_an_event_to_call()
+    public void Test_call_is_on_when_a_call_can_go_out_with_an_event_to_call_and_while_one_plays_only_the_one_calling()
     {
-        Assert.True(Session.CanTestFor(canCall: true, testing: false, events: 1));
-        Assert.False(Session.CanTestFor(canCall: true, testing: false, events: 0));
-        Assert.False(Session.CanTestFor(canCall: false, testing: false, events: 1));
-        Assert.False(Session.CanTestFor(canCall: true, testing: true, events: 1));
+        Assert.True(Session.TestOnFor(canCall: true, events: 1, testing: false, calling: false));
+        Assert.False(Session.TestOnFor(canCall: true, events: 0, testing: false, calling: false));
+        Assert.False(Session.TestOnFor(canCall: false, events: 1, testing: false, calling: false));
+
+        // The one calling keeps keyboard focus; a press on it does nothing until the call ends.
+        Assert.True(Session.TestOnFor(canCall: true, events: 1, testing: true, calling: true));
+        Assert.False(Session.TestOnFor(canCall: true, events: 1, testing: true, calling: false));
+        Assert.False(Session.TestOnFor(canCall: false, events: 1, testing: true, calling: true));
     }
 
     [Fact]
@@ -356,7 +361,6 @@ public sealed partial class SessionTests : IAsyncLifetime
         await _session.UseKeyAsync();
         Assert.Null(_session.KeyAnswer);
 
-        _session.SaveNow();
         await _session.DisposeAsync();
         _session = NewSession();
         Assert.Equal("", _session.PrivilegeKey);
@@ -528,23 +532,79 @@ public sealed partial class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_group_and_channels_chosen_on_one_server_are_cleared_on_connecting_to_another()
+    public async Task The_listeners_outlast_a_mistyped_address_and_its_fix_and_clear_once_another_server_answers()
     {
-        // Nothing answers on the discard port; the connection keeps trying until the test ends.
+        using var english = new UiCulture("en-US");
+        using var guild = new LocalTsServer("");
+        using var other = new LocalTsServer("");
+        await ReachAsync(guild.Address);
+        _session.ChooseGroup(new Named(1625, "GvG"));
+
+        // Nothing answers on the discard port; the connection keeps trying until the next Connect.
         _session.Settings.Server = "127.0.0.1:9";
         await _session.ConnectAsync();
-        _session.ChooseGroup(new Named(1625, "ГВГ"));
-        _session.ChooseChannels([new Named(3978, "Пуш 2")]);
+        _session.Tick();
+        Assert.Equal(new Named(1625, "GvG"), _session.Settings.Group);
 
-        await _session.ConnectAsync();
-        Assert.Equal(new Named(1625, "ГВГ"), _session.Settings.Group);
-        Assert.Single(_session.Settings.Channels);
+        await ReachAsync(guild.Address);
+        Assert.Equal("Connected · whispering to the GvG group", _session.Status.Text);
 
-        _session.Settings.Server = "127.0.0.2:9";
-        await _session.ConnectAsync();
+        _session.ChooseChannels([new Named(3978, "Push 2")]);
+        await ReachAsync(other.Address);
         Assert.Null(_session.Settings.Group);
         Assert.Empty(_session.Settings.Channels);
-        Assert.Null(_session.Target);
+        Assert.Equal(other.Uid, _session.Settings.ListenersServer);
+    }
+
+    [Fact]
+    public async Task Channels_ticked_while_the_connection_is_down_clear_once_another_server_answers()
+    {
+        using var guild = new LocalTsServer("");
+        using var other = new LocalTsServer("");
+        await ReachAsync(guild.Address);
+
+        // The channel list stays open while Gengfu tries a server that never answers.
+        _session.Settings.Server = "127.0.0.1:9";
+        await _session.ConnectAsync();
+        _session.ChooseChannels([new Named(3978, "Push 2")]);
+        await ReachAsync(other.Address);
+
+        Assert.Empty(_session.Settings.Channels);
+    }
+
+    [Fact]
+    public async Task Listeners_a_file_names_by_their_server_s_address_stay_once_Gengfu_reaches_it_there()
+    {
+        // Files saved before 0.4 name the server by the address it was reached at.
+        using var guild = new LocalTsServer("");
+        await RestartAsync(() => File.WriteAllText(
+            SettingsFile,
+            $$"""{ "server": "{{guild.Address}}", "group": { "id": 1625, "name": "GvG" }, "listenersServer": "{{guild.Address}}" }"""));
+
+        await ReachAsync(guild.Address);
+
+        Assert.Equal(new Named(1625, "GvG"), _session.Settings.Group);
+        Assert.Equal(guild.Uid, _session.Settings.ListenersServer);
+    }
+
+    [Fact]
+    public void Listeners_belong_to_the_server_of_the_id_they_name_or_of_the_address_an_older_file_names()
+    {
+        Assert.True(Session.ChosenOn("server-a", "server-a", "ts.example.com"));
+        Assert.False(Session.ChosenOn("server-a", "server-b", "ts.example.com"));
+        Assert.True(Session.ChosenOn("TS.example.com", "server-a", "ts.example.com"));
+        Assert.False(Session.ChosenOn("ts.example.com:9988", "server-a", "ts.example.com"));
+        Assert.True(Session.ChosenOn(null, "server-a", "ts.example.com"));
+    }
+
+    [Fact]
+    public void The_log_says_whispering_only_to_listeners_chosen_on_the_server_reached()
+    {
+        var settings = new AppSettings { Group = new Named(1625, "GvG"), ListenersServer = "server-a" };
+        string Line(string server) => Session.ConnectionLine(new(ConnectionStatus.Connected, ServerUid: server), "ts.example.com", "Gengfu", settings, TimeSpan.Zero);
+
+        Assert.Equal("Connected · whispering to the GvG group", Line("server-a"));
+        Assert.Equal("Connected · choose who hears the calls", Line("server-b"));
     }
 
     [Fact]
@@ -637,7 +697,7 @@ public sealed partial class SessionTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_file_from_before_0_3_is_written_afresh_when_opened_to_edit_so_a_pasted_preset_reads_as_pasted()
+    public async Task A_file_from_before_0_3_is_written_in_the_new_form_once_a_setting_changes_in_the_app()
     {
         const string Old = """{ "callText": "Jungle, go", "soundFile": "C:\\Sounds\\jungle.mp3", "events": [{ "spawns": ["25:00"] }] }""";
         await RestartAsync(() => File.WriteAllText(SettingsFile, Old));
@@ -645,12 +705,13 @@ public sealed partial class SessionTests : IAsyncLifetime
         // Nothing changed in the app, so nothing is written.
         Assert.Equal(Old, File.ReadAllText(SettingsFile));
 
-        // As Open settings file does before it opens the file.
-        _session.SaveNow();
+        _session.Settings.Nickname = "Gengfu 2";
+        Settle();
         var written = File.ReadAllText(SettingsFile);
         Assert.DoesNotContain("callText", written, StringComparison.Ordinal);
         Assert.Contains("\"text\": \"Jungle, go\"", written, StringComparison.Ordinal);
 
+        // In the new form, an event added by hand reads as written: the old text and file stay with the jungle.
         File.WriteAllText(SettingsFile, written.Replace("\"events\": [", "\"events\": [\n    { \"name\": \"Boss\", \"spawns\": [\"28:00\"] },", StringComparison.Ordinal));
         _session.Reload();
         Assert.Equal(
@@ -669,7 +730,6 @@ public sealed partial class SessionTests : IAsyncLifetime
 
         _session.Settings.Server = "ts.example.com";
         Settle();
-        _session.SaveNow();
         await _session.DisposeAsync();
         Assert.Equal(Broken, File.ReadAllText(SettingsFile));
         _session = NewSession();
@@ -1165,6 +1225,22 @@ public sealed partial class SessionTests : IAsyncLifetime
         await _session.DisposeAsync();
         meanwhile?.Invoke();
         _session = NewSession(install);
+    }
+
+    private Task ReachAsync(string address) => ReachAsync(_session, address);
+
+    /// <summary>Connects as Connect does, waits until the server lets the bot in, and ticks, as the window does.</summary>
+    internal static async Task ReachAsync(Session session, string address)
+    {
+        var was = session.Connection.State;
+        session.Settings.Server = address;
+        await session.ConnectAsync();
+        for (var tries = 0; tries < 500 && session.Connection.State is var state && (ReferenceEquals(state, was) || state.Status != ConnectionStatus.Connected); tries++)
+        {
+            await Task.Delay(20);
+        }
+        Assert.Equal(ConnectionStatus.Connected, session.Connection.State.Status);
+        session.Tick();
     }
 }
 

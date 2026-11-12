@@ -1,8 +1,7 @@
 # Architecture
 
 How Gengfu is put together: projects, data flow, the clock model, threading and configuration. Why
-it is built this way lives in the [decision records](../README.md#decision-records). Parts marked
-*planned* are designed but not built yet.
+it is built this way lives in the [decision records](../README.md#decision-records).
 
 ## Projects
 
@@ -10,7 +9,7 @@ it is built this way lives in the [decision records](../README.md#decision-recor
 | --- | --- | --- |
 | `src/Gengfu.Core` | Pure logic: match clock, call schedule, sync rules, settings model and file; `AppVersion` | — |
 | `src/Gengfu.TeamSpeak` | TeamSpeak transport: address lookup, connection and reconnection, the server's groups and channels, whisper targets, voice frames | Core, `lib/TSLib` |
-| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; the log; hotkeys (*planned*). Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
+| `src/Gengfu.App` | WPF shell on the Fluent theme, strings in English and Russian: the main window and Settings, wiring the clock, the calls and TeamSpeak together; call audio; updates; the log. Builds `Gengfu.exe` | Core, TeamSpeak, Concentus, Velopack |
 | `lib/TSLib` | Vendored TeamSpeak client library, patched — [ADR-0002](../adr/0002-tslib-vendored.md) | — |
 | `tests/Gengfu.Core.Tests` | Tests mirroring `Gengfu.Core` | Core |
 | `tests/Gengfu.TeamSpeak.Tests` | Tests mirroring `Gengfu.TeamSpeak`, against local DNS, TSDNS and UDP sockets | TeamSpeak |
@@ -64,6 +63,9 @@ server, and another transport would plug in without touching it.
   `Caller` makes its calls and test calls, and `StatusLine` puts the connection into the status
   line's words. When the server says a call reached nobody, `Session` keeps that for the status line
   and Settings until a whisper gets through, the connection is new, or other listeners are chosen.
+  The listeners belong to the server they were chosen on, known by its unique id: once a connection
+  reaches another server, `Session` clears them before any call goes out, so a mistyped address and
+  its fix leave them as they were.
   It holds a privilege key typed in Settings, in memory only, uses it through the connection, and
   keeps the server's answer for Settings until another key is typed or Connect is pressed: the
   connection's own reconnects leave the bot's group as it was.
@@ -104,6 +106,13 @@ the game can show, and are timed from the first keystroke, or from Enter after a
 ahead; leaving the field never counts as typing ahead. Its lag constants assume the game rounds its
 timer up, as the display does.
 
+Seconds typed right after typed minutes, within a minute of their first keystroke and with nothing
+else moving the clock in between, land on the minute nearest the middle of the minute typed instead:
+the clock's seconds are still the running ones and say nothing of the game's. That middle is taken
+as the game showed it when the minutes were read, `TypingLag` before their first keystroke, and
+carried on to the seconds' moment. `ClockDigits` hands the minutes typed last, a `TypedMinutes`, to
+the next field's `SyncInput`.
+
 A call fires once while the clock is between its game time and its spawn, and shows as calling
 for 3 s: on time as the clock counts down, or late when a correction lands the clock in that
 window, since a late call still helps. After the spawn it never fires — the mob is already farmed
@@ -115,8 +124,7 @@ back above its game time re-arms it; a changed lead moves every call but never m
 A call plays words in a Windows voice, an audio file, or the gong: a small gong struck twice, made
 in code. It is never silent: a file that can't play, missing on this PC or not something Windows
 plays, gives way to its event's words, and words that can't be spoken play the gong; the clip says
-why, for Settings to show. A preset made on another PC names files that aren't on this one, so its
-events still say what they are.
+why, for Settings to show.
 
 - **Voice.** The chosen voice while it is installed, else the first in the app's language with
   Windows' default first, else the gong. Any voice may be chosen whatever the app's language; the
@@ -196,17 +204,15 @@ until it is fixed; started with one, Gengfu runs on its defaults. A file Windows
 read or write is tried again every 2 s. A file written before 0.3 set a call's text and sound file
 (`callText`, `soundFile`) once for every event;
 it opens with them moved into its events, the text into the jungle's and the file into every event
-without words of its own, and its next save writes them there. Open settings file writes it so
-before it opens it: read again with a preset's events pasted in, the old text and file would go to
-them too.
+without words of its own, and its next save writes them there.
 
 Gengfu's folder also holds the log, `gengfu.log` ([The App](#the-app)). Once the file would pass
 1 MB, hundreds of matches' worth, the log starts afresh and keeps the full one as `gengfu.old.log`,
 so it never takes more than 2 MB. A line Windows won't let Gengfu write is lost rather than stop a
 call.
 
-The server password and the bot's identity stay out of the file, so it can be shared; a privilege
-key is kept nowhere, since a used one is worthless. `Secrets`
+The server password and the bot's identity stay out of the file, which a person reads and edits in
+the clear; a privilege key is kept nowhere, since a used one is worthless. `Secrets`
 (App) keeps them beside it in `secrets.bin`, encrypted with Windows' data protection for this
 Windows user; one another user or PC wrote reads as empty, and Gengfu makes a new identity. One
 Windows won't let Gengfu read, perhaps held by another program, is never written over: the
@@ -215,7 +221,7 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 | Setting | Default |
 | --- | --- |
 | Server address, bot nickname, server password | none, "Gengfu", none |
-| Who hears the calls | a server group, none chosen; or chosen channels. Cleared on connecting to another server, where the same ids name other groups or channels |
+| Who hears the calls | a server group, none chosen; or chosen channels. Cleared once Gengfu reaches another server, where the same ids name other groups or channels. In the file, `"listenersServer"` names their server by its unique id, or, in a file from before 0.4, by the address Gengfu reaches it at |
 | Call ahead | 30 s; 15, 20, 30, 45 or 60 |
 | Voice | the first voice in the app's language, Windows' default first; any voice or the gong may be chosen; it speaks every event's words. A language chosen in Settings drops a chosen voice that can't speak it |
 | Language | the same as Windows: Russian on a Russian Windows, else English |
@@ -270,6 +276,12 @@ identity in it is the bot's, so that run makes do with a new one and saves no se
 - Raising the level costs about 2^level hashes, about 4.5 million a second on one core: level 28
   takes about a minute, 30 about 4, 32 about 17. TSLib's raise can't be cancelled, and above 160
   it never ends, so Gengfu raises to 32 at most; a server that asks for more leaves it off.
+- A server proves its key in the handshake, `omega` in `initivexpand2` (or `initivexpand`, which
+  TSLib keeps for older servers), before it lets the client in. Neither TS3 3.13.7 nor TS6 6.0 beta
+  sends its unique id in `initserver`, but TS3 shows base64 of the SHA-1 of that key as its
+  `virtualserver_unique_identifier`, and TS6 the SHA-256. The connection's Connected state names the
+  server by the SHA-1 form, so one server has one id however its address is spelled: `localhost`
+  and `127.0.0.1:9987`, or our server's TSDNS name and its IP.
 
 How each refusal ends, the same on TS3 3.13.7 and TS6 6.0 beta, as found against local servers:
 

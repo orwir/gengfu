@@ -10,13 +10,20 @@ public enum ClockField
 }
 
 /// <summary>
-/// One typed correction to a clock field, from its first keystroke to Enter or leaving the field.
-/// Typed minutes keep the running seconds. Typed seconds land on the nearest minute and are timed
-/// from the first keystroke, or from Enter after a pause, so the user can type ahead and press
-/// Enter as the game reaches the number; leaving the field never counts as typing ahead. A value
-/// the game can't show is ignored.
+/// Minutes typed into the clock, kept for the seconds typed after them: the minute typed, the
+/// instant of its first keystroke, and the game time the clock gave that instant once they applied.
 /// </summary>
-public sealed class SyncInput(MatchClock clock, ClockField field)
+public sealed record TypedMinutes(int Minute, TimeSpan FirstKeystroke, TimeSpan GameTime);
+
+/// <summary>
+/// One typed correction to a clock field, from its first keystroke to Enter or leaving the field.
+/// Typed minutes keep the running seconds. Typed seconds land on the minute nearest the clock, or,
+/// right after typed minutes, nearest the middle of the minute typed. They are timed from the first
+/// keystroke, or from Enter after a pause, so the user can type ahead and press Enter as the game
+/// reaches the number; leaving the field never counts as typing ahead. A value the game can't show
+/// is ignored.
+/// </summary>
+public sealed class SyncInput(MatchClock clock, ClockField field, TypedMinutes? minutesBefore = null)
 {
     /// <summary>
     /// The game time at the first keystroke is the typed seconds less this: the game rounds up, so
@@ -30,11 +37,20 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
     /// <summary>A longer wait between the last keystroke and Enter means the user typed ahead.</summary>
     public static TimeSpan EnterPause { get; } = TimeSpan.FromSeconds(1.2);
 
+    /// <summary>
+    /// Seconds that describe the game sooner than this after typed minutes' first keystroke, with
+    /// nothing else moving the clock in between, are typed right after them.
+    /// </summary>
+    public static TimeSpan RightAfter { get; } = TimeSpan.FromMinutes(1);
+
     private TimeSpan? _firstKeystroke;
     private TimeSpan _lastKeystroke;
 
     /// <summary>Whether a keystroke waits to be applied; Enter or leaving the field spends it.</summary>
     public bool Typed => _firstKeystroke is not null;
+
+    /// <summary>The minutes this input applied, for the seconds typed after them; null until it does.</summary>
+    public TypedMinutes? Minutes { get; private set; }
 
     /// <summary>Records that the user changed the field's text, now.</summary>
     public void Keystroke()
@@ -69,6 +85,7 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
             if (value <= MatchClock.MatchLength.TotalMinutes)
             {
                 clock.Move(TimeSpan.FromMinutes(value - MatchClock.Shown(clock.GameTimeAt(firstKeystroke)).Minutes));
+                Minutes = new TypedMinutes(value, firstKeystroke, clock.GameTimeAt(firstKeystroke));
             }
             return;
         }
@@ -78,18 +95,36 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
         }
         // The moment the seconds describe: the game reaching them, or showing them as typing began.
         var instant = typedAhead ? clock.Time.Now : firstKeystroke;
-        if (NearestMinute(clock.GameTimeAt(instant), value, typedAhead ? EnterLag : TypingLag) is { } gameTime)
+        var reference = minutesBefore is { } minutes && IsRightAfter(minutes, instant)
+            ? MiddleOfTyped(minutes, instant)
+            : clock.GameTimeAt(instant);
+        if (NearestMinute(reference, value, typedAhead ? EnterLag : TypingLag) is { } gameTime)
         {
             clock.Anchor(instant, gameTime);
         }
     }
 
-    // The clock is off by seconds, not minutes, so the typed seconds belong to the minute that
-    // lands nearest to it: 58 typed at 22:02 means 21:58. Only a time the game can show counts;
-    // the lag may then take the match past 00:00, which ends it.
-    private static TimeSpan? NearestMinute(TimeSpan current, int seconds, TimeSpan lag)
+    // Later seconds are a correction of their own, against the clock. Anything else that moved the
+    // clock since, an arrow, a restart or other seconds, gives the minutes' first keystroke another
+    // game time and has the last word.
+    private bool IsRightAfter(TypedMinutes minutes, TimeSpan instant) =>
+        instant - minutes.FirstKeystroke < RightAfter && clock.GameTimeAt(minutes.FirstKeystroke) == minutes.GameTime;
+
+    // Typed minutes leave the clock's seconds as they ran, which say nothing of the game's; they say
+    // only that the game showed the minute typed as they were read. Its middle, M:29.5, read as typed
+    // seconds are, TypingLag before the minutes' first keystroke, and carried on to the seconds'
+    // moment, is then the best guess at the game. Seconds count as read when their typing began, so
+    // 59 typed 2 s after 26 means 25:59.
+    private static TimeSpan MiddleOfTyped(TypedMinutes minutes, TimeSpan instant) =>
+        TimeSpan.FromMinutes(minutes.Minute) + TimeSpan.FromSeconds(29.5) - TypingLag - (instant - minutes.FirstKeystroke);
+
+    // The seconds belong to the minute that lands them nearest a time known to within half a minute:
+    // the clock, which is off by seconds, not minutes, so 58 typed at 22:02 means 21:58; or the
+    // middle of the minute typed. Only a time the game can show counts; the lag may then take the
+    // match past 00:00, which ends it.
+    private static TimeSpan? NearestMinute(TimeSpan reference, int seconds, TimeSpan lag)
     {
-        var shownMinute = MatchClock.Shown(current).Minutes;
+        var shownMinute = MatchClock.Shown(reference).Minutes;
         TimeSpan? nearest = null;
         for (var minute = shownMinute - 1; minute <= shownMinute + 1; minute++)
         {
@@ -99,7 +134,7 @@ public sealed class SyncInput(MatchClock clock, ClockField field)
                 continue;
             }
             var candidate = reading - lag;
-            if (nearest is null || (candidate - current).Duration() < (nearest.Value - current).Duration())
+            if (nearest is null || (candidate - reference).Duration() < (nearest.Value - reference).Duration())
             {
                 nearest = candidate;
             }

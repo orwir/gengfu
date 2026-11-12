@@ -155,6 +155,39 @@ public sealed class TeamSpeakConnectionTests
     }
 
     [Fact]
+    public async Task Connected_names_the_server_by_the_key_it_proves_however_its_address_is_spelled()
+    {
+        using var dns = new LocalDns();
+        var address = new TsAddress(() => new Resolver(dns.EndPoint), (_, _) => Task.FromResult(new[] { IPAddress.Loopback }));
+        using var server = new LocalTsServer("");
+        using var other = new LocalTsServer("");
+        await using var connection = new TeamSpeakConnection(null, _time, address);
+        var states = Watch(connection);
+
+        foreach (var (at, uid) in new[]
+        {
+            (server.Address, server.Uid),
+            (server.Address.Replace("127.0.0.1", "guild.example.test", StringComparison.Ordinal), server.Uid),
+            (other.Address, other.Uid),
+        })
+        {
+            await connection.ConnectAsync(at, "Gengfu", "");
+            Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
+            Assert.Equal(new ConnectionState(ConnectionStatus.Connected, ServerUid: uid), await NextAsync(states));
+        }
+        Assert.NotEqual(server.Uid, other.Uid);
+    }
+
+    [Fact]
+    public void A_servers_unique_id_is_the_one_TS3_shows_for_the_key_it_proves()
+    {
+        // A local TS3 3.13.7 proved this key, and its query showed this virtualserver_unique_identifier.
+        Assert.Equal(
+            "M4GnI8Ipewt/sEZitgvu2cvTeRo=",
+            TeamSpeakConnection.UidOf("ME0DAgcAAgEgAiEA0Iiq+l2yKkf8qQ0J6ygGrZm2cF3+BQrTMwjqw4a5I+UCIQCEyWn1JQWaw6Qh0XelOYGt9aP7xtJh5gn+24z+FZi5hg=="));
+    }
+
+    [Fact]
     public async Task A_whisper_while_not_connected_sends_nothing()
     {
         await using var connection = new TeamSpeakConnection(null, _time);
@@ -171,7 +204,7 @@ public sealed class TeamSpeakConnectionTests
         var states = Watch(connection);
         await connection.ConnectAsync(server.Address, "Gengfu", "");
         Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
-        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected, ServerUid: server.Uid), await NextAsync(states));
         var up = connection.State;
         // A tenth of a second: shorter than the server may take to answer, so the whisper waits for it.
         IReadOnlyList<byte[]> frames = [.. Enumerable.Repeat(new byte[] { 1, 2, 3 }, 5)];
@@ -232,7 +265,7 @@ public sealed class TeamSpeakConnectionTests
         var states = Watch(connection);
         await connection.ConnectAsync(server.Address, "Gengfu", "");
         Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
-        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected, ServerUid: server.Uid), await NextAsync(states));
         var up = connection.State;
 
         Assert.Equal(new KeyResult(KeyOutcome.Taken, "Callers"), await connection.UsePrivilegeKeyAsync("key").WaitAsync(Patience));
@@ -252,7 +285,7 @@ public sealed class TeamSpeakConnectionTests
         var states = Watch(connection);
         await connection.ConnectAsync(server.Address, "Gengfu", "");
         Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
-        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected, ServerUid: server.Uid), await NextAsync(states));
 
         Assert.Equal(new KeyResult(outcome, detail), await connection.UsePrivilegeKeyAsync("key").WaitAsync(Patience));
     }
@@ -441,10 +474,10 @@ public sealed class TeamSpeakConnectionTests
         await connection.ConnectAsync(server.Address, "Gengfu", "");
 
         Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
-        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected, ServerUid: server.Uid), await NextAsync(states));
         Assert.Equal(new ConnectionState(ConnectionStatus.Connecting, ConnectionProblem.KickedByServer, null, In(1)), await NextAsync(states));
         Assert.Equal(new ConnectionState(ConnectionStatus.Connecting, ConnectionProblem.KickedByServer), await NextAsync(states));
-        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected, ServerUid: server.Uid), await NextAsync(states));
     }
 
     [Fact]
@@ -458,7 +491,7 @@ public sealed class TeamSpeakConnectionTests
         await connection.ConnectAsync(server.Address, "Gengfu", "");
 
         Assert.Equal(new ConnectionState(ConnectionStatus.Connecting), await NextAsync(states));
-        Assert.Equal(new ConnectionState(ConnectionStatus.Connected), await NextAsync(states));
+        Assert.Equal(new ConnectionState(ConnectionStatus.Connected, ServerUid: server.Uid), await NextAsync(states));
         Assert.Equal(new ConnectionState(ConnectionStatus.Disconnected, ConnectionProblem.Kicked), await NextAsync(states));
     }
 

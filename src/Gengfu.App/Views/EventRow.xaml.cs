@@ -99,7 +99,7 @@ internal partial class EventRow : UserControl
         SoundBar.Visibility = hint is null ? Visibility.Collapsed : Visibility.Visible;
         SoundBarText.Text = hint ?? "";
 
-        TestButton.IsEnabled = _session.CanTest;
+        TestButton.IsEnabled = _session.TestOn(calling: testing);
         TestText.Text = testing ? Strings.TestCalling : Strings.TestCall;
         AutomationProperties.SetName(TestButton, testing ? Strings.TestCalling : Copy.Format(Strings.TestCallFor, name));
         NobodyHeardBar.Visibility = nobodyHeard ? Visibility.Visible : Visibility.Collapsed;

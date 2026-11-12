@@ -52,7 +52,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 ## Code layout
 
-- `src/Gengfu.App/` — the WPF shell and entry point: windows, input, speech (Windows TTS → Opus), hotkeys, updates. Thin: it wires Core to TeamSpeak.
+- `src/Gengfu.App/` — the WPF shell and entry point: windows, input, speech (Windows TTS → Opus), updates. Thin: it wires Core to TeamSpeak.
 - `src/Gengfu.TeamSpeak/` — TeamSpeak transport over TSLib: address lookup, connection, whisper, voice frames.
 - `src/Gengfu.Core/` — pure logic: match clock, call schedule, sync rules, settings model. **Never reference WPF, Windows-only APIs or TSLib from `Gengfu.Core`.** It must be testable without the UI or a server.
 - `tests/` mirrors `src/` 1:1: `src/Gengfu.Core/Foo.cs` → `tests/Gengfu.Core.Tests/FooTests.cs`.
@@ -76,7 +76,8 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 ## Documentation
 
-- Layers: `README.md` (players: install, use) · `CONTRIBUTING.md` (how to work here) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (howtos, playbooks, `design_language.md`) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
+- Layers: `README.md` + `README.ru.md` (the front page: what Gengfu is, install) · `docs/guide.md` + `docs/guide.ru.md` (the player guide: install, set up, use) · `CONTRIBUTING.md` (how to work here) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (howtos, playbooks, `design_language.md`) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
+- **Player docs come in pairs**, English and Russian: a change to one updates its twin in the same commit, the Russian in the app's own Russian labels (`src/Gengfu.App/Strings/Strings.ru.resx`).
 - **Do not create new documentation files unprompted**; suggest an ADR and wait. **Do not recreate `roadmap.md`** — tracked work lives on GitHub.
 - Cite code as `file.cs:123` in conversation; in docs use file-relative links and no `#L123` anchors.
 - Docs open with orientation (what, for whom, what not), put the conclusion first, keep one claim per paragraph, and use one name per thing (`Gengfu`, `ADR-0002`).
@@ -85,15 +86,16 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 | Change | Must update |
 | --- | --- |
-| New user-facing control, screen or behaviour | `README.md` |
-| New setting or changed default | `README.md` + `docs/architecture/architecture.md` § Configuration |
+| New user-facing control, screen or behaviour | `docs/guide.md` + `docs/guide.ru.md`; `README.md` + `README.ru.md` when it changes their bullets or install steps |
+| New setting or changed default | `docs/guide.md` + `docs/guide.ru.md` + `docs/architecture/architecture.md` § Configuration; `README.md` + `README.ru.md` when it changes their bullets or install steps |
 | New component, changed data flow, new integration | `docs/architecture/architecture.md` |
 | Non-obvious design decision | new ADR in `docs/adr/` + its row in `docs/README.md` |
 | Any user-visible change | `CHANGELOG.md` |
 | New/changed UI component or pattern | `docs/guides/design_language.md` (and the design canvas) |
+| Visible change to the main window or Settings | The front-page teaser in both READMEs: the maintainer re-renders it and uploads it again |
 | New or removed user journey | `docs/product/vision.md` § CUJs |
 | Change to vendored code | `lib/README.md` § Local patches |
-| Release or packaging change | `docs/guides/release.md` (created with the release issue) |
+| Release or packaging change | `docs/guides/release.md` (created with the release issue); the install steps of both READMEs and both guides when what a player does changes |
 | Process / workflow change | `CONTRIBUTING.md`; if reusable, propose it for the gist's `project_kickstart.md`, which `docs/guides/` mirrors |
 
 ### Task-closing checklist

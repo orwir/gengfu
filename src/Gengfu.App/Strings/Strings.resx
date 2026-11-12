@@ -90,7 +90,7 @@
   </data>
   <data name="StatusNobodyHeard" xml:space="preserve">
     <value>Connected · nobody heard the last call</value>
-    <comment>Status line: connected, but the server said the last call reached nobody. No Settings link: the fix is on the server or in the game.</comment>
+    <comment>Status line: connected, but the server said the last call reached nobody. No Settings link: it mostly clears by itself.</comment>
   </data>
   <data name="StatusConnecting" xml:space="preserve">
     <value>Connecting to {0}…</value>
@@ -478,7 +478,7 @@
   </data>
   <data name="OpenSettingsFile" xml:space="preserve">
     <value>Open settings file</value>
-    <comment>Link in Settings › General and in the settings-file bar; opens settings.json in an editor.</comment>
+    <comment>Link in the bar at the top of Settings when settings.json has an error; opens the file in an editor.</comment>
   </data>
   <data name="SettingsFileError" xml:space="preserve">
     <value>settings.json has an error on line {0} ({1}). Until it’s fixed, Gengfu works with the settings shown here and saves nothing.</value>

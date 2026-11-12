@@ -70,7 +70,7 @@
     <value>Подключено · выберите, кто слышит</value>
   </data>
   <data name="StatusNobodyHeard" xml:space="preserve">
-    <value>Подключено · последнее объявление никто не услышал</value>
+    <value>Подключено · объявление никто не услышал</value>
   </data>
   <data name="StatusConnecting" xml:space="preserve">
     <value>Подключение к {0}…</value>

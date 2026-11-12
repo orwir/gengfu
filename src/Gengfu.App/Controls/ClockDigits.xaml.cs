@@ -20,6 +20,12 @@ public partial class ClockDigits : UserControl
     // Set while the clock writes a field, so only the user's own edits count as keystrokes.
     private bool _showing;
 
+    // The field Enter or Esc left last; Tab from the digits as a whole goes on from it.
+    private Field? _left;
+
+    // The minutes typed last, which seconds typed right after them land by.
+    private TypedMinutes? _typedMinutes;
+
     public ClockDigits(MatchClock clock)
     {
         InitializeComponent();
@@ -39,6 +45,7 @@ public partial class ClockDigits : UserControl
             box.TextChanged += OnTextChanged;
             box.PreviewKeyDown += OnKeyDown;
         }
+        KeyDown += OnParkedKeyDown;
     }
 
     /// <summary>Shows the clock as it is now; the window calls this on every tick.</summary>
@@ -73,7 +80,7 @@ public partial class ClockDigits : UserControl
         _clock.Move(direction * field.Step);
         if (field.Input is not null)
         {
-            field.Input = new SyncInput(_clock, field.Kind);
+            field.Input = NewInput(field);
         }
         Refresh();
     }
@@ -81,17 +88,21 @@ public partial class ClockDigits : UserControl
     private void OnFocused(object sender, KeyboardFocusChangedEventArgs e)
     {
         var field = FieldOf(sender);
-        field.Input = new SyncInput(_clock, field.Kind);
+        field.Input = NewInput(field);
         field.Box.SelectAll();
     }
 
+    // Every way out of a field ends here, Enter too, which applies and then hands focus on.
     private void OnUnfocused(object sender, KeyboardFocusChangedEventArgs e)
     {
         var field = FieldOf(sender);
         field.Input?.Leave(field.Box.Text);
+        _typedMinutes = field.Input?.Minutes ?? _typedMinutes;
         field.Input = null;
         Refresh();
     }
+
+    private SyncInput NewInput(Field field) => new(_clock, field.Kind, _typedMinutes);
 
     // A click selects the whole value, so typing replaces it, instead of placing the caret.
     private void OnPressed(object sender, MouseButtonEventArgs e)
@@ -122,11 +133,11 @@ public partial class ClockDigits : UserControl
         {
             case Key.Enter:
                 field.Input?.Enter(field.Box.Text);
-                LeaveField();
+                LeaveField(field);
                 break;
             case Key.Escape:
                 field.Input = null;
-                LeaveField();
+                LeaveField(field);
                 break;
             case Key.Up:
                 Nudge(field, 1);
@@ -141,9 +152,24 @@ public partial class ClockDigits : UserControl
     }
 
     // Enter and Esc park focus on the digits as a whole, so they read as plain text again, as the
-    // design has it; the window would hand focus straight back to the field. The next Tab lands on
-    // the minutes.
-    private void LeaveField() => Focus();
+    // design has it; the window would hand focus straight back to the field.
+    private void LeaveField(Field field)
+    {
+        _left = field;
+        Focus();
+    }
+
+    // WPF's Tab from the digits as a whole starts at their first field, the minutes, so seconds
+    // typed next would land there. Tab goes on from the field left instead, as from that field.
+    private void OnParkedKeyDown(object sender, KeyEventArgs e)
+    {
+        var modifiers = e.KeyboardDevice.Modifiers;
+        if (e.Key == Key.Tab && IsKeyboardFocused && _left is { } left && (modifiers & ~ModifierKeys.Shift) == ModifierKeys.None)
+        {
+            var direction = modifiers == ModifierKeys.Shift ? FocusNavigationDirection.Previous : FocusNavigationDirection.Next;
+            e.Handled = left.Box.MoveFocus(new TraversalRequest(direction));
+        }
+    }
 
     private Field FieldOf(object sender) => sender == MinutesBox ? _minutes : _seconds;
 

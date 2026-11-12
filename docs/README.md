@@ -1,16 +1,19 @@
 # Docs
 
 Where each kind of Gengfu document lives. Start with the vision for what Gengfu is, the
-architecture for how it works, and the decision records for why. Installing and using the app is
-in the root [README](../README.md); how to work in the repo is in [CONTRIBUTING](../CONTRIBUTING.md).
+architecture for how it works, and the decision records for why. Installing the app is on the front
+page, the root [README](../README.md), and using it is in the [player guide](guide.md), both also in
+Russian; how to work in the repo is in [CONTRIBUTING](../CONTRIBUTING.md).
 
 | Doc | What's in it |
 | --- | --- |
+| [guide.md](guide.md) · [guide.ru.md](guide.ru.md) | The player guide, in English and Russian: install, set up, matching the timer, the calls, strict servers, settings, the log |
 | [product/vision.md](product/vision.md) | Problem, users, principles, v0.1 scope, critical user journeys |
 | [product/idea.md](product/idea.md) | Frozen origins: the idea gauntlet that led to Gengfu |
 | [architecture/architecture.md](architecture/architecture.md) | Projects, data flow, clock model, threading, configuration |
 | [guides/design_language.md](guides/design_language.md) | Tokens, components, patterns; each screen's design file |
 | `guides/*.md` (other) | Process playbooks mirrored from the shared template gist |
+| [reviews/](reviews/) | Review plans and records: what each review found and decided, for the next to start from |
 | `adr/` | Decision records — index below |
 
 ## Decision records

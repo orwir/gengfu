@@ -18,6 +18,8 @@ rationale that don't fit there. Reusable cross-project patterns live in
    Gengfu itself sets `GENGFU_HOME`, and the smoke install refuses to run where
    Gengfu is installed, since Setup would take over its registration. Local test
    settings go in `*.local.*` files, which git ignores.
+4. Build with `dotnet build Gengfu.slnx`, and run Gengfu on a folder of its own
+   with `GENGFU_HOME=<folder> dotnet run --project src/Gengfu.App`.
 
 ## Branching
 
@@ -168,3 +170,12 @@ Every code change that makes an existing doc wrong updates that doc **in the
 same commit**. The change → required-doc mapping and the task-closing checklist
 live in [AGENTS.md](AGENTS.md); the doc-layer map lives in
 [docs/guides/project_kickstart.md](docs/guides/project_kickstart.md).
+
+Players read English and Russian, so their docs come in both: `README.md` and
+`README.ru.md` are the front page, `docs/guide.md` and `docs/guide.ru.md` the
+player guide. A change to one updates its twin in the same commit, so neither
+language falls behind. The Russian names controls by the app's own Russian
+labels, from `Strings.ru.resx`, so a player finds on screen what the guide says.
+The front page also carries the teaser, a video the maintainer renders outside
+this repo: a visible change to the main window or Settings means rendering it
+again and uploading the new cuts.

@@ -216,7 +216,7 @@ internal partial class SettingsView : UserControl
     private void ShowCallsTest()
     {
         var testing = ReadsCalling(_session.Caller.Testing, _tested, null);
-        TestButton.IsEnabled = _session.CanTest;
+        TestButton.IsEnabled = _session.TestOn(calling: testing);
         TestText.Text = testing ? Strings.TestCalling : Strings.TestCall;
         AutomationProperties.SetName(TestButton, testing || _session.Settings.Events.Count == 0
             ? TestText.Text
@@ -534,10 +534,10 @@ internal partial class SettingsView : UserControl
         }
     }
 
-    // In the app Windows opens .json files with, or in Notepad when there is none.
+    // Only the bar for a file with an error offers this, and Gengfu never writes over such a file, so
+    // it opens as it is: in the app Windows opens .json files with, or in Notepad when there is none.
     private void OnOpenSettingsFile(object sender, RoutedEventArgs e)
     {
-        _session.SaveNow();
         try
         {
             Process.Start(new ProcessStartInfo(_session.SettingsFile) { UseShellExecute = true });

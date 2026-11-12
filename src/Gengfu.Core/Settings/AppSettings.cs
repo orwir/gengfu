@@ -93,7 +93,11 @@ public sealed class AppSettings : IJsonOnDeserialized
     /// <summary>The chosen channels, in the server's tree order.</summary>
     public IReadOnlyList<Named> Channels { get; set; } = [];
 
-    /// <summary>The server <see cref="Group"/> and <see cref="Channels"/> were chosen on: their ids mean nothing on another.</summary>
+    /// <summary>
+    /// The server <see cref="Group"/> and <see cref="Channels"/> belong to, by its unique id: the one
+    /// Gengfu last reached. Their ids mean nothing on another. A file saved before 0.4 names it by the
+    /// address it was reached at.
+    /// </summary>
     public string? ListenersServer { get; set; }
 
     [JsonConverter(typeof(LeadConverter))]
@@ -120,9 +124,6 @@ public sealed class AppSettings : IJsonOnDeserialized
     /// </summary>
     [JsonIgnore]
     public bool EventsAreDefault => Events is [{ Name: null } jungle] && jungle.Spawns.SequenceEqual(CallSchedule.GvgSpawns);
-
-    /// <summary>Whether the file these were read from set a call's text or sound file once for every event, as before 0.3.</summary>
-    internal bool FromOldFile { get; private set; }
 
     // Before 0.3 a call's text and sound file were set once for every event. A file that still has
     // them opens, with them moved into its events, and its next save writes them there.
@@ -152,6 +153,6 @@ public sealed class AppSettings : IJsonOnDeserialized
                 SoundFile = matchEvent.SoundFile ?? file,
             } : matchEvent!),
         ];
-        (CallText, SoundFile, FromOldFile) = (null, null, true);
+        (CallText, SoundFile) = (null, null);
     }
 }

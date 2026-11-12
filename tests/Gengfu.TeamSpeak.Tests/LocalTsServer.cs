@@ -17,7 +17,8 @@ namespace Gengfu.TeamSpeak.Tests;
 /// in, through the key exchange TSLib keeps for older servers (initivexpand), and is then sent to it,
 /// as a server sends the notice that the bot was kicked; an empty line lets the bot stay. While
 /// <see cref="RefusesWhispers"/> is set, it answers the bot's whispers as a server does when nobody
-/// can hear them; it answers the bot's commands with <see cref="CommandAnswer"/>.
+/// can hear them; it acknowledges the bot's commands and answers them with <see cref="CommandAnswer"/>.
+/// It pings the bot every second, as a real server does: TSLib leaves a server silent for 10 s.
 /// </summary>
 internal sealed class LocalTsServer : IDisposable
 {
@@ -66,6 +67,9 @@ internal sealed class LocalTsServer : IDisposable
 
     public string Address => $"127.0.0.1:{((IPEndPoint)_udp.Client.LocalEndPoint!).Port}";
 
+    /// <summary>Its unique id, which TeamSpeak makes from its key as from any identity's.</summary>
+    public string Uid => _key.ClientUid.Value;
+
     /// <summary>How many attempts have reached the server.</summary>
     public int Attempts => Volatile.Read(ref _attemptCount);
 
@@ -82,7 +86,8 @@ internal sealed class LocalTsServer : IDisposable
     /// <summary>
     /// The lines it answers each command of the bot's with once the bot is in, as a server answers a
     /// privilege key; the last, its error line, gets the command's return code, which TSLib counts
-    /// from 1 on each connection. None leaves the commands unanswered.
+    /// from 1 on each connection. With none, the bot's only command is its leave, which it confirms
+    /// as a server does: unconfirmed, TSLib takes 10 s to leave.
     /// </summary>
     public string[] CommandAnswer { get; init; } = [];
 
@@ -129,11 +134,13 @@ internal sealed class LocalTsServer : IDisposable
                 }
                 return Handshake(packet, attempt);
             case PacketType.Command when _attempts.TryGetValue(client, out var joining) && joining.Mac is not null:
-                // TSLib sends a command again until the server acknowledges it, which this one never does.
+                // TSLib sends a command again until the server acknowledges it, and leaves a server
+                // that hasn't within 10 s. A command sent again is acknowledged again, answered once.
                 var id = (packet[PacketId] << 8) | packet[PacketId + 1];
+                var ack = Ack(id, joining.Mac);
                 if (id <= joining.LastCommand)
                 {
-                    return [];
+                    return [ack];
                 }
                 joining.LastCommand = id;
                 if (!joining.Joined)
@@ -141,16 +148,17 @@ internal sealed class LocalTsServer : IDisposable
                     // The client's first command, clientinit, shows it has the keys: only now does it
                     // take packets that carry the MAC made from them.
                     joining.Joined = true;
+                    _ = PingAsync(joining, client);
                     return joining.Line.Length == 0
-                        ? [joining.Next(InitServer)]
-                        : [joining.Next(InitServer), joining.Next(joining.Line)];
+                        ? [ack, joining.Next(InitServer)]
+                        : [ack, joining.Next(InitServer), joining.Next(joining.Line)];
                 }
                 if (CommandAnswer.Length == 0)
                 {
-                    return [];
+                    return [ack, joining.Next($"notifyclientleftview cfid=1 ctid=0 reasonid=8 reasonmsg=leaving clid={BotId}")];
                 }
                 var returnCode = ++joining.Answered;
-                return [.. CommandAnswer[..^1].Select(joining.Next), joining.Next($"{CommandAnswer[^1]} return_code={returnCode}")];
+                return [ack, .. CommandAnswer[..^1].Select(joining.Next), joining.Next($"{CommandAnswer[^1]} return_code={returnCode}")];
             case PacketType.VoiceWhisper when RefusesWhispers && _attempts.TryGetValue(client, out var whispering) && whispering.Joined:
                 var now = TimeSpan.FromMilliseconds(Environment.TickCount64);
                 if (whispering.NoTargetsAt is not { } last || now - last >= NoTargetsEvery)
@@ -161,6 +169,23 @@ internal sealed class LocalTsServer : IDisposable
                 return [];
             default:
                 return [];
+        }
+    }
+
+    // Until the test ends; a bot that has left meanwhile ignores them.
+    private async Task PingAsync(Attempt attempt, IPEndPoint client)
+    {
+        while (true)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            try
+            {
+                await _udp.SendAsync(attempt.Ping(), client);
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
         }
     }
 
@@ -249,6 +274,10 @@ internal sealed class LocalTsServer : IDisposable
     private static byte[] Command(int id, byte[] mac, string line) =>
         [.. mac, (byte)(id >> 8), (byte)id, (byte)PacketType.Command | (byte)PacketFlags.Unencrypted, .. Encoding.UTF8.GetBytes(line)];
 
+    // An acknowledgement holds the id of the command it acknowledges, and takes that id as its own.
+    private static byte[] Ack(int id, byte[] mac) =>
+        [.. mac, (byte)(id >> 8), (byte)id, (byte)PacketType.Ack | (byte)PacketFlags.Unencrypted, (byte)(id >> 8), (byte)id];
+
     // An Init1 packet's MAC is fixed, and its id is 101.
     private static byte[] Init1(byte[] data) =>
         [.. "TS3INIT1"u8, 0, 101, (byte)PacketType.Init1 | (byte)PacketFlags.Unencrypted, .. data];
@@ -256,6 +285,7 @@ internal sealed class LocalTsServer : IDisposable
     private sealed class Attempt(string line)
     {
         private int _commands;
+        private int _pings;
 
         public string Line { get; } = line;
 
@@ -275,5 +305,12 @@ internal sealed class LocalTsServer : IDisposable
 
         /// <summary>The server's next command to this client: its ids count up from 1.</summary>
         public byte[] Next(string line) => Command(++_commands, Mac!, line);
+
+        /// <summary>The server's next ping to this client: no data, and ids of its own.</summary>
+        public byte[] Ping()
+        {
+            var id = ++_pings;
+            return [.. Mac!, (byte)(id >> 8), (byte)id, (byte)PacketType.Ping | (byte)PacketFlags.Unencrypted];
+        }
     }
 }

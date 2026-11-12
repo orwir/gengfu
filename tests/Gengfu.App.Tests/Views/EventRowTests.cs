@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Gengfu.App.Speech;
 using Gengfu.App.Views;
 using Gengfu.Core;
@@ -19,11 +20,42 @@ public sealed class EventRowTests(WpfApp wpf)
             Assert.Equal(("Jungle", "25:00 · 20:00 · 15:00 · 10:00 · 05:00", Visibility.Collapsed), (row.Title.Text, row.Summary.Text, row.SummaryMark.Visibility));
             Assert.False(row.IsOpen);
 
-            // Tab follows the tree: the name, the bin, the times, the words or the file's Change, Test call, then the switch.
+            // Tab follows the tree: the name, the times, the words or the file's Change, Test call, the
+            // switch, then the bin, which sits beside the name.
             var tabOrder = Controls((DependencyObject)row.Row.Content).Where(control => control.Focusable).Select(control => control.Name);
-            Assert.Equal(["NameBox", "RemoveButton", "SpawnsBox", "WordsBox", "ChangeFile", "TestButton", "SoundSwitch"], tabOrder);
+            Assert.Equal(["NameBox", "SpawnsBox", "WordsBox", "ChangeFile", "TestButton", "SoundSwitch", "RemoveButton"], tabOrder);
             Assert.Equal(("Jungle", "25:00, 20:00, 15:00, 10:00, 05:00", "Jungle in thirty seconds"), (row.NameBox.Text, row.SpawnsBox.Text, row.WordsBox.Text));
         });
+
+    [Fact]
+    public Task Tab_from_an_event_s_name_goes_to_its_spawn_times_and_reaches_the_bin_last()
+    {
+        int? removed = null;
+        return OnRow(
+            (_, row) =>
+            {
+                var window = WpfApp.Show(row);
+                try
+                {
+                    // Spawn times such as "25, 15" are typed next, and a space must not press the bin.
+                    row.FocusName();
+                    WpfApp.Press(Key.Tab);
+                    WpfApp.Press(Key.Space);
+                    Assert.Null(removed);
+                    Assert.Same(row.SpawnsBox, WpfApp.Focused());
+
+                    row.SoundSwitch.Focus();
+                    WpfApp.Press(Key.Tab);
+                    Assert.Same(row.RemoveButton, WpfApp.Focused());
+                }
+                finally
+                {
+                    window.Close();
+                }
+            },
+            open: true,
+            removed: index => removed = index);
+    }
 
     [Fact]
     public Task Typed_spawn_times_apply_written_as_the_game_shows_them_and_ones_Gengfu_can_t_read_change_nothing() =>
@@ -153,8 +185,8 @@ public sealed class EventRowTests(WpfApp wpf)
         LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>()
             .SelectMany(child => child is Control control ? [control] : Controls(child));
 
-    // The jungle's row, closed, in English, on a session in a folder of its own.
-    private async Task OnRow(Action<Session, EventRow> check)
+    // The jungle's row, closed unless asked open, in English, on a session in a folder of its own.
+    private async Task OnRow(Action<Session, EventRow> check, bool open = false, Action<int>? removed = null)
     {
         var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
         var session = new Session(
@@ -168,7 +200,7 @@ public sealed class EventRowTests(WpfApp wpf)
             wpf.Invoke(() =>
             {
                 using var english = new UiCulture("en-US");
-                check(session, new EventRow(session, 0, open: false, () => { }, _ => { }, _ => { }));
+                check(session, new EventRow(session, 0, open, () => { }, removed ?? (_ => { }), _ => { }));
                 return true;
             });
         }

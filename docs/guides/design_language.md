@@ -63,8 +63,11 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   the Settings icon, an event's bin), link (accent text: the status line's Settings, "Use a sound
   file instead", Back to default); Fluent rest / hover / pressed / disabled. Start and Stop are
   one button that flips, so keyboard focus stays on it. Test call is off unless Gengfu is
-  connected with someone to hear it and there is an event to call, and the one pressed reads
-  "Calling…" while its call plays, the others off meanwhile. An icon and its label share
+  connected with someone to hear it and there is an event to call. While a Test call plays, the
+  button calling reads "Calling…" and stays on, so keyboard focus stays on it too, but a press does
+  nothing until the call ends; the others are off meanwhile. The button calling is the one
+  pressed, or, for a call pressed in the other view, the main window's Test call or the Calls
+  card's in Settings. An icon and its label share
   the centre of what holds them, the label's capitals rather than its line: the IconLabel
   style lifts a 14 px label 2.2 px beside its 16 px icon, and both hang from the top of a
   panel that centres the pair, so rounding to device pixels moves them together.
@@ -72,7 +75,8 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   subtle fill; focus → field fill, 2 px accent underline, whole value selected (accent fill,
   text on accent), the running clock shown until the first keystroke. Arrows above and
   below each nudge ±1 min / ±1 s; Tab skips them, since ↑ ↓ in a field do the same. Enter
-  and Esc hand focus to the clock as a whole, so the digits read as plain text again.
+  and Esc hand focus to the clock as a whole, so the digits read as plain text again; Tab from
+  there goes on from the field left, minutes to seconds to Stop, as from the field itself.
   Disabled until Start.
 - **Line under the clock:** centred secondary body text: "Press Start when the match begins"
   before Start; "Match the in-game timer" while a call is next, since the list shows the call;
@@ -95,9 +99,12 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   again…" while the attempt runs; connected with nobody chosen (caution); connected, but the
   server said the last call reached nobody (caution, until a whisper gets through, the
   connection is new or other listeners are chosen); not connected, saying why (critical). A
-  Settings link follows only when the fix is in Settings: a call nobody heard is fixed on the
-  server or in the game, so its line has none. Every state's copy is in the strings and on the
-  canvas's Foundations.
+  Settings link follows only a line that waits for the player in Settings: nobody chosen, or not
+  connected. A line that tries again, or says nobody heard the last call, has none, though a
+  typo or the chosen group can be the cause: it mostly clears by itself, and nothing should push
+  the player to change a setup that works; Settings is a button away, and on a retry line a link
+  would push out the countdown. Every state's copy is in the strings and on the canvas's
+  Foundations.
 - **Update notice:** a bar above the footer, in the card's colours with an accent "i" beside its
   first line, once a downloaded version is ready: it applies on next start, and Restart applies it
   now. It shows only while the clock is stopped, so a match is never interrupted. Restart closes
@@ -126,10 +133,9 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   didn't stays, so a typo can be fixed. The field stays open, and opens again when Settings is
   made anew while a key is typed or an answer stands.
   General starts with Language and Theme, each offering Same as Windows first, then its fixed
-  choices. It ends with the version and an Open settings file link, which opens the file in the app
-  Windows uses for .json files, or in Notepad. Under the version, across the card, a caption says
-  where updates stand: checking, up to date, downloading, installed, or couldn't check; a copy
-  Setup didn't install shows none.
+  choices. It ends with the version, in a row as tall as theirs. Under the version, across the
+  card, a caption says where updates stand: checking, up to date, downloading, installed, or
+  couldn't check; a copy Setup didn't install shows none.
 - **Calls and Events:** Calls holds what every call shares: Call ahead, Voice, and a Test call
   that plays the first event's call. Events, under it, lists the events whose spawns get calls,
   one card each, as Windows 11's own settings expanders: closed, the event's name and, under it in
@@ -137,9 +143,11 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   it; the header is the one tab stop, Space or Enter opens it, and a chevron says which way. Open,
   under a divider: Name with the bin beside it (an empty name is the jungle, which the placeholder
   says), Spawn times, Say or the event's sound file, then its own Test call and the switch between
-  words and file. Spawn times are one field, read on Enter or leaving it: game times or whole
-  minutes, written back sorted as 25:00; one it can't read changes nothing, and the calls keep the
-  times from before. Say wraps, so a long Russian call shows whole. Under the
+  words and file. Tab takes the bin last, after the switch, so typing that runs on from the name
+  lands in Spawn times, where a space can't press it. Spawn times are one field, read on Enter or
+  leaving it: game times or whole minutes, written back sorted as 25:00; one it can't read changes
+  nothing, and the calls keep the times from before. Say wraps, so a long Russian call shows
+  whole. Under the
   events, Add event, and Back to default while the events differ from the built-in ones, the
   jungle alone at its five times; how the jungle sounds doesn't count, and Back to default keeps
   it. With no events, a card says no calls go out.
@@ -160,8 +168,9 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
   bar, above Settings' scroll, so it shows however far Settings is scrolled. It names the line
   and the setting, or the line alone for an error outside any setting, such as a missing comma,
   or says Gengfu can't read the file when Windows won't let it. It says Gengfu works with the
-  settings shown and saves nothing until then, and links to Open settings file. The main window
-  doesn't change for it.
+  settings shown and saves nothing until then, and links to Open settings file, which opens the
+  file in the app Windows uses for .json files, or in Notepad. Settings opens the file nowhere
+  else: it edits everything the file holds. The main window doesn't change for it.
 - **Voice list:** "Gong (no voice)" first, then every installed voice as "name — language"
   (the language in its own tongue), the app language's first. Any voice may be picked; a new
   language chosen in General drops one that can't speak it, for the language's own.
@@ -175,9 +184,11 @@ by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.
 - **Sync:** Start sets 35:00. Correct with the arrows or by typing; every future call
   moves with the clock. Typed minutes keep the running seconds; typed seconds land on the
   nearest minute and are timed from the first keystroke (from Enter after a pause, for
-  typing ahead). Enter applies, and so does leaving the field, never read as typing ahead;
-  Esc cancels, ↑ ↓ nudge. Verify the rounding against the real game timer — the sync
-  offsets depend on it.
+  typing ahead). Seconds typed within a minute after typed minutes, with nothing else
+  moving the clock in between, land in the minute typed instead, or in the one below once
+  the game has crossed into it. Enter applies, and so does leaving the field, never read as
+  typing ahead; Esc cancels, ↑ ↓ nudge. Verify the rounding against the real game timer —
+  the sync offsets depend on it.
 - **No sync claims:** Gengfu can't see the game timer, so it shows no sync status and never
   says it is "in sync" — the clock itself is the feedback. Out-of-range typed values are
   ignored. No dialogs, no toasts; Windows' own file picker is the one exception.
