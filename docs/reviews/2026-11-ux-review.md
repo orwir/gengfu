@@ -9,15 +9,17 @@ next review starts from its open items and its decision register.
 gets in the way before 0.4.0 ships.
 
 **Scope.** The installed app (main window and Settings), its install and update, and the README as
-a newcomer's only guide. Out: the front page, guide and teaser that #46 and #47 write, and the
-signing #41 adds; Phase 8 walks them once they land.
+a newcomer's only guide; Phase 8 adds the front page and its teaser, which #46 and #47 wrote. Out:
+signing (#41), which left v0.4 on 2026-11-11, so 0.4.0 ships unsigned.
 
 **Phases.** 0, 1 and 8, the minimum viable review. Skipped deliberately: 2–7. Phase 7 works from
 usage data Gengfu doesn't collect; what the walks saw of first runs, errors, copy and the keyboard
 is recorded under Phase 1.
 
-**Status.** Phases 0 and 1 ran on 2026-11-11 against 0.3.0. Phase 8 runs once #41, #46 and #47
-land, before the 0.4.0 release.
+**Status.** Phases 0 and 1 ran on 2026-11-11 against 0.3.0. Phase 8 ran on 2026-11-12, once #46
+and #47 had landed and #41 had left v0.4: a re-walk of the final build, and a newcomer's walk.
+Still to come: Update in Russian at the release's step 10, after which this review closes. The
+release's step 1 needs v0.4 empty, so #42 leaves the milestone there and closes after step 10.
 
 **How to use this file**
 
@@ -341,11 +343,11 @@ action.
   may not clear it at once. Addresses P1 #4. Commented on #41.
 - [x] **`readme-truth` [DONE]** — "What it does" says calls are added in Settings. Addresses P1 #19.
   In this review's commit.
-- [ ] **`small-polish` [DEFERRED]** — P1 #11, #12, #14, and #18's hint naming the voice: a few lines
-  each; they land with the next change to their screen.
-- [ ] **`phase8-watch`** — What Phase 8's newcomer is watched for: whether they get past SmartScreen
-  without the README's words (#4), P1 #13, #15, #16, the browser's warning, and whether they find
-  the clock's arrows.
+- [ ] **`small-polish` [DEFERRED]** — P1 #11, #12, #14, #18's hint naming the voice, and P8 #1: a few
+  lines each; they land with the next change to their screen.
+- [x] **`phase8-watch` [DONE]** — What Phase 8's newcomer is watched for: whether they get past
+  SmartScreen without the README's words (#4), P1 #13, #15, #16, the browser's warning, and whether
+  they find the clock's arrows. Answered by the newcomer's walk in 8.2.
 
 What can go: the release page as a step (#46), and the hand-edited JSON in sharing (#40). Three
 controls served no journey here — Disconnect, Call ahead and Chosen channels — but without usage
@@ -353,16 +355,166 @@ data that is a question for Phase 8, not a cut.
 
 ## Phase 8 — Close-out
 
-Not run yet. Once #41, #46 and #47 land, and before the 0.4.0 release:
+### 8.1 How Phase 8 runs
 
-- A guildmate who has never installed Gengfu walks First contact on their own PC, from the new
-  front page and in their own browser, while the maintainer watches the screen share without
-  helping and notes every pause. Steps and time go in the delta table, with `phase8-watch`'s
-  points.
-- Update with 0.4.0's update, in Russian, by keyboard.
-- The delta table against Phase 0, the simplification ledger, and this register brought up to date.
-- `design_language.md` gains every pattern this review decided; `vision.md`'s journeys are checked
-  against the walks.
+- **Without #41.** Signing left v0.4 on 2026-11-11, and on 2026-11-12 the maintainer confirmed that
+  it waits, so 0.4.0 ships unsigned and a newcomer meets SmartScreen as Phase 1 did; the front
+  page's step 2 is the way past it (`unsigned-0.4`).
+- **A re-walk of the final build.** First contact on develop's build, the app 0.4.0 ships,
+  following only the new front pages, on a `GENGFU_HOME` folder against the local TeamSpeak 3.13.7
+  server and its listener. Setup and SmartScreen haven't changed since Phase 1 walked them and
+  weren't run again.
+- **A newcomer, before the release** (`newcomer-walk-timing`). A guildmate who has never installed
+  Gengfu walks First contact from the live front page, on their own PC and in their own browser,
+  while the maintainer watches a screen share without helping and notes each step on an observer
+  sheet, kept outside the repo until its notes are written in here. Until 0.4.0 ships the walk
+  installs 0.3.0, whose First contact matches the final build's: since 0.3.0 only *Open settings
+  file* left General, and Test call no longer greys out while it calls.
+- **Update at the release** (`update-walk-timing`). An installed 0.3.0 skips test builds, and the
+  notice a 0.3.0 player sees is drawn by 0.3.0 itself, unchanged since 0.2.0, so nothing in 0.4.0
+  can change it. The Russian keyboard pass runs at the release's step 10, on this PC's installed
+  0.3.0 switched to Russian and light.
+
+### 8.2 Walk records
+
+**First contact, final build — README.md, English, dark, mouse.** Step 3 matched the screen word
+for word. The gear sits at the bottom right, and the red "TeamSpeak isn't set up" carries a
+Settings link of its own. Settings opened with focus on Back (P1 #14); the address and Enter
+connected in 0.5 s; the group list read "Choose a group", nine groups with five in view and GvG
+last. Once GvG was chosen, Test call came on below the fold (P1 #13), so the walk went Back and
+pressed the main window's: heard 0.12 s later, 1.58 s, 58 s after the first window opened. The
+button read "Calling…" and stayed on; the line under the clock kept "Press Start when the match
+begins" (P1 #11).
+
+**First contact, final build — README.ru.md on English Windows, light, keyboard.** Gengfu opened
+in English, as step 3 says it may, and step 3's sentence led to Settings › General › Language: 11
+Tab stops from Back, F4, Русский, Enter. Settings stayed where it was with focus on Язык, and the
+voice moved to a Russian one by itself. Then 10 Shift+Tab back up to the address, Enter (connected
+in 0.5 s), 6 Tab to the group list, F4, End and Enter for GvG, 4 Tab to «Проверить: Лес» and
+Space: «Лес через тридцать секунд» heard 0.18 s later, 2.24 s, with focus still on «Проверить»
+(#54). In all 44 keys and the address, 25 of them to Language and back (P1 #16); without that
+detour, 20. Step 3's «Выберите, кто слышит объявления» and «Проверить» matched the screen.
+
+**First contact, a newcomer — 0.3.0 from the live front page, observed.** A guildmate who had
+never installed Gengfu walked it on their own PC, on English Windows, while the maintainer watched
+a screen share without helping and marked each step on the observer sheet. They heard the test
+call with no hint, 2 min 08 s after opening the front page: Setup downloaded at 0:20, with no
+browser warning; past SmartScreen at 0:47, on their own, since unsigned apps are nothing new to
+them; Gengfu open at 0:54; Settings at 1:02; connected at 1:41, the longest step; the group picked
+at 1:50; Test call at 1:58, found by scrolling down Settings; heard at 2:07. They skipped the
+teaser and went straight to the Setup link. They didn't press Start first, stayed in English as
+their Windows is, and didn't try the clock's arrows, which the maintainer finds visible enough.
+Asked afterwards, they called Gengfu «джангл бот, чтобы мы не забывали про лес» ("a jungle bot,
+so we don't forget the jungle"), found it all intuitive, and missed nothing.
+
+**Update, Russian, keyboard.** Not run yet: `update-walk-ru`, at the 0.4.0 release's step 10.
+
+#### Checks run (Phase 8)
+
+- README test of README.md on the final build — clean.
+- README test of README.ru.md on English Windows — clean: its sentence on Language holds.
+- First contact on the final build, English, dark, mouse — clean: P1 #11 and #14 stand as
+  deferred, and P1 #13 as a watch point.
+- First contact on the final build, Russian front page, light, keyboard — finding → #1; P1 #16
+  measured.
+- Isolation — clean through the walks, 03:29–03:33: their copies ran on folders of their own, and
+  the real `%AppData%\Gengfu` and the install kept their 2026-11-11 times. The installed 0.3.0 that
+  ran at 03:40–03:46 was the maintainer's own check beside the newcomer's walk.
+- Setup, SmartScreen and the browser's warning on this PC — unrun: Setup hasn't changed since
+  0.3.0, and the newcomer walked all three.
+- A newcomer's First contact from the live front page, teaser included — finding → #3; nothing
+  stopped them at SmartScreen, in the browser, or at P1 #13, #15 or #16.
+- Update, Russian, keyboard — unrun: it needs 0.4.0's update, at the release's step 10.
+- Self-enforcing rules — finding → #2.
+- Design language — clean: it holds every pattern this review decided: #54's Tab and focus rules
+  (caccfe3), `status-links` (B) (903b73e), and the settings file bar as the file's only door
+  (150cdec).
+- `vision.md` — clean: CUJ-1 reads as both walks went.
+
+#### Findings (Phase 8)
+
+| # | Finding | Location | Journey | Severity |
+| --- | --- | --- | --- | --- |
+| 1 | Who hears the calls' two radio buttons are two Tab stops, where Windows takes a radio group as one stop and moves between its buttons with the arrows. Every keyboard way through Settings passes both. | [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) | 1, 3, rare | **Minor** |
+| 2 | Nothing held the design language's "every string ships in English and Russian". A key missing in Russian falls back to English in silence, and a Russian string whose `{0}` values differ from its English one drops a value or throws when shown. | [Strings.ru.resx](../../src/Gengfu.App/Strings/Strings.ru.resx) | all | **Drift-prone** |
+| 3 | The newcomer skipped the teaser and went straight to the Setup link, yet said what Gengfu does right afterwards, likely from what a guildmate already knows. v0.4's done line holds for a guildmate who didn't need the video; whether the video carries a stranger is untested. | [README.md](../../README.md) | 1, rare | **Acceptable** |
+
+#### Action items (Phase 8)
+
+- [x] **`newcomer-walk-timing` [DONE]** — When does a newcomer walk First contact? Decided (A)
+  2026-11-12.
+  - **(A) Before 0.4.0:** the maintainer runs it with one guildmate, on an observer sheet; the
+    release waits for it.
+  - **(B) After 0.4.0**, on the released build; what it finds goes to the next milestone.
+  - **(C) No observed walk:** this phase's re-walk stands in, and the missing newcomer is an
+    accepted risk.
+  - **Recommended: (A).** It is the only check of v0.4's done line, and what it finds can still be
+    fixed for 0.4.0.
+- [x] **`update-walk-timing` [DONE]** — When does Update get its Russian keyboard pass? Decided (A)
+  2026-11-12.
+  - **(A) At the release's step 10**, on this PC's installed 0.3.0 switched to Russian; this review
+    closes after it. Step 1 needs v0.4 empty, so #42 leaves the milestone there.
+  - **(B) Now, via 0.2.0:** reinstall 0.2.0 and walk its update to 0.3.0, which shows the same
+    notice.
+  - **(C) Skip it:** the English walk from 0.2.0 stands for the journey.
+  - **Recommended: (A).** It walks the real update at a step the release takes anyway, and no
+    earlier walk could change what a 0.3.0 player sees.
+- [x] **`unsigned-0.4` [DONE]** — Ship 0.4.0 unsigned? Addresses P1 #4. Decided (A) 2026-11-12, the
+  maintainer's call: #41, out of v0.4 since 2026-11-11, waits.
+  - **(A) Ship it unsigned:** the front page's step 2 carries players past SmartScreen; Smart App
+    Control still blocks Gengfu.
+  - **(B) Hold 0.4.0** for #41.
+- [x] **`string-pairs` [DONE]** — One check per rule in
+  [StringsTests.cs](../../tests/Gengfu.App.Tests/StringsTests.cs): both languages hold the same
+  strings, none blank, and each Russian string takes the same values as its English one. Addresses
+  P8 #2. In this phase's change.
+- [x] **`newcomer-walk` [DONE]** — Run the newcomer's walk and write it in here. Ran 2026-11-12: its
+  steps and times are in 8.2 and the delta table, `phase8-watch`'s points are answered, and it found
+  nothing issue-worthy.
+- [ ] **`update-walk-ru`** — Walk Update in Russian by keyboard at the 0.4.0 release's step 10, and
+  record it in 8.2.
+- [ ] **`unused-controls` [DEFERRED]** — No walk used Disconnect, Call ahead or Chosen channels (P1,
+  What can go). Keep them? Decided (A) 2026-11-12: the maintainer asks the runners, and the next
+  review decides on their answers.
+  - **(A) Ask first:** the maintainer asks the guild's two or three runners which of them they have
+    used, and the next review decides on their answers.
+  - **(B) Drop Disconnect and Call ahead in 0.5**, and keep Chosen channels.
+  - **(C) Keep all three** for good.
+  - **Recommended: (A).** The runners are the only players with real use, and asking costs a
+    message. Chosen channels likely stays either way: it serves a guild with no group for its
+    squads, as a newcomer's guild without an admin's help may be. Call ahead also sets every call's
+    words ("in thirty seconds"), so dropping it would simplify them, but a guild that calls a
+    minute ahead would lose it.
+
+What can go: nothing more before the release; `unused-controls` holds the three controls left to
+decide.
+
+### 8.3 Delta table
+
+| Metric | Baseline (0.3.0, 2026-11-11) | Phase 8 (develop, 2026-11-12) | Δ |
+| --- | --- | --- | --- |
+| Journeys | 8 | 5 | −3 |
+| First contact steps, cold | 13, of which 3 in the browser | 12: the front page links straight to Setup | −1 |
+| First contact decisions, cold | 4 | 3: no pick among the release's seven files | −1 |
+| First contact, the app's part | 7 steps, 2 decisions | 7 steps, 2 decisions | 0 |
+| First contact time, at the walk's pace | 1 min 36 s, Run anyway → heard | 58 s, first window → heard | the walk's own pace: the app's steps are unchanged |
+| First contact, a newcomer observed | — | heard with no hint: 2 min 08 s from the front page, 1 min 20 s from Run anyway | another walker: the baseline's walk took 1 min 36 s from Run anyway |
+| First contact by keyboard, Russian | 17 keys and the address, from Russian settings | 44 keys and the address on English Windows, 25 of them to Language and back | other starting settings |
+| What a player waits through in First contact | Setup 1.7 s · connect 0.3 s | connect 0.5 s; Setup not re-run | — |
+| Screens | 2 | 2 | 0 |
+| User-facing settings | 11, and 4 per event | 11, and 4 per event | 0 |
+| Strings, per language | 153 | 153, every one checked for its twin | 0 |
+| Status-line problem states that name a next step | 14 / 15 | 14 / 15 | 0, by decision (`status-links`) |
+| Front page | 2,089 words, 419 before § Set up | 330 words, 155 before § Install; the rest in the player guide | −1,759 words |
+
+### 8.4 Simplification ledger
+
+| Slug | What it removes | Status |
+| --- | --- | --- |
+| `cuj-set`, `share-preset-journey` | Eight journeys to five: Mid-match fix and Early end folded into Match night, Strict server into A call nobody heard, Share a preset dropped with #40 | Done, 6a1847d |
+| `front-page-input` | The Releases page as a step, with its pick among seven files; 1,759 words of the front page, now in the player guide | Done in #46, 797cc1b |
+| `settings-file-link` | *Open settings file* in Settings › General, and the rewrite of pre-0.3 settings files behind it | Done in #57, 150cdec |
+| `unused-controls` | Disconnect, Call ahead and Chosen channels, which no walk used | Deferred: the runners are asked first |
 
 ## Decision register
 
@@ -376,3 +528,7 @@ Not run yet. Once #41, #46 and #47 land, and before the 0.4.0 release:
 | `status-links` | Which status lines link to Settings? | (A) also nobody heard and can't find · (B) as now → **A** | P1 #5, #6 | Decided (B) 2026-11-11 | #56's closing comment; [design_language.md](../guides/design_language.md) § Status line |
 | `settings-file-link` | Keep *Open settings file*? | (A) drop now · (B) keep until #40 · (C) keep → **B** | P1 #8, #9; #44 Clarify | Decided (A) 2026-11-11 | #57 |
 | `share-preset-journey` | Drop the Share a preset journey too? | (A) drop, close #40 · (B) keep, by the file's path → **A** | `settings-file-link` | Decided (A) 2026-11-11 | [vision.md](../product/vision.md); #40's closing comment |
+| `newcomer-walk-timing` | When does a newcomer walk First contact? | (A) before 0.4.0 · (B) after · (C) none → **A** | Phase 8 | Decided (A) 2026-11-12 | this row |
+| `update-walk-timing` | When does Update get its Russian keyboard pass? | (A) at the release's step 10 · (B) now, via 0.2.0 · (C) skip → **A** | Phase 1, Checks run | Decided (A) 2026-11-12 | this row |
+| `unsigned-0.4` | Ship 0.4.0 unsigned? | (A) ship · (B) hold for #41 → the maintainer's call | P1 #4 | Accepted risk — revisit when #41 is scheduled, or a player is stopped by SmartScreen or Smart App Control | #41 |
+| `unused-controls` | Keep Disconnect, Call ahead and Chosen channels? | (A) ask the runners first · (B) drop two in 0.5 · (C) keep → **A** | P1, What can go | Decided (A) 2026-11-12 | this row |
