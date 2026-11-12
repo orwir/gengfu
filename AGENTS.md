@@ -76,7 +76,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 ## Documentation
 
-- Layers: `README.md` + `README.ru.md` (the front page: what Gengfu is, install) · `docs/guide.md` + `docs/guide.ru.md` (the player guide: set up, use) · `CONTRIBUTING.md` (how to work here) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (howtos, playbooks, `design_language.md`) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
+- Layers: `README.md` + `README.ru.md` (the front page: what Gengfu is, install) · `docs/guide.md` + `docs/guide.ru.md` (the player guide: install, set up, use) · `CONTRIBUTING.md` (how to work here) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (howtos, playbooks, `design_language.md`) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
 - **Player docs come in pairs**, English and Russian: a change to one updates its twin in the same commit, the Russian in the app's own Russian labels (`src/Gengfu.App/Strings/Strings.ru.resx`).
 - **Do not create new documentation files unprompted**; suggest an ADR and wait. **Do not recreate `roadmap.md`** — tracked work lives on GitHub.
 - Cite code as `file.cs:123` in conversation; in docs use file-relative links and no `#L123` anchors.
@@ -87,7 +87,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 | Change | Must update |
 | --- | --- |
 | New user-facing control, screen or behaviour | `docs/guide.md` + `docs/guide.ru.md`; `README.md` + `README.ru.md` when it changes their bullets or install steps |
-| New setting or changed default | `docs/guide.md` + `docs/guide.ru.md` + `docs/architecture/architecture.md` § Configuration |
+| New setting or changed default | `docs/guide.md` + `docs/guide.ru.md` + `docs/architecture/architecture.md` § Configuration; `README.md` + `README.ru.md` when it changes their bullets or install steps |
 | New component, changed data flow, new integration | `docs/architecture/architecture.md` |
 | Non-obvious design decision | new ADR in `docs/adr/` + its row in `docs/README.md` |
 | Any user-visible change | `CHANGELOG.md` |

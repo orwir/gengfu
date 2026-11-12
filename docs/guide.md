@@ -1,8 +1,10 @@
 # Gengfu — player guide
 
+English · [Русский](guide.ru.md)
+
 How to install Gengfu, set it up and run it through a match, for whoever runs it for their guild.
 The [front page](../README.md) is the short version; contributors start at
-[CONTRIBUTING.md](../CONTRIBUTING.md). [По-русски](guide.ru.md).
+[CONTRIBUTING.md](../CONTRIBUTING.md).
 
 - [Install](#install)
 - [Set up](#set-up)
@@ -54,8 +56,8 @@ Open Settings with the gear at the bottom right. Every change applies at once an
 - **Calls.** *Call ahead* sets how long before each spawn a call goes out: 15 to 60 seconds, 30 by
   default. *Voice* is any Windows voice, or the gong, for every event; if Windows has no voice for
   your language, calls strike the gong until you add one, and Settings says how. **Test call**,
-  here or in the main window, whispers the first event's call once, now. If the server says nobody heard it,
-  a note under Test call says why that may be.
+  here or in the main window, whispers the first event's call once, now. If the server says nobody
+  heard it, a note under Test call says why that may be.
 - **Events.** The events whose spawns get a call: out of the box, the GvG jungle alone. Open one to
   change its name, its spawn times and what its calls say: its name and the lead by default, such
   as "Boss in thirty seconds", or words of your own, or a sound file of its own. Type spawn times
