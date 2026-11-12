@@ -5,6 +5,8 @@ style rules: [project_kickstart.md § CHANGELOG style](docs/guides/project_kicks
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-12
+
 ### Fixed
 
 - A mistyped server address no longer clears the group or channels chosen to hear the calls (#55)

@@ -94,3 +94,7 @@ gh api repos/orwir/gengfu/releases/tags/v<X.Y.Z> --jq '.assets[] | "\(.name): \(
 | --- | --- | --- | --- |
 | 0.1.0 | 1 | 0 + 2 | 2026-11-10 |
 | 0.2.0 | 2 | 3 + 2 | 2026-11-11 |
+| 0.3.0 | 2 | 1 + 1 | 2026-11-12 |
+
+0.3.0's row leaves out the walks of the [UX review](../reviews/2026-11-ux-review.md): one Setup
+and one delta.
