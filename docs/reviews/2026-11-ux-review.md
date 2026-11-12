@@ -16,10 +16,9 @@ signing (#41), which left v0.4 on 2026-11-11, so 0.4.0 ships unsigned.
 usage data Gengfu doesn't collect; what the walks saw of first runs, errors, copy and the keyboard
 is recorded under Phase 1.
 
-**Status.** Phases 0 and 1 ran on 2026-11-11 against 0.3.0. Phase 8 ran on 2026-11-12, once #46
-and #47 had landed and #41 had left v0.4: a re-walk of the final build, and a newcomer's walk.
-Still to come: Update in Russian at the release's step 10, after which this review closes. The
-release's step 1 needs v0.4 empty, so #42 leaves the milestone there and closes after step 10.
+**Status.** Closed. Phases 0 and 1 ran on 2026-11-11 against 0.3.0. Phase 8 ran on 2026-11-12,
+once #46 and #47 had landed and #41 had left v0.4: a re-walk of the final build, a newcomer's
+walk, and Update in Russian at the 0.4.0 release's step 10.
 
 **How to use this file**
 
@@ -78,8 +77,10 @@ Gengfu collects nothing about use, by the maintainer's choice. What exists is ea
 | 0.2.0 | 2 | 3 | 3 |
 | 0.3.0 | 2 | 1 | 2 |
 
-0.3.0's counts include this review's walks: one Setup and one delta. Subtract them when the next
-release counts the copies in use.
+0.3.0's counts include this review's walks, one Setup and one delta, which
+[release.md](../guides/release.md) § Copies in use leaves out. 0.4.0's include one delta of this
+review's, the update walk at the release's step 10: leave it out when the next release counts the
+copies in use.
 
 #### Checks run (Phase 0)
 
@@ -407,7 +408,22 @@ their Windows is, and didn't try the clock's arrows, which the maintainer finds 
 Asked afterwards, they called Gengfu «джангл бот, чтобы мы не забывали про лес» ("a jungle bot,
 so we don't forget the jungle"), found it all intuitive, and missed nothing.
 
-**Update, Russian, keyboard.** Not run yet: `update-walk-ru`, at the 0.4.0 release's step 10.
+**Update, Russian, light, keyboard — 0.3.0 to 0.4.0, at the release's step 10.** At the
+maintainer's pick, this PC's installed 0.3.0 ran on its own settings, which point at the guild's
+server and its ГВГ group since the maintainer's check. Started from Start 2½ min after 0.4.0 was
+published, it connected in 1.3 s and downloaded 0.4.0's delta in 3.5 s. In Settings, three
+Shift+Tab from Back reached Language: F4, End, Enter for Русский; Tab, F4, Down, Enter for
+Светлая. General read «Gengfu 0.3.0» over «Версия 0.4.0 установлена · применится после
+перезапуска». Back showed «Обновление установлено — применится после перезапуска.» beside
+«Перезапустить», the main window's first Tab stop. Tab and Space from the gear had 0.4.0 open 1.8 s
+later, in Russian and light, connected to the same group 1.1 s after that: «Подключено · шёпот
+группе ГВГ», as before. Settings › General read «Gengfu 0.4.0 · Последняя версия · обновления
+ставятся сами», below the fold for the keyboard (P8 #4). The settings file changed in one line: the
+group's server is saved by its id, no longer its address (#55). gengfu.log holds Restart's line,
+"Updates: Gengfu restarts to apply version 0.4.0", which no earlier walk had seen. While the update
+applied, the maintainer saw only Velopack's progress bar, and the "OK" button UI Automation then
+reported in focus was likely that window's own. Language and Theme went back to «Как в Windows»
+afterwards, and Gengfu was closed: 5 min 20 s on the guild's server, with no calls.
 
 #### Checks run (Phase 8)
 
@@ -424,7 +440,11 @@ so we don't forget the jungle"), found it all intuitive, and missed nothing.
   0.3.0, and the newcomer walked all three.
 - A newcomer's First contact from the live front page, teaser included — finding → #3; nothing
   stopped them at SmartScreen, in the browser, or at P1 #13, #15 or #16.
-- Update, Russian, keyboard — unrun: it needs 0.4.0's update, at the release's step 10.
+- Update, Russian, light, keyboard, 0.3.0 to 0.4.0 — finding → #4; #55's server id took on the
+  guild's real file with nothing reading as changed.
+- Isolation at the release's step 10 — not isolated, by the maintainer's pick: the walk ran on this
+  PC's install and its real settings, backed up first. Afterwards the file differs from the backup
+  only in #55's server id, and Gengfu is closed, as it was found.
 - Self-enforcing rules — finding → #2.
 - Design language — clean: it holds every pattern this review decided: #54's Tab and focus rules
   (caccfe3), `status-links` (B) (903b73e), and the settings file bar as the file's only door
@@ -438,6 +458,7 @@ so we don't forget the jungle"), found it all intuitive, and missed nothing.
 | 1 | Who hears the calls' two radio buttons are two Tab stops, where Windows takes a radio group as one stop and moves between its buttons with the arrows. Every keyboard way through Settings passes both. | [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) | 1, 3, rare | **Minor** |
 | 2 | Nothing held the design language's "every string ships in English and Russian". A key missing in Russian falls back to English in silence, and a Russian string whose `{0}` values differ from its English one drops a value or throws when shown. | [Strings.ru.resx](../../src/Gengfu.App/Strings/Strings.ru.resx) | all | **Drift-prone** |
 | 3 | The newcomer skipped the teaser and went straight to the Setup link, yet said what Gengfu does right afterwards, likely from what a guildmate already knows. v0.4's done line holds for a guildmate who didn't need the video; whether the video carries a stranger is untested. | [README.md](../../README.md) | 1, rare | **Acceptable** |
+| 4 | Settings' version and update lines sit below its last Tab stop. *Open settings file* shared their row until #57; now Shift+Tab from Back ends on Theme, which scrolls into view with the lines still below the fold, so Tab alone never shows a keyboard player which version runs. | [SettingsView.xaml](../../src/Gengfu.App/Views/SettingsView.xaml) | 5, rare | **Minor** |
 
 #### Action items (Phase 8)
 
@@ -471,8 +492,17 @@ so we don't forget the jungle"), found it all intuitive, and missed nothing.
 - [x] **`newcomer-walk` [DONE]** — Run the newcomer's walk and write it in here. Ran 2026-11-12: its
   steps and times are in 8.2 and the delta table, `phase8-watch`'s points are answered, and it found
   nothing issue-worthy.
-- [ ] **`update-walk-ru`** — Walk Update in Russian by keyboard at the 0.4.0 release's step 10, and
-  record it in 8.2.
+- [x] **`update-walk-ru` [DONE]** — Walk Update in Russian by keyboard at the 0.4.0 release's
+  step 10, and record it in 8.2. Ran 2026-11-12 on this PC's installed 0.3.0; it found P8 #4.
+- [x] **`version-line-reach` [DONE]** — Bring Settings' version line into a keyboard player's
+  view? Addresses P8 #4. Decided (A) 2026-11-12: the note is on #43.
+  - **(A) A note on #43:** What's new opens from the version line, and a link there is a Tab stop
+    that scrolls the lines into view.
+  - **(B) Its own issue**, Backlog: Settings scrolls to its end when its last stop takes focus.
+  - **(C) Accept it:** a screen reader reads the lines, and a sighted keyboard player rarely needs
+    the version.
+  - **Recommended: (A).** #43 already puts a link on that line, and the gap costs little until it
+    lands.
 - [ ] **`unused-controls` [DEFERRED]** — No walk used Disconnect, Call ahead or Chosen channels (P1,
   What can go). Keep them? Decided (A) 2026-11-12: the maintainer asks the runners, and the next
   review decides on their answers.
@@ -501,6 +531,7 @@ decide.
 | First contact, a newcomer observed | — | heard with no hint: 2 min 08 s from the front page, 1 min 20 s from Run anyway | another walker: the baseline's walk took 1 min 36 s from Run anyway |
 | First contact by keyboard, Russian | 17 keys and the address, from Russian settings | 44 keys and the address on English Windows, 25 of them to Language and back | other starting settings |
 | What a player waits through in First contact | Setup 1.7 s · connect 0.3 s | connect 0.5 s; Setup not re-run | — |
+| Update | Restart, then 0.3.0 open 2 s later (from 0.2.0, English, mouse) | Tab and Space on Restart, then 0.4.0 open 1.8 s later (from 0.3.0, Russian, keyboard) | 0 |
 | Screens | 2 | 2 | 0 |
 | User-facing settings | 11, and 4 per event | 11, and 4 per event | 0 |
 | Strings, per language | 153 | 153, every one checked for its twin | 0 |
@@ -532,3 +563,4 @@ decide.
 | `update-walk-timing` | When does Update get its Russian keyboard pass? | (A) at the release's step 10 · (B) now, via 0.2.0 · (C) skip → **A** | Phase 1, Checks run | Decided (A) 2026-11-12 | this row |
 | `unsigned-0.4` | Ship 0.4.0 unsigned? | (A) ship · (B) hold for #41 → the maintainer's call | P1 #4 | Accepted risk — revisit when #41 is scheduled, or a player is stopped by SmartScreen or Smart App Control | #41 |
 | `unused-controls` | Keep Disconnect, Call ahead and Chosen channels? | (A) ask the runners first · (B) drop two in 0.5 · (C) keep → **A** | P1, What can go | Decided (A) 2026-11-12 | this row |
+| `version-line-reach` | Bring Settings' version line into a keyboard player's view? | (A) a note on #43 · (B) its own issue · (C) accept → **A** | P8 #4 | Decided (A) 2026-11-12 | #43, its comment of 2026-11-12 |
