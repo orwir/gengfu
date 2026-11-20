@@ -48,6 +48,7 @@ For the full rationale behind any rule, read [CONTRIBUTING.md](CONTRIBUTING.md) 
 - Test: `{{TEST_CMD}}`
 - Lint + format: `{{LINT_CMD}}`
 - Run locally: `{{RUN_CMD}}`
+- Lifecycle: `lifecycle doctor` before a task; `.lifecycle.toml` holds this repository's settings for the lifecycle kit's skills and command
 
 These are the canonical invocations — the same ones the hooks and CI run. Don't improvise variants.
 
@@ -61,10 +62,10 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
   git checkout -b feat/my-thing
   # ... work, commit, push ...
   git push -u origin feat/my-thing
-  gh pr create --fill --base {{INTEGRATION_BRANCH}}
+  gh pr create --base {{INTEGRATION_BRANCH}} --title "<subject>" --body-file <pr.md outside the tree>
   gh pr merge --squash --auto --delete-branch
   ```
-  Auto-merge must be enabled once in the repo's Settings → General → Pull Requests.
+  The PR body is `.github/pull_request_template.md`, filled for a reader who never saw the review rounds (`docs/guides/task_review.md`); `--fill` would send the commit messages instead. Auto-merge must be enabled once in the repo's Settings → General → Pull Requests.
   `--delete-branch` removes only the **remote** copy — once the merge lands, delete the local branch too: `git checkout {{INTEGRATION_BRANCH}} && git pull && git branch -d feat/my-thing && git fetch --prune`. A branch listed by `git branch` is either active work or it shouldn't exist.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
   * Allowed prefixes: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`.
@@ -75,21 +76,21 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
 
 ## Task workflow — three phases
 
-Every tracked task moves through three explicit phases. **Do not collapse them** — each gate is the user's, not yours to assume.
+Every tracked task moves through three explicit phases. **Do not collapse them** — each gate is the user's, not yours to assume. The issue carries the task between sessions: a session that picks it up cold continues from the issue body, its ticked boxes and the tree, so nothing a later session needs may live only in the conversation.
 
-1. **Clarify.** Read the ticket and/or description, ask for any missing detail, and surface scope or constraint conflicts *before* writing code. Move the board item to `In Progress` when you pick it up (skip the board steps for untracked micro-tasks; the approval gates still apply). Implementation does not begin until the details are clear — whether from the ticket, added clarification, or the discussion.
-2. **Implement & stop.** Do the work in full — code, tests, docs, fixtures — to the *Definition of Done* below. Run the local gate (lint + tests) — never report it as passed without having run it in this session, and say so explicitly if something couldn't be run. Run the task review round, then **stop and hand back for review** with the hand-back brief (the packets stay between the two agents): on `{{INTEGRATION_BRANCH}}` leave the changes **uncommitted** in the working tree; on a feature branch intermediate WIP commits are fine (the gate is landing, not committing). If the maintainer's review turns up corrections, work them out here and stop again. Do **not** push, merge, or close anything in this phase.
-   - The round is [docs/guides/task_review.md](docs/guides/task_review.md): a hand-off packet to a reviewer agent with no author context, its return packet, and the hand-back brief — the one thing the maintainer reads. An untracked micro-task skips the round, and the brief says so.
-3. **Complete — on explicit approval only.** An explicit go-ahead ("complete the task", "lgtm", or equivalent) is the *only* trigger to commit the task work, push, close the ticket, move the board item to `Done`, and — when the work rode a feature branch — delete the merged branch, remote and local. No approval → no commit, no push, no close. The same gate applies to `git push`, `gh pr create`, and `gh pr merge` — auto mode is permission to write code without re-asking, not permission to land it.
+1. **Clarify.** Read the ticket and/or description and the code it touches, ask for any missing detail, and surface scope or constraint conflicts *before* writing code. Move the board item to `In Progress` when you pick it up (skip the board steps for an untracked task; the approval gates still apply). Write the issue's *Plan* from the code as it stands, run the plan round where it applies, and render the Clarify brief. Implementation does not begin until the plan is accepted: by the maintainer's "go", with their answers in the plan's *Decisions*, or — when the round was skipped and nothing is left to answer — by you, going straight on. Accepting a plan opens implementation and nothing more.
+2. **Implement & stop.** Do the work in full — code, tests, docs, fixtures — to the *Definition of Done* below, ticking each Technical-details box as its path lands and recording a departure from the accepted plan under its *Departures* when you make it. Run the local gate (lint + tests) — never report it as passed without having run it in this session, and say so explicitly if something couldn't be run. Run the work round, then **stop and hand back for review** with the hand-back brief (the packets stay between the agents): on `{{INTEGRATION_BRANCH}}` leave the changes **uncommitted** in the working tree; on a feature branch intermediate WIP commits are fine (the gate is landing, not committing). If the maintainer's review turns up corrections, work them out here and stop again. Do **not** push, merge, or close anything in this phase.
+   - The rounds are [docs/guides/task_review.md](docs/guides/task_review.md), each read by a fresh subagent with no author context; the lifecycle kit's `clarify`, `review` and `handback` skills run them, and its `complete` skill the close-out. The plan round, at *Clarify*, reads the plan against the code where the plan has a shape that has shipped holes before; the work round, here, reads the tree against the accepted plan, with a lens reviewer for each person- or model-facing surface the diff touches: a hand-off packet, a return packet per reviewer, and the hand-back brief — the one thing the maintainer reads of it. An untracked micro-task has no plan and skips both rounds, and the brief says so; any other task with no issue skips the plan round, runs the work round untracked, and finishes in the session it started — one that cannot, or that makes a decision worth keeping, gets an issue and is tracked from then on.
+3. **Complete — on explicit approval only.** An explicit go-ahead ("complete the task", "lgtm", or equivalent) is the *only* trigger to commit the task work, push, close the ticket, move the board item to `Done`, and — when the work rode a feature branch — delete the merged branch, remote and local. No approval → no commit, no push, no close. A task that changed a lifecycle guide pushes it to the kit in the same close-out (`lifecycle guides push`; `docs/guides/README.md`, *Change a guide*). The same gate applies to `git push`, `gh pr create`, and `gh pr merge` — auto mode is permission to write code without re-asking, not permission to land it.
 
 ### Definition of Done
 
-A task is done when all five hold. The gate and the review round prove some of them; the rest are the developer's to show before the hand-back, and a brief that cannot claim one says which, instead of calling the task done.
+A task is done when all five hold. The gate and the work round prove some of them; the rest are the developer's to show before the hand-back, and a brief that cannot claim one says which, instead of calling the task done.
 
 1. **It serves the ticket's goal at real scale, not only its named mechanism.** A control, a copy line or a shape the ticket names is where the work starts, not a defense of how it turned out. If it serves the goal badly with real data — the whole list, the longest locale, the smallest screen — raise it at *Clarify* or take it through the design loop ([docs/guides/design_workflow.md](docs/guides/design_workflow.md)); never ship it because it was named.
 2. **It was used the way its user uses it.** A UI change is looked at running, with real data: at the smallest and the largest supported width, in every shipped locale, by keyboard alone, and without scripts where the surface promises to work without them. A CLI, API or library change is called the way its caller calls it. Not having looked is a task not done, not a *Not run* line.
-3. **Every new behaviour has a test that fails without it** (*Tests and quality gates*).
-4. **The gate is green and the review round ran** (above).
+3. **Every scenario in the plan, and every other new behaviour, has a test that fails without it** (*Tests and quality gates*).
+4. **The gate is green and the work round ran** (above).
 5. **The docs are in sync:** the *Task-closing checklist*.
 
 The bar is the maintainer's. A shortfall in 1 or 2 found after landing is unfinished work, and its fix is never declined on cost or on the demand not being there yet.
@@ -113,8 +114,8 @@ The bar is the maintainer's. A shortfall in 1 or 2 found after landing is unfini
 
 Releases run in three explicit phases too, mirroring the task workflow. Full mechanics (commands, file targets, post-merge steps) live in [CONTRIBUTING.md § Releasing](CONTRIBUTING.md); this section is the contract.
 
-1. **Prepare.** Decide the next version yourself from [semver](https://semver.org/) based on the changes since the last release (breaking → major, additive → minor, fixes only → patch) — unless the user names a specific version. Bump the version string in `{{VERSION_FILE}}`, date the CHANGELOG entry, complete any doc-sync, commit, and open the `{{INTEGRATION_BRANCH}} → {{PRODUCTION_BRANCH}}` release PR. All reversible inside this phase; no extra approval needed.
-2. **Review.** **Stop** and surface the PR URL plus a one-paragraph summary. Wait for explicit "proceed". Work out any corrections here, then stop again.
+1. **Prepare.** Decide the next version yourself from [semver](https://semver.org/) based on the changes since the last release (breaking → major, additive → minor, fixes only → patch) — unless the user names a specific version. Bump the version string in `{{VERSION_FILE}}`, date the CHANGELOG entry, complete any doc-sync, commit, open the `{{INTEGRATION_BRANCH}} → {{PRODUCTION_BRANCH}}` release PR, and check which comprehensive reviews are due (`docs/guides/review_machinery.md` § When a review is due). All reversible inside this phase; no extra approval needed.
+2. **Review.** **Stop** and surface the PR URL, a one-paragraph summary and the reviews that are due. Wait for explicit "proceed". Work out any corrections here, then stop again.
 3. **Ship — on explicit approval only.** The "proceed" authorizes the entire ship phase in one batch: merge the release PR, push the `vX.Y.Z` tag, fast-forward the integration branch, publish the GitHub release, close the milestone, and verify post-deploy. A prior "do the release" instruction does **not** extend past the review checkpoint — only the phase-3 approval does. The publish steps (PR merge + tag push) are irreversible.
 
 ## Tests and quality gates
@@ -134,7 +135,7 @@ Releases run in three explicit phases too, mirroring the task workflow. Full mec
   * `CHANGELOG.md` — release history
   * `docs/product/` — vision incl. CUJs, the "what" and "why"; competitors and feasibility, the research behind them; `idea.md` is the frozen origins record — never edit it
   * `docs/architecture/` — the "how": components, data flow, config reference
-  * `docs/guides/` — task-oriented howtos (deploy / publish / package, extend, kickstart, comprehensive review)
+  * `docs/guides/` — task-oriented howtos (deploy / publish / package, extend, kickstart, comprehensive review); the lifecycle guides in it are a copy of the lifecycle kit's method, pinned to one release by `.lifecycle.lock`, and its `README.md` there says how a change reaches the kit
   * `docs/adr/` — architecture decision records, one per significant choice
 - **Do not create new documentation files unprompted.** Work from conversation context; if you need to capture a decision, suggest an ADR and wait for approval.
 - **Do not recreate `roadmap.md`** or any equivalent tracking file. Tracked work lives on GitHub: issues, milestones, the project board.
@@ -191,7 +192,8 @@ Only after this checklist passes should you report the task as done.
 - New issues use the templates in `.github/ISSUE_TEMPLATE/`:
   * `bug.md` for defects and regressions
   * `task.md` for features, refactors, docs, infra
-- Technical-details sections use file-path checkboxes with `[NEW]` / `[MODIFY]` / `[DELETE]` markers — the marker carries the change type, the checkbox carries progress. Tick the box when the path lands; never edit prose to track progress.
+- **File in two stages.** At capture an issue says what and why, with no plan: one written then is stale by the time the work starts. Its *Plan* is written at *Clarify* (*Task workflow*), from the code as it stands then.
+- Technical-details sections use file-path checkboxes with `[NEW]` / `[MODIFY]` / `[DELETE]` markers — the marker carries the change type, the checkbox carries progress. Tick the box when the path lands; never edit prose to track progress. Once accepted, the plan changes only through its *Departures*.
 - After creating an issue, apply labels from all three axes: `type/…`, `area/…`, `priority/…`. Add it to the milestone if scoped, and add it to the project board with Status = **Backlog** (do not leave it in "No Status" — that hides it from the board views).
 - **Reflect work state on the project board.** The board has four Status columns — `Backlog → Ready → In Progress → Done`. `Backlog → Ready` is the maintainer's triage call; the other transitions are yours. When you start working on an issue, move it to **In Progress** as the first step — before reading code, before planning, before writing anything. When the work lands, move it to **Done** as part of the same close-out flow that closes the issue.
 - **Position to top on every board write.** Projects v2 has no Created-date sort, so column order is raw position. After every `gh project item-add` and after every status change, call `updateProjectV2ItemPosition` with `afterId: null` so the just-touched item lands at the top of its new column.
@@ -247,19 +249,20 @@ Only after this checklist passes should you report the task as done.
 - Do not commit `.env`, secrets, signing material, or generated credentials.
 - Do not recreate `roadmap.md` or any other ad-hoc tracking file.
 - Do not create documentation files unprompted.
+- Do not edit a lifecycle guide outside a task, and do not leave the edit unpushed past the task's *Complete*.
 - Do not let a comment outgrow its budget — cut it, or move it to the ADR / issue that owns it.
 - Do not introduce competing lint/format/type tools when one already covers the role.
 - Do not use emojis in code or docs unless the user explicitly asks.
 - Do not mock the {{primary-side-effect target}} in integration tests.
 - Do not add `print()` / `console.log` / `println!` for debugging — use the project's structured logger.
 - Do not add dependencies casually. New dependencies need a reason that justifies the supply-chain surface.
-- Do not improvise a review process — a task's review round follows `docs/guides/task_review.md`, comprehensive code reviews follow `docs/guides/codebase_review.md`, UI/UX reviews follow `docs/guides/ux_review.md`.
+- Do not improvise a review process — a task's plan and work rounds follow `docs/guides/task_review.md`; the comprehensive reviews run on `docs/guides/review_machinery.md`: code reviews follow `docs/guides/codebase_review.md`, UI/UX reviews `docs/guides/ux_review.md`, information-architecture reviews `docs/guides/ia_review.md`, design-language passes `docs/guides/design_review.md`, and reviews of what the product tells its language model `docs/guides/llm_review.md`.
 
 ## When in doubt
 
 1. Read the relevant section of `CONTRIBUTING.md` or `docs/guides/project_kickstart.md`.
 2. Check if an existing file already solves the problem. Reuse before creating.
-3. Mid-task fork: internal and easily reversible → decide, note it in the hand-back, continue. User-visible, hard to undo, or scope-changing → stop and ask.
+3. Mid-task fork: internal and easily reversible → decide, record it under the plan's *Departures*, continue. User-visible, hard to undo, or scope-changing → stop and ask.
 4. Otherwise ask the user. A 30-second clarification beats a 30-minute undo.
 ````
 
@@ -338,4 +341,4 @@ Where the template's defaults assume a long-running service, here's how each pro
 
 ## When to update the template itself
 
-If you've kickstarted two or more projects with this template and noticed the same paragraph getting hand-edited the same way each time, that paragraph is wrong and the template should be updated. Fix it in the gist, never in a mirror, which the next re-sync overwrites: propose the fix, make it on the maintainer's go-ahead, then re-sync every project's mirrors — improvements compound across every future project. Conversely, if a section keeps getting deleted on copy, consider whether it belongs in `project_kickstart.md` instead, since the template should be terser than the playbook.
+If you've kickstarted two or more projects with this template and noticed the same paragraph getting hand-edited the same way each time, that paragraph is wrong and the template should be updated. Fix it in the copy of the project that found it, inside that task, and push it to the kit at the task's *Complete* (`lifecycle guides push`); the other projects pick it up at their next `lifecycle upgrade` — improvements compound across every future project. Conversely, if a section keeps getting deleted on copy, consider whether it belongs in `project_kickstart.md` instead, since the template should be terser than the playbook.

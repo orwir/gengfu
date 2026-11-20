@@ -4,7 +4,7 @@ A language-agnostic, tech-agnostic recipe for standing up a new project that sta
 
 Everything here is extracted from deployed production projects, not theory. Keep one of your own as the living reference (see *Keep a living reference* at the end).
 
-Upstream of this playbook sits `idea_gauntlet.md` (mirrored alongside it): the gauntlet decides *whether* a project gets built, and its filled instance — the idea's folder, moved out of the ideas home: `IDEA.md` at the root, with the evidence it links in `docs/product/` and `design/` — is this playbook's input. This playbook starts once the gauntlet's answer is yes, and hands day-to-day operation to `AGENTS.md` and the issue board.
+Upstream of this playbook sits `idea_gauntlet.md` (copied alongside it): the gauntlet decides *whether* a project gets built, and its filled instance — the idea's folder, moved out of the ideas home: `IDEA.md` at the root, with the evidence it links in `docs/product/` and `design/` — is this playbook's input. This playbook starts once the gauntlet's answer is yes, and hands day-to-day operation to `AGENTS.md` and the issue board.
 
 ---
 
@@ -41,7 +41,7 @@ project/
 │   ├── architecture/           # the "how" — components, data flow, design decisions
 │   ├── guides/                 # task-oriented howtos (deploy, extend, onboard)
 │   └── adr/                    # architecture decision records
-├── design/                     # design files, from the gauntlet's low-fi picture on (none if headless)
+├── design/                     # design files, from the gauntlet's low-fi picture on, where it drew one (none if headless)
 ├── scripts/                    # setup, build, backup, one-off utilities
 ├── .env.example                # every env var the app reads, with comments
 ├── .gitignore
@@ -143,7 +143,7 @@ Two branches are mandatory. Feature branches are optional and earn their keep on
 - **`master` (or `main`)** — production. Every commit here is deployed. Nobody pushes directly; merges only.
 - **`develop`** — integration branch. Default branch in GitHub. **The pre-push hook runs the same lint + test gate as CI before any push lands**, so it is safe to commit directly here; CI itself re-runs on PRs as a backstop.
 - **feature branches** — optional, branched from `develop`, named `feat/…`, `fix/…`, `chore/…`, `docs/…`, `refactor/…`. Used only when the change warrants them (see below).
-- **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) (`feat` / `fix` / `chore` / `docs` / `refactor` / `test` / `perf`), imperative subject under 72 characters, body for the *why* when it isn't obvious. `gh pr create --fill` and squash-merge titles inherit their quality from these.
+- **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) (`feat` / `fix` / `chore` / `docs` / `refactor` / `test` / `perf`), imperative subject under 72 characters, body for the *why* when it isn't obvious. Squash-merge titles inherit their quality from these.
 
 ### Pick the flow that matches the situation
 
@@ -164,7 +164,7 @@ git push
 
 The pre-push stage of the local hook config runs the identical lint, format-check, and test commands (with the coverage floor) that CI runs, so every push has already cleared the CI gate locally. CI itself re-runs on PRs as a backstop. Releases still go through a `develop → master` PR, so the auto-deploy gate on `master` stays intact. Broken commits on `develop` are a fix-forward or `git revert` problem, not a crisis — nothing is deployed.
 
-The hook is the mechanical gate; the read is `task_review.md` (mirrored alongside this playbook). Before a task is handed back, the developer session hands a packet to a reviewer agent with no author context — a subagent it launches, or a fresh session where the tool has none — and renders a hand-back brief for the maintainer from its return packet: two plain-text packets between the agents, and the same round whether the work rides a PR or lands on `develop` directly. The maintainer reads the brief and nothing else of the round, then the diff, with what a gate cannot check (scope, decisions, invariants, prose, docs) already read by a reviewer the author could not steer.
+The hook is the mechanical gate; the read is `task_review.md` (copied alongside this playbook). Before a task is handed back, the developer session hands a packet to reviewer agents with no author context — subagents it launches, or fresh sessions where the tool has none — and renders a hand-back brief for the maintainer from their return packets: plain-text packets between the agents, and the same round whether the work rides a PR or lands on `develop` directly. The maintainer reads the brief and nothing else of the round, then the diff, with what a gate cannot check (scope, decisions, invariants, truth, docs) already read by reviewers the author could not steer. The same guide runs a plan round at *Clarify*, before any code: where the plan in the issue has one of the shapes that have shipped holes before, a reviewer with no author context reads it against the code, and the maintainer accepts it from a Clarify brief.
 
 ### Feature-branch flow (escape hatch for riskier work)
 
@@ -182,11 +182,11 @@ When those apply, automate the flow end-to-end. The overhead is ~30 seconds per 
 git checkout -b feat/my-thing
 # ... work, commit ...
 git push -u origin feat/my-thing
-gh pr create --fill --base develop
+gh pr create --base develop --title "<subject>" --body-file <pr.md outside the tree>
 gh pr merge --squash --auto --delete-branch
 ```
 
-- `gh pr create --fill` uses your commit messages as the PR title and body — so write good commit messages.
+- The PR body is `.github/pull_request_template.md`, filled for a reader who never saw the review rounds (`task_review.md`). `--fill` would send the commit messages instead.
 - `gh pr merge --squash --auto --delete-branch` waits for CI to pass, squashes the branch into one commit on `develop`, and deletes the remote branch. You can close the terminal; the merge completes in the background.
 - `--delete-branch` removes only the **remote** copy. Once the merge lands, finish the job locally — stale merged branches are how `git branch` output turns into noise:
 
@@ -339,6 +339,8 @@ Two stages:
 
 **Keep the push gate fast.** Every push pays its wall time. Run the suite across worker processes (pytest-xdist, Jest's workers), in CI too with the worker count sized to its runner, and hunt the costs every test pays: a template engine or schema rebuilt per test, a live network call a mock missed.
 
+**Clear git's environment where the suite starts.** A git hook exports the variables that let the commands in it find the repository, `GIT_DIR` among them, and from a linked worktree that path is absolute. A test that makes a scratch repository then runs `git init` on the real one, which comes out bare, and every checkout fails far from the cause. Before any test runs, clear what `git rev-parse --local-env-vars` lists, as githooks(5) advises for a hook that runs git elsewhere.
+
 **Pin each tool once.** A hook manager that pins its own tool version — pre-commit's `rev:`, a lockfile under husky/lefthook — is a second pin beside whatever CI installs. Two pins drift on the next bump, and the failure reads as a broken CI rather than version skew: the commit hook reformats a file one way, CI's `--check` rejects it. A test asserting that the two agree does not survive Dependabot, which bumps each ecosystem in its own PR: every release of the tool arrives as two PRs that each fail the assertion.
 
 **Let CI run the hooks.** CI calls the hook manager's own hooks — `pre-commit run <hook-id> --all-files` — and leaves the tool out of its own install, so the hook's pin is the only one and a bump lands as one PR (`pre-commit` is a Dependabot ecosystem). Keep `--all-files` in local runs too: without it, pre-commit stashes unstaged edits and checks only what is staged.
@@ -361,14 +363,14 @@ In order:
    - *Plain CLI:* consistent verb/flag naming, a small fixed set of output modes (human · `--json` · `--quiet`), one color-and-symbol scheme, a uniform error + exit-code convention.
 3. **Don't build a design system.** At a handful of screens and one maintainer, a token package / Storybook / style crate costs more than it returns. Treat your stylesheet (or output helpers) as the de-facto system and write a one-page **design-language reference**: the component/output inventory, how each kind of data is rendered (ids, timestamps, money, counts), and the one canonical pattern per job (destructive confirm, empty state, pagination/scrolling, status indicator). Revisit only when the screen count doubles or a second surface appears.
 4. **Enforce it in the agent contract, not just the doc.** Add a rule to `AGENTS.md` that *any* UI edit conforms to the reference — reuse what ships, don't introduce a parallel variant. A doc is advisory to a model; a first-read MUST-rule holds the line. The only hard guarantee is a lint, usually over-engineering at this size.
-5. **Design new screens and restructures on a canvas** the assistant draws in the same session as the code (Claude Design; rich for web and desktop, thinner for TUI/CLI). The maintainer approves the drawing before code, and the build treats it as a strong draft, not a spec (reconcile invented data/backend assumptions, reuse your shipped primitives over its near-duplicates, drop embellishments).
-   - A change you can state in one line goes straight to the code; one easier judged by eye is a design round like any other.
+5. **Design every change to what a screen shows on a canvas** the assistant draws in the same session as the code (any canvas it can draw on and publish from; richest for web and desktop, thinner for TUI/CLI). The maintainer approves the drawing before code, and the build treats it as a strong draft, not a spec (reconcile invented data/backend assumptions, reuse your shipped primitives over its near-duplicates, drop embellishments).
+   - A line of copy is drawn too: a look agreed in words can still look wrong, so the drawing is approved with the change's plan. A change that leaves the look alone goes straight to the code.
    - Where the canvas keeps a file per screen, **pair them in one table** — a row per shipped screen naming its design file and the sources that decide what it draws — and hold it with a test: every screen has a row, and no two rows claim the same screen. It costs a line at screen 2, and it is what stops a change to one screen becoming a second design file for it (`docs/guides/design_workflow.md` § *Round*).
-   - **Arrange the canvas by surface from the first round** — a page per screen with its states grouped by kind, one for the foundations, one for the round that's open — and keep its notes to what a reader would otherwise get wrong. History stays in the canvas's versions and the tracker, so the layout never grows a row per round (`docs/guides/design_workflow.md` § *Round*).
+   - **Arrange the canvas by surface from the first round** — a page per screen with its states grouped by the region they change, one for the foundations, one for the round that's open — and keep its notes to what a reader would otherwise get wrong. History stays in the canvas's versions and the tracker, so the layout never grows a row per round (`docs/guides/design_workflow.md` § *Round*).
 
 The design language has a lifecycle, not just a document. Keep `docs/guides/design_workflow.md` (the *how* — found the foundation before screen 2, codify every design round back into it, evolve it on a trigger) alongside `docs/guides/design_language.md` (the *what* — the resolved tokens, components, and patterns). The same shape applies to a Textual/ratatui TUI or a Qt/Tauri desktop app.
 
-Once shipped, the surface gets audited periodically against this foundation by two complementary passes: `docs/guides/ux_review.md` walks the journeys for friction and bloat, and `docs/guides/design_review.md` — the runnable pass `design_workflow.md` triggers — establishes or evolves the visual system itself when the surface has outgrown the foundation set here.
+Once shipped, the surface gets audited periodically against this foundation by three complementary passes: `docs/guides/ia_review.md` settles the structure (which screens and messages exist, what each shows, where each fact lives), `docs/guides/ux_review.md` walks the journeys for friction and bloat, and `docs/guides/design_review.md` — the runnable pass `design_workflow.md` triggers — establishes or evolves the visual system itself when the surface has outgrown the foundation set here.
 
 ---
 
@@ -390,7 +392,7 @@ Each document answers a different question. If two docs are answering the same q
 
 ### `vision.md` is seeded, not written
 
-It is started in the gauntlet — the CUJs in Phase 1, the IA in Phase 2 — and completed from the graduated `IDEA.md` (gauntlet Phase 4), which itself freezes as `docs/product/idea.md`, the never-edited origins artifact. The first UX review builds its **CUJ inventory** on those CUJs (`ux_review.md` § CUJs); a project that skipped the gauntlet creates them there. One living file owns product intent end-to-end; the frozen one remembers where it came from. Don't add a separate requirements doc — that's `roadmap.md` with a different name; tracked work lives in issues, scope history lives in milestones and the CHANGELOG.
+It is started in the gauntlet — the problem and the CUJs in Phase 1, the scope and the IA in Phase 2, the bet (appetite, cost ceiling, kill criteria) in Phase 4 — so graduation copies nothing into it, and `IDEA.md` freezes beside it as `docs/product/idea.md`, the never-edited origins artifact. The first UX review builds its **CUJ inventory** on those CUJs (`ux_review.md` § CUJs); a project that skipped the gauntlet creates them there. One living file owns product intent end-to-end; the frozen one remembers where it came from. Don't add a separate requirements doc — that's `roadmap.md` with a different name; tracked work lives in issues, scope history lives in milestones and the CHANGELOG.
 
 ### ADRs deserve a special note
 
@@ -458,7 +460,13 @@ If you use AI assistants to write code (Claude Code, Codex, Cursor, Gemini CLI, 
 
 **What to leave out:** long prose, justifications, history. The rules file is an operating contract; the rationale lives in `CONTRIBUTING.md` and this playbook.
 
-**Starting point:** `agents_template.md` (mirrored alongside this playbook in `docs/guides/`) is a copy-and-fill skeleton with the cross-project essence of these rules pre-filled. Drop it in as your new repo's `AGENTS.md`, replace the `{{placeholders}}`, prune the project-type-specific lines, and you have a working operating contract in ten minutes.
+**Starting point:** `agents_template.md` (copied alongside this playbook in `docs/guides/`) is a copy-and-fill skeleton with the cross-project essence of these rules pre-filled. Drop it in as your new repo's `AGENTS.md`, replace the `{{placeholders}}`, prune the project-type-specific lines, and you have a working operating contract in ten minutes.
+
+**The lifecycle kit carries the mechanics.** The method these guides describe ships with its machinery as the lifecycle kit (`orwir/lifecycle-kit`): the `lifecycle` command keeps `docs/guides/` pinned to a kit release, moves board cards to the top of their column, guards the protected branch at push and deploy, and says what a repository needs before its next task; the kit's skills run the review rounds, the close-out and the release for any agent that loads Agent Skills. A new project turns it on at day zero:
+
+- `.lifecycle.toml` at the root names its branches, board, gate commands and review lenses — the structured values the skills read. Everything else they need stays in `AGENTS.md`.
+- `lifecycle upgrade --adopt` copies the method into `docs/guides/` and writes `.lifecycle.lock`.
+- The agent's adapter: for Claude Code, the kit's marketplace and plugin turned on in the committed `.claude/settings.json`, by the lines in the kit's README.
 
 ---
 
@@ -492,8 +500,10 @@ If you're working with an AI coding assistant, give it explicit ownership of the
 
 Two markdown templates in `.github/ISSUE_TEMPLATE/`:
 
-- **`bug.md`** — sections: Goal, Context, Reproduction, Expected vs actual, Root cause (optional), Fix options (optional), Verification.
-- **`task.md`** — sections: Goal, Context, Technical details (file-path checkboxes with `[NEW]` / `[MODIFY]` / `[DELETE]` markers — the marker carries the change type, the checkbox carries progress), Options (optional), Verification, Related.
+- **`bug.md`** — at capture: Goal, Context, Reproduction, Expected vs actual, and Root cause once known. At *Clarify*: the root cause confirmed, and the Plan.
+- **`task.md`** — at capture: Goal, Context, Related. At *Clarify*: the Plan — Status, Behaviour (scenarios, what changes or goes, the seams), Technical details (file-path checkboxes with `[NEW]` / `[MODIFY]` / `[DELETE]` markers — the marker carries the change type, the checkbox carries progress), Decisions, Verification, Departures.
+
+An issue is captured without a plan: one written at capture is stale by the time the work starts, and was written without the code in front of it. The plan is written when the issue is picked up and stays in the issue, so the task survives the end of any one session, and the work round reads the tree against what the maintainer accepted.
 
 Markdown templates (rather than YAML issue forms) preserve the freeform prose + file-path markers that make issues actually readable. Forms over-constrain technical details. Canonical copies ship with this doc set (`issue_template_bug.md`, `issue_template_task.md`) — install those rather than retyping the section lists.
 
@@ -632,7 +642,13 @@ git push -u origin master
 # 7. Labels + first milestone (see commands above)
 # 8. Project board (see commands above)
 
-# 9. Branch protection on master (JSON body — nested fields don't work with -F)
+# 9. Guard master. GitHub refuses branch protection (HTTP 403) on a private repo
+#    without a paid plan; where it does, two checks stand in. A pre-push hook that
+#    refuses a push whose target is master catches the everyday spellings. A first
+#    job in the deploy workflow that refuses to deploy a master head that is not
+#    the merge commit of a merged pull request into master holds however master
+#    moved: a deletion, a force push, or a ref moved through the API.
+# Where the plan allows protection (JSON body — nested fields don't work with -F);
 # "contexts" must match your CI job name exactly
 gh api -X PUT repos/<owner>/<repo>/branches/master/protection --input - <<'JSON'
 {

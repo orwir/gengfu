@@ -65,13 +65,25 @@ rationale that don't fit there. Reusable cross-project patterns live in
 
 ## Task review
 
-A task is read twice before it lands: once by a reviewer with no author
-context, then by the maintainer. The first read is the round in
-`docs/guides/task_review.md` — the developer session renders a hand-off packet,
-launches a reviewer agent with it, acts on the return packet and renders the
-hand-back brief, in both flows. The packets pass between the two agents and
-stay there: nothing of the round is posted to GitHub. The maintainer reads the
-brief alone and answers its pending rows. The rest is already checked.
+A task is read twice: its plan before any code is written, its work before it
+lands (`docs/guides/task_review.md`). At *Clarify*, where the plan in the issue
+has a shape that has shipped holes before, the plan round has a reviewer with
+no author context read it against the code, and the maintainer accepts it from
+the Clarify brief; a plan with no such shape and nothing to answer is clear,
+and the developer goes on. Before the hand-back, the work round has a reviewer
+read the tree against the accepted plan, with a lens reviewer beside it for each
+person-facing surface the diff touches: the developer session renders a
+hand-off packet, launches the reviewer agents with it, acts on their return
+packets and renders the hand-back brief, in both flows. The packets pass between
+the agents and stay there: nothing of a round is posted to GitHub but the plan
+it shaped. The maintainer reads the briefs alone and answers their pending
+rows. The rest is already checked.
+
+The lifecycle kit (`orwir/lifecycle-kit`) runs the rounds: its `clarify`,
+`review` and `handback` skills, its read-only reviewer, and its `complete` skill
+for the close-out, reading this repository's settings from `.lifecycle.toml`.
+`lifecycle doctor` says what the repository needs before a task, and
+`lifecycle upgrade` moves `docs/guides/` to a newer kit release.
 
 ## Design
 
@@ -106,6 +118,16 @@ Done in the same close-out. The issue **body** describes the state of the
 *system*; the board describes the state of the *work* — never duplicate one in
 the other.
 
+An issue is written in two stages. At capture it says what and why — a task
+down to *Related*, a bug down to *Expected vs actual* — and nothing about how:
+a plan written then is stale by the time the work starts. Whoever picks it up
+writes the *Plan* at *Clarify*, from the code as it stands then, and it is
+accepted before any code: by the maintainer, or, when it has no shape for the
+plan round and nothing to answer, by the developer. The plan's *Status* is the
+plan's own, as an ADR's is, not the work's. Its ticked boxes and *Departures*
+keep the issue true until it closes, so a fresh session can pick the work up
+from the issue and the tree.
+
 Labels: one `type/…`, one `priority/…` (may be omitted for backlog-aged items),
 and one `area/…` when one fits — create the area label first if it's new.
 
@@ -129,7 +151,9 @@ in the PR body. The checklist is literal — execute it in order, no shortcuts:
    Gengfu sends no telemetry, so they are the only count of who runs it.
 5. **Open the release PR** `develop` → `master`, titled `Release v<X.Y.Z>`,
    body = the new CHANGELOG section.
-6. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
+6. **— Checkpoint —** Name the comprehensive reviews that are due
+   (`docs/guides/review_machinery.md` § When a review is due), with the trigger
+   that fired each. If an AI assistant is driving, it stops here and waits
    for explicit approval. Step 7 is irreversible and ships to users; a prior
    "do the release" does not extend past this line.
 7. **Merge after CI is green.** The merge to `master` runs the release

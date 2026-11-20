@@ -12,7 +12,7 @@ Russian; how to work in the repo is in [CONTRIBUTING](../CONTRIBUTING.md).
 | [product/idea.md](product/idea.md) | Frozen origins: the idea gauntlet that led to Gengfu |
 | [architecture/architecture.md](architecture/architecture.md) | Projects, data flow, clock model, threading, configuration |
 | [guides/design_language.md](guides/design_language.md) | Tokens, components, patterns; each screen's design file |
-| `guides/*.md` (other) | Process playbooks mirrored from the shared template gist |
+| `guides/*.md` (other) | Process playbooks: a copy of the lifecycle kit's method, pinned by `.lifecycle.lock` |
 | [reviews/](reviews/) | Review plans and records: what each review found and decided, for the next to start from |
 | `adr/` | Decision records — index below |
 

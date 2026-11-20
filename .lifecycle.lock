@@ -1,0 +1,21 @@
+{
+  "kit": "0.1.0",
+  "guides": {
+    "README.md": "1625663166061bd96f50a7659a8b14bd634106405e3f1c99bfb62890bf060669",
+    "agents_template.md": "7a271a96f72ecc503c469cd3c53cbc1cc941b8038f8102c6b3b5049cccf35d6d",
+    "codebase_review.md": "47d6d50266c69ebcdf535e88fd894ebf75d77ecfed74b4bdc6a2016e3a93d484",
+    "contributing_template.md": "0e3fc5dae0b4e9c1b70113d8ff628174670854c63b4d590800d9486cbbbbf5c8",
+    "design_review.md": "5b258129e2c9cdada771de3c70d2eac2cbaef61b5789355200621344aac80a97",
+    "design_workflow.md": "eef5a7a3dd4eb7bacf411be30912904e2c256c99310b74834da5b88bc0398fea",
+    "ia_review.md": "0dd8f879c6a182a550be634016889dd07716ff0b0be1791351957761dc399702",
+    "idea_gauntlet.md": "5098c7214314d7ac54833c5093f7e82c316ece59351f5f90ec7a5010886adc63",
+    "issue_template_bug.md": "fb70b4ec79f77be3c400eecce89e181fa2055639878f74092e08ff6faa468c63",
+    "issue_template_task.md": "a8ab702cc7b921aab915f830b5d4bce23261ab3b3ec4f547bbbb44c0b4f79d1a",
+    "llm_review.md": "d94fbe967085217872a45773591a52b0fb1d4cabe902e6cecf65b9d194598f1c",
+    "pr_template.md": "09b47cc70f95085c939a6a47ac13d466c05de01d49d08238ce244c93990d758c",
+    "project_kickstart.md": "ba10e4ad9fca2fcd27f7c051fdcc3910282a4012c8ee94708d37275edd7ef818",
+    "review_machinery.md": "740665a9549c73e36b40dc0dcc5269da57d00d7d9366612dca24d93848d0ed2c",
+    "task_review.md": "3b99ff7dd688d753f9f54de96e49bd1ded4354e4d3ffa666799abc21179a6b1a",
+    "ux_review.md": "ab4153ba90f9bc732c280208b53c86e2a26836141fac4ad5aa14f1b96454ef8d"
+  }
+}

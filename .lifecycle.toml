@@ -1,0 +1,29 @@
+# Gengfu's settings for the lifecycle kit (orwir/lifecycle-kit): its command and skills read
+# them. Everything else they need is in AGENTS.md.
+
+[branches]
+integration = "develop"
+protected = "master"
+
+[board]
+owner = "orwir"
+number = 13
+
+[gate]
+commands = ["scripts/check.sh"]
+# A new test run alone on a worktree of the base, to prove it fails without the change:
+# {root} is the worktree, {tests} a dotnet test filter (FullyQualifiedName~ClockTests; several
+# tests join with |). Where the dotnet on PATH lacks the .NET 10 SDK, use the one
+# scripts/dotnet.sh finds.
+targeted = "dotnet test {root}/Gengfu.slnx --filter \"{tests}\""
+
+[review]
+allow = ["dotnet format Gengfu.slnx --verify-no-changes --exclude lib --no-restore"]
+
+[review.lenses.person-facing]
+paths = ["src/Gengfu.App/", "README.md", "README.ru.md", "docs/guide.md", "docs/guide.ru.md"]
+read = [
+  "docs/guides/design_language.md — every new or changed control reuses its components and tokens",
+  "src/Gengfu.App/Strings/ — every string a player reads ships in English and Russian",
+  "docs/product/vision.md — the journeys a change to a screen or a call must keep",
+]

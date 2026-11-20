@@ -6,7 +6,10 @@ about: Feature, refactor, docs, or infra work
 <!-- Installs to .github/ISSUE_TEMPLATE/task.md. Apply the type/ label by hand
      (task covers feature, refactor, docs, infra — no single auto-label fits).
      Note for agents: non-interactive `gh issue create --body` bypasses this
-     template — read this file and reproduce its structure. -->
+     template — read this file and reproduce its structure.
+     Written in two stages. At capture: Goal, Context and Related, and nothing
+     about how. At Clarify, whoever picks the issue up adds the Plan, from the
+     code as it stands then, and keeps it true until the issue closes. -->
 
 ## Goal
 
@@ -17,7 +20,28 @@ One or two sentences: the outcome, not the steps.
 State of the **system**, not of the work — work state lives on the project board.
 Why now, constraints, links to prior discussion or ADRs.
 
-## Technical details
+## Related
+
+Issues, ADRs, PRs, external docs.
+
+## Plan
+
+Added at Clarify. A session that picks the issue up cold continues from this
+section, its ticked boxes and the tree.
+
+**Status:** proposed | accepted YYYY-MM-DD
+
+### Behaviour
+
+One scenario per line, from the side of whoever uses it, failure paths included:
+
+- WHEN <situation> THEN <what they see or get, and for how long>
+- Changes: <existing behaviour that changes, and what depends on it> | none
+- Removes: <existing behaviour that goes, and what depends on it> | none
+
+**Seams:** <every entry point the rule must hold at> | one surface
+
+### Technical details
 
 Concrete file paths as task-list checkboxes. The marker carries the change type;
 the checkbox carries progress (GitHub renders it as a progress bar on the issue
@@ -27,15 +51,18 @@ list — never edit prose to track progress).
 - [ ] `[MODIFY]` `apps/api/handler.py` — what changes
 - [ ] `[DELETE]` `packages/foo/legacy.py` — why it can go
 
-## Options (optional)
+### Decisions
 
-When more than one reasonable shape exists: **(A) / (B) / (C)** with a
-recommendation. The maintainer picks before implementation starts.
+The maintainer's choices, each as **(A) / (B)** with a recommendation. The pick
+and its reason replace the recommendation before implementation starts.
 
-## Verification
+- **D1.** <question> (A) <option> · (B) <option> — recommended A | picked A: <why>
 
-How "done" is proven: tests to add, commands to run, behavior to observe.
+### Verification
 
-## Related
+How "done" is proven: a test per scenario that fails without the change, commands
+to run, behaviour to observe.
 
-Issues, ADRs, PRs, external docs.
+### Departures
+
+Where the work left the accepted plan, and why, written when it happens. | none

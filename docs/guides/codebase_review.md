@@ -1,6 +1,6 @@
 # Codebase review template
 
-When the user asks for a comprehensive codebase review (multi-phase walk through every layer to catch drift, dead code, over-engineering, and quiet bugs after a heavy build phase), follow this template. Optimised for: solo-maintained repos, work-as-you-go execution, plan kept in `docs/reviews/` as historical record with selective GitHub issues for cross-cutting follow-ups. The method is language-agnostic; the shell recipes are shown for a Python project, and [Project layout](#cross-phase-working-habits) says how to substitute your own toolchain.
+When the user asks for a comprehensive codebase review (multi-phase walk through every layer to catch drift, dead code, over-engineering, and quiet bugs after a heavy build phase), follow this template. It runs on `review_machinery.md`, its working document is `docs/reviews/YYYY-MM-codebase-review.md`, and it defines only what is particular to code: the stance, the phases and their sub-checks, and its *At task time* questions. Optimised for solo-maintained repos. The method is language-agnostic; the shell recipes are shown for a Python project, and [Project layout](#cross-phase-working-habits) says how to substitute your own toolchain.
 
 ## When to use this template
 
@@ -13,59 +13,21 @@ Run this template when accumulated drift is felt but hard to name — typically 
 
 **Minimum viable review.** When a full pass is too heavy right now, run Phase 0 → Phase 1 → Phase 3 → close-out and skip the rest deliberately: baseline, doc truth-up, the architecture/simplification audit, delta + ledger. That loop catches the highest-value drift; an abandoned full template catches nothing.
 
-If an early phase produces severe findings (architectural rot, security exposure), surface them and pause — escalating those is itself a valid output of the review.
-
 ## Stance: Simplicity First
 
-The review's bias is toward removal, not addition. Most of the value comes from finding code, abstractions, and machinery that pulled their weight under an earlier assumption that no longer holds — patterns chosen for the right reason at the time but kept past the moment that reason eroded. Long-lived projects accumulate this residue because each individual erosion (an ADR revision, a follow-up PR, a scope cut) was too small to justify restructuring on its own.
+The review's bias is toward removal, not addition: removal is a lens every phase carries. What it looks for is code, abstractions, and machinery that pulled their weight under an earlier assumption that no longer holds — patterns chosen for the right reason at the time but kept past the moment that reason eroded. Long-lived projects accumulate this residue because each individual erosion (an ADR revision, a follow-up PR, a scope cut) was too small to justify restructuring on its own.
 
 Concrete stance the reviewer holds throughout:
 
 - **For every load-bearing abstraction, the question is "does the surviving justification still demand this shape?"** Not "is the code clean?" Not "is the test coverage high?" If the shape outlives the rationale, the shape is residue regardless of how clean it reads. The [3.W Load-bearing assumption audit](#3w-load-bearing-assumption-audit) is the dedicated check.
 - **Default to the smaller code that solves the surviving problem.** A cache that exists because a decorator fired N times per request stops being justified when the underlying check fires once. A ContextVar that propagates data across layers stops being justified when the data can be passed explicitly. Surface the simplification with a decision-shape item; the maintainer chooses the new boundary.
+- **A restructure is measured by what it deletes.** A refactor that moves code without reducing the concepts a reader must hold is not a simplification: name what disappears, or keep looking for the smaller idea.
 - **Coupled residue lands together.** If removing the cache forces removing the decorator, treat them as one action item, not two — the split is the wrong axis. A half-removal often re-introduces the original perf or correctness problem the residue was masking.
 - **Watch for "no abstractions for single-use code."** Generic decorators, protocols, factories that have exactly one caller and one implementation are residue from a planned-but-cancelled second user. Either ship the second user or collapse the abstraction.
 
-**Simplification proposals are a first-class deliverable, not a by-product.** Accumulation is the default direction of drift — every feature adds, almost nothing removes — and the bill lands on performance, maintainability, and everything built on top. The review is the scheduled counterweight: every phase is expected to surface removal and collapse candidates alongside its findings, the close-out aggregates them into a ranked ledger (12.4), and a review whose output is purely additive (more tests, more docs, more checks) almost certainly didn't look hard enough.
+**Simplification proposals are a first-class deliverable, not a by-product.** Accumulation is the default direction of drift — every feature adds, almost nothing removes — and the bill lands on performance, maintainability, and everything built on top. The review is the scheduled counterweight: every phase is expected to surface removal and collapse candidates alongside its findings, the close-out aggregates them into the ranked simplification ledger, and a review whose output is purely additive (more tests, more docs, more checks) almost certainly didn't look hard enough.
 
 This stance is operationalised in the phase sub-checks and the cross-phase habits below; the reviewer doesn't need to remember to apply it ad hoc.
-
-## How this template runs
-
-A 13-phase review is not a single sitting. Run it in passes — each phase is its own context-bounded unit, picked up cold from the plan file when you start it.
-
-1. **Pass 1 — Skeleton.** One session. Fill in the phase table (skip irrelevant phases; customise the domain phases for the project), capture Phase 0 baseline metrics, write the file header. Don't try to write sub-check detail for phases beyond 0 yet — the template's sub-checks and starter lists are enough; project-specific domain-phase detail gets written when those phases are picked up, not now.
-2. **Pass 2 — Per-phase analysis.** One session per phase (or per tight cluster). Pick up the plan, re-read it end-to-end, run the phase's sub-checks, produce findings and proposed action items, and surface them to the user. Once the user authorizes, execute the cheap action items in the same session and defer the rest to a follow-up session.
-3. **Pass 3 — Execution and revisits.** Action items often span sessions; the lifecycle markers (`Open` / `Done` / `Deferred → #issue`) keep the plan honest across resumptions.
-4. **Pass 4 — Close-out.** The final phase (12 in the default layout). Re-run the baseline, populate the delta table, compile the simplification ledger, fill the [Decision register](#decision-register), file issues for the issue-worthy deferred items and leave the rest `[DEFERRED]` for the next review. The plan file stays in `docs/reviews/` permanently — don't delete it (see [Phase 12.5](#closing-out-phase-12)).
-
-**Per-phase context discipline.** When you pick up a phase you should be able to start from: the plan file + the Phase 0 baseline + the project's contract docs. Don't depend on prior-session conversation memory — write findings and decisions into the plan, not into the chat.
-
-**Recovering from a noisy phase.** Subagents sometimes return reports too speculative or too broad to act on. When that happens, restart the phase with tighter scope (specific files, specific question) rather than salvaging a noisy report. The plan stays; only the in-progress findings get redone.
-
-## Working document
-
-Create `docs/reviews/YYYY-MM-codebase-review.md` (or `YYYY-Q#`; e.g. `docs/reviews/2026-06-codebase-review.md`). **Tracked** — the plan is a permanent historical record, not a throwaway. Past review docs are how [Phase 0.2](#02-ground-rules-read) of the *next* review picks up unresolved items.
-
-The plan is a *living* document — the user will return between phases to surface findings, pick options, and authorise commits. Update findings and action items inline as work lands; the [Phase 12.2](#closing-out-phase-12) baseline-vs-final delta table lives inside the plan, not as a separate artifact.
-
-## File header
-
-```
-# {project} — Comprehensive Review Plan
-
-Goal: {one line — usually "catch problems early after a heavy build phase, no overengineering"}
-Scope: {surfaces / source roots in}. Out: {what is deliberately not reviewed, and why}.
-Phases skipped deliberately: {list, or "none"}.
-
-**How to use this file**
-
-- Work top-down. Tasks are intentionally small and ordered so later phases assume earlier ones landed.
-- Each task starts with a 1–2 line **Why** and a **Scope** bullet list.
-- Each task is a *prompt*, not a finished design. When you pick a task up, the first deliverable is a short analysis (findings + suggested changes); only then implement.
-- Broken state between tasks is fine. Failing tests are fine. Fix at meaningful checkpoints (end of phase or end of session).
-- This file lives in `docs/reviews/` permanently — historical record of what was found and what shipped. Don't delete on close-out.
-```
 
 ## Default phase structure
 
@@ -86,6 +48,8 @@ The 13 phases below cover most full-stack services. Skip irrelevant phases and a
 | N+3   | Operations & deployment                             | Docker, CI, backups, release                                                                                     |
 | N+4   | Final passes                                        | Self-enforcing rules, doc sweep, close out                                                                       |
 
+**Waves** (`review_machinery.md` § How a review runs): Phase 0 → Phases 1, 2, 3.X, 4, 5 and the tests phase in parallel → 3.W, 3.Y, 3.Z, 6, the domain phases, errors and ops, which read the 3.X map → close-out. Fixes still land in phase order, docs first.
+
 **Domain phase count.** The 7..N row expands to as many phases as the project has critical subsystems — typically 2–4. Two slots is fine for a small service; a richer one usually needs 3–4 layers:
 
 - a *foundation* layer (external integrations, providers);
@@ -95,33 +59,14 @@ The 13 phases below cover most full-stack services. Skip irrelevant phases and a
 
 Translate the labels to your domain: a service with billing might hit all four; a screen-capture utility might have only *capture* and *render*; a CLI tool might collapse to a single *commands* phase. What matters is that each layer with its own correctness logic gets a focused phase — when in doubt, give an orchestration layer or a strict-liability surface its own phase rather than folding it into a neighbour. Order domain phases by execution flow (foundation → orchestration → gate → settlement) so each phase's findings are concrete by the time the dependent phase is picked up. The checks every domain phase runs first are under [Starter sub-checks](#starter-sub-checks--the-remaining-phases).
 
-**Phase numbers in this template.** The sub-check sections below carry the numbers of the default layout — exactly two domain phases, so security = 5, tests = 10, close-out = 12. If your table has more or fewer domain phases, renumber on use; the topics are canonical, not the numbers. Cross-references in the prose (12.2, 12.4, Phase 10) use the default numbers too — read them as *close-out § delta table*, *close-out § ledger*, *tests*.
+**Phase numbers in this template.** The sub-check sections below carry the numbers of the default layout — exactly two domain phases, so security = 5, tests = 10, close-out = 12. If your table has more or fewer domain phases, renumber on use; the topics are canonical, not the numbers. Cross-references in the prose (12.2, Phase 10) use the default numbers too — read them as *close-out § final scan*, *tests*.
 
 ### Cross-phase working habits
 
-Rules that apply throughout, not in any one phase.
-
-**Subagents.**
-
-- **Spot-check agent claims before relaying.** Subagents over-summarise — they'll confidently say "X is only used in tests" when X is also imported by `composition.py`. One verifying `grep` per load-bearing claim before it goes into the findings table.
-- **Delegate large reads, not synthesis.** Send subagents to read a long architecture doc or scan a directory; come back to your own context to write findings.
-
-**Findings discipline.**
+Rules that apply throughout, beside the machinery's findings discipline (`review_machinery.md` § Findings).
 
 - **Don't recommend refactors *because* two files share a prefix or a word.** Architecture-driven layering produces false positives; verify before recommending.
-- **Findings get numbered per phase; action items get slugs.** A finding is `P3 #5` (phase + number — number resets each phase). An action item is a kebab-case slug like `` `handler-coverage` `` that is unique across the whole plan, memorable in conversation, greppable, and survives into commit messages and (when relevant) issue titles. Action items cite which findings they address (`Addresses P10 #3, #4`).
-- **Severity is a commitment.** Each label changes the default action — pick deliberately, don't default to `Drift` for everything.
-- **Unrun is not passed.** A check that couldn't run this session (tool missing, credentials absent, service down) goes into the phase's Checks-run block as *unrun* with the reason — never rolled into a clean phase. "Not checked" and "checked, clean" look identical in a findings table; the Checks-run block is what tells them apart.
-
-**Simplification.**
-
-- **Every phase closes with "what can go?"** Before marking a phase done, write a one-line answer: what did this phase reveal that can be deleted, collapsed, or made cheaper (dead config, single-caller abstractions, per-call work that could be per-process, N+1 queries, redundant test layers)? "Nothing" is a valid answer — but it must be written. Skipping the question is how bloat survives reviews.
-- **Prefer the diff that removes.** When a finding admits both an additive fix (wrap, guard, extend) and a subtractive one (delete, inline, collapse), recommend the subtractive shape by default; an additive recommendation needs a stated reason.
-
-**Pace.**
-
-- **First deliverable per task is analysis, not code.** Surface findings + suggested changes; commit only after the user authorises.
-- **Broken state between phases is fine.** Failing tests are acceptable mid-phase; fix at phase or session boundaries.
+- **What a code phase's "what can go?" looks for:** dead config, single-caller abstractions, per-call work that could be per-process, N+1 queries, redundant test layers.
 
 **Project layout.**
 
@@ -150,8 +95,10 @@ pytest --cov --cov-report=term | tail -5  # coverage
 git ls-files | wc -l
 find packages apps -name "*.py" | xargs wc -l | tail -1
 
-# Top-10 largest source files — bloat radar, feeds Phase 3
-find packages apps -name "*.py" -printf "%s %p\n" | sort -rn | head -10
+# Hotspots — the files changed most since the last review, with their size (feeds 0.3)
+git log --since="{last review's date}" --format= --name-only -- packages apps | grep '\.py$' |
+  sort | uniq -c | sort -rn | head -15 |
+  while read n f; do [ -f "$f" ] && echo "$n changes  $(wc -l < "$f") lines  $f"; done
 ```
 
 Capture the numbers, not the full output. Standard table:
@@ -171,12 +118,22 @@ Add repo-specific rows (open issues, project-board state, deploy version) when t
 
 Read these end-to-end before changing anything:
 
-- `AGENTS.md` / `CONTRIBUTING.md` — the operating contract. A `CLAUDE.md` or `CLAUDE.local.md` that doesn't import `@AGENTS.md` is a finding: it hides `AGENTS.md` from Claude Code.
+- `AGENTS.md` / `CONTRIBUTING.md` — the operating contract. An assistant's own instruction file (`CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`) that replaces `AGENTS.md` for its tool instead of deferring to it is a finding: that tool stops reading the contract (`project_kickstart.md` § AI agent instructions says which tools do).
 - `README.md` — what the project claims to do.
 - `docs/architecture/` (or equivalent) — load-bearing diagrams and decision records.
-- `docs/reviews/` (or equivalent) — past review docs. Read the latest review *of each kind* (code, UX, design): carry its unresolved `[ ]` action items in as starting findings, and every Open or untriggered Accepted-risk row of its [Decision register](#decision-register) into this plan's register, origin pointing back.
+- `docs/reviews/` (or equivalent) and the tracker — per `review_machinery.md` § Phase 0 reads.
 
-The output of 0.2 is *internal alignment*, not a written artifact. If a rule surprises you, that's a finding for Phase 1 (docs truth-up).
+Apart from the absorption that step asks for, the output of 0.2 is *internal alignment*, not a written artifact. If a rule surprises you, that's a finding for Phase 1 (docs truth-up).
+
+#### 0.3 Where to read deep
+
+A review does not read a large codebase line by line: its walk of every layer is greps, counts and sampled reading. Choose where the deep reading goes from three inputs:
+
+- **Hotspots** from 0.1. How often a file changes predicts its faults better than its size does ([Graves et al. 2000](https://cs.uwaterloo.ca/~m2nagapp/courses/CS846/1171/papers/graves_tse98.pdf); [Nagappan & Ball 2005](https://www.st.cs.uni-saarland.de/edu/recommendation-systems/papers/ICSE05Churn.pdf)), so a large file that changes often is where depth pays.
+- **Bug history:** the tracker's bug issues since the last review, counted by area.
+- **The last code review's per-phase yield:** which phases found something, and which found nothing twice running.
+
+The layers they point at get deep reads in Phase 3 and the domain phases. The mechanical sweeps still run everywhere and record their Checks-run lines: residue often sits in code that rarely changes, which a hotspot ranking pushes down.
 
 ### Phase 1 sub-checks — documentation truth-up
 
@@ -312,6 +269,8 @@ For each load-bearing name in 3.X:
   * *Residue from superseded assumption* — the shape outlived its reason. Severity: `Drift` (architectural). Action: surface the simplification with a decision-shape item so the maintainer picks the new boundary; don't unilaterally rewrite a load-bearing abstraction.
   * *Coupled residue* — the residue can't be peeled off without restructuring (e.g. the cache and the decorator are bound together — removing the cache re-introduces the perf problem the cache was fixing). Treat as one action item, not two; the split is the wrong axis.
 
+The verdicts map to labels: *Load-bearing* and *Defense-in-depth* to `Acceptable`, *Residue* and *Coupled residue* to `Drift`.
+
 A standing example (hypothetical — translate the shape to your domain): an authorization decorator was wired around every storage call because the original design wanted to authorize each access independently. Later revisions narrowed the requirement to validating the caller once per request and added a per-request cache to keep the decorator from re-checking across calls. The surviving justification was "authorize the caller once per request", but the implementation was still "decorator at every call + cache". The audit said: decorator + cache are coupled residue; the new shape is "single gate called once at request entry."
 
 Do NOT pattern-match on superficial cues (long file, many imports, deeply nested logic). The signal is the *delta* between what the rationale needs now and what the implementation does. A short, simple file can still be residue; a long, complex one can still be load-bearing.
@@ -370,9 +329,11 @@ Config is a bloat magnet: keys outlive the features that read them, and "flexibi
 
 ### Phase 5 sub-checks — security
 
-The smell isn't subtle bugs; it's *quiet* exposure — secrets that leak in logs, an endpoint that skips a check, a dependency whose fix the pins forbid. The phase's own failure mode is quiet too: a surface that was never walked reads exactly like one walked and found clean. So two rules bind harder here than elsewhere. Every sub-check ends **clean / finding / unrun (why) / n/a** in the Checks-run block. And a deliberate "leave it" is never an `Acceptable` finding — it is a [Decision register](#decision-register) row with a revisit trigger.
+The smell isn't subtle bugs; it's *quiet* exposure — secrets that leak in logs, an endpoint that skips a check, a dependency whose fix the pins forbid. The phase's own failure mode is quiet too: a surface that was never walked reads exactly like one walked and found clean. So two rules bind harder here than elsewhere. Every sub-check ends **clean / finding / unrun (why) / n/a** in the Checks-run block. And a deliberate "leave it" is never an `Acceptable` finding — it is a Decision register row with a revisit trigger.
 
-Surface tags as in `ux_review.md`: `[web]` a browser-facing surface, `[bot]` a chat-platform bot, `[llm]` anything that sends text to a model, `[web-service]` a deployed container or daemon. Untagged checks apply everywhere; a tagged block the project lacks is recorded as *n/a*, not skipped silently.
+An exploitable finding follows the machinery's private route (`review_machinery.md` § The private route): it never enters this plan, an issue or a close-out comment until the fix ships.
+
+Surface tags as in `review_machinery.md` § Surface tags; a tagged block the project lacks is recorded as *n/a*, not skipped silently.
 
 Start by re-verifying the kickstart's security baseline (`project_kickstart.md` § Security baseline): `SECURITY.md`, the dependency-update bot config, secret scanning at both layers, least-privilege workflows, the rotation runbook, static analysis where available. Kickstart wires them once; the review is where they get re-checked.
 
@@ -402,7 +363,7 @@ Log identifiers (key fingerprint, provider name, record id), not values. Message
 - **Security-sensitive deps declare what they need.** A session or crypto library that works only because another dependency happens to pull its backend in (a missing `[secure]`-style extra) is `Drift-prone`: the coincidence ends on the next diet pass.
 - **Pinning policy.** Majors pinned on security-sensitive deps (auth, crypto, web frameworks)?
 - **Transitive surface.** Spot-check the deepest deps; supply-chain risk lives there.
-- **Dependency diet.** One line per direct dependency — what it does, and whether the stdlib or a smaller library now covers it. A dep with one call site (or none) is supply-chain surface and upgrade churn paid for nothing; collapse or drop. Feeds the 12.4 ledger.
+- **Dependency diet.** One line per direct dependency — what it does, and whether the stdlib or a smaller library now covers it. A dep with one call site (or none) is supply-chain surface and upgrade churn paid for nothing; collapse or drop. Feeds the simplification ledger.
 
 #### 5.3 Auth and authz
 
@@ -448,6 +409,11 @@ Single-tenant project: record *n/a* and move on.
 - **Model output is untrusted on the way out.** Rendered into markdown / HTML / embeds → escaped; passed to a tool or a query → validated like user input; never executed.
 - **Cost amplification is a denial of service.** Per-request caps on tokens, tool calls, and loop iterations; a timeout on every provider call; the cap fails closed.
 - **Customer-supplied provider keys** are used only for their owner's calls and never appear in a shared cache key, a log line, or an error message.
+- **Model and provider supply chain.** Every model id in use is pinned or deliberately floating, its deprecation date is known, and a provider-side change — a renamed id, a retired model, a setting the provider starts ignoring — is noticed before production does.
+- **Stored context the model reads back** — memory, notes the model wrote itself, retrieved documents — is untrusted on every read: poisoned once, it steers every later request.
+- **Hidden context stays hidden.** The system prompt, another user's memory or tool results, operator data: nothing the model was given for one person reaches another.
+
+Check the block against the current [OWASP Top 10 for LLM Applications](https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/) and record each entry it does not cover as a finding or *n/a*. The model-facing text and the eval behind it are `llm_review.md`'s; this block is their security.
 
 #### 5.8 Privacy and data lifecycle
 
@@ -462,7 +428,7 @@ Single-tenant project: record *n/a* and move on.
 - `[web-service]` **Image:** pinned base, non-root user, no secrets baked in, scanned if the registry offers it.
 - `[bot]` **Least privilege on the platform:** privileged intents / scopes / permissions are the minimum the shipped features need; the invite link asks for nothing more.
 
-Severity vocabulary: `Real bug` for an actively exploitable issue; `Drift-prone` for "this will become exploitable when X happens"; `Cleanup` for stale config. A deliberate leave-it is an **Accepted risk** row in the Decision register with its trigger — not an `Acceptable` finding to be re-found next review.
+Severity vocabulary: `Real bug` for an actively exploitable issue, which takes the private route instead of this plan; `Drift-prone` for "this will become exploitable when X happens"; `Cleanup` for stale config. A deliberate leave-it is an **Accepted risk** row in the Decision register with its trigger — not an `Acceptable` finding to be re-found next review.
 
 ### Phase 10 sub-checks — test suite health
 
@@ -508,7 +474,7 @@ Both tails matter:
 
 The highest line-count payoff of the phase. Each is a separate probe.
 
-- **Layered duplication.** Same code path tested in handler + pipeline + rendering + transport adapter + e2e? The e2e is usually load-bearing; middle layers often re-assert the same thing with different mocks. Per layer, ask: *what does this assert that the layer above/below doesn't?* Verdicts: *Unique responsibility* (keep), *Overlapping with layer X* (trim to the unique cases), *Redundant* (delete).
+- **Layered duplication.** Same code path tested in handler + pipeline + rendering + transport adapter + e2e? The e2e is usually load-bearing; middle layers often re-assert the same thing with different mocks. Per layer, ask: *what does this assert that the layer above/below doesn't?* Verdicts: *Unique responsibility* (keep — `Acceptable`), *Overlapping with layer X* (trim to the unique cases — `Cleanup`), *Redundant* (delete — `Cleanup`).
 - **Mock-heavy fixtures.** A `MagicMock`-spawning helper driving N tests becomes brittle on every schema change.
 
 ```
@@ -579,7 +545,7 @@ Phases 6, 7..N, N+1 and N+3 don't get full sections; write their detail at picku
 - **Boundary contract.** What enters, what leaves, who validates. Validate at the edge, trust internal invariants — a re-validation deep inside is either dead or hiding a hole at the edge.
 - **Every external call** has a timeout, a bounded retry, and an idempotency story; anything retried is safe to repeat.
 - **Authority is decided once** at the entry and travels with the request. Anything downstream that re-derives it from ambient state (a global, a ContextVar, a cache) is a 3.W candidate and a 5.3 candidate at once.
-- **Cost per canonical command** — external calls, tokens, queries, per-call work that could be per-process. A number per command; feeds the 12.4 ledger.
+- **Cost per canonical command** — external calls, tokens, queries, per-call work that could be per-process. A number per command; feeds the simplification ledger.
 - **Failure modes** — dependency down, slow, partial. Fail-open vs fail-closed is a written decision (a register row or an ADR), never an accident of exception handling.
 - **Runtime hygiene** (async / concurrent code) — no blocking I/O on the event loop, no unawaited tasks, shutdown cancels what it started, shared mutable state has an owner.
 - **The seam a test can hold** — one fake per external dependency at the boundary; a mock forest means the boundary is in the wrong place (feeds 10.C).
@@ -598,215 +564,52 @@ Phases 6, 7..N, N+1 and N+3 don't get full sections; write their detail at picku
 - Backup cron firing *and the restore tested* — a job that runs is not evidence the backup works.
 - Compose resource limits still sane against current memory reality.
 
-## Per-phase format
-
-```
-## Phase N — Topic
-
-[Optional 1-2 line "Why" if not obvious from the title]
-
-### N.1 Subsection name
-- Bullet describing the check / scan / read-end-to-end
-- Specific enough that an assistant can pick it up cold
-- Cite expected files / commands when known
-
-### N.2 Subsection name
-- ...
-
-#### Checks run (Phase N)
-- One line per sub-check, ending in exactly one of: clean · finding → #k ·
-  unrun (why) · n/a. Clean surfaces are recorded here, not omitted — this
-  block is how the next reviewer knows the surface was walked.
-
-#### Snapshot (Phase N)
-[Optional — current-state inventory: line counts, decision tables, env-var inventories.
-Only include when the snapshot is itself useful evidence for findings.]
-
-#### Findings (Phase N)
-
-| # | Finding | Location | Severity |
-|---|---|---|---|
-| 1 | One-sentence summary. Follow-up sentence with detail if the row needs it. | `path/to/file.py:123` (markdown link) | **Severity** |
-| 2 | ... | ... | ... |
-
-#### Action items (Phase N)
-
-- [ ] **`slug-name`** — Short title. Addresses #1. Concrete edits with file paths. Acceptance criteria when non-obvious.
-- [ ] **`other-slug`** — Short title. Addresses #2 + #3 (one action collapses multiple findings).
-- [ ] **`stale-comment-pass` [DEFERRED]** — Out of scope this review; carry to next.
-```
-
-### Severity vocabulary
-
-Use exactly these labels — each carries an expectation:
-
-| Severity             | Meaning                                                                                      | Default action                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Real bug**         | Observable defect for users or operators                                                     | Fix this phase                                                              |
-| **Drift**            | Code / docs out of sync with reality; not user-visible                                       | Fix this phase if cheap; otherwise file follow-up                           |
-| **Drift-prone**      | Pattern that will silently break in a known-future scenario (e.g. when a second transport lands) | Document the trigger + plan; fix when activated                             |
-| **Cleanup**          | Dead code, stale comments, unused exports                                                    | Fix this phase, mechanical                                                  |
-| **Minor**            | Inconsistency, style, doc gap, log-level mismatch                                            | Fix only if it's in the immediate diff                                      |
-| **Acceptable**       | Confirmed correct or appropriate trade-off                                                   | Leave; note for the record                                                  |
-| **Decision pending** | Needs maintainer's call (option A vs B vs C)                                                 | Surface with recommended option + rationale; add a register row; don't act unilaterally |
-
-An accepted *risk* is not an `Acceptable` finding — it is a [Decision register](#decision-register) row with a revisit trigger, so the next review re-checks the trigger instead of re-finding the issue.
-
-### Action-item lifecycle
-
-Each action item is a checkbox line keyed by a unique kebab-case slug. The slug is the action item's *name* — it stays the same as the item moves through Open / Done / Deferred and is the way you refer to it in conversation, commit messages, and (when issued) issue titles.
-
-```
-# Open
-- [ ] **`handler-coverage`** — Improve transport-handler test coverage. Addresses P10 #3, #4.
-      Files / changes / tests.
-
-# Done — append a one-liner about what shipped + commit ref
-- [x] **`handler-coverage` [DONE]** — Improve transport-handler test coverage. (commit `abc1234`)
-
-# Deferred — issue-worthy (see threshold below). Filed as a tracking issue.
-- [x] **`handler-coverage` [DEFERRED → #166]** — Filed with `type/refactor`, `area/api`, `priority/tier-2`.
-
-# Deferred — stays in this doc, picked up at next review
-- [ ] **`docstring-spotcheck` [DEFERRED]** — Skim high-traffic module docstrings for "used by X" / "calls Y" claims; not urgent. Carry to next review.
-```
-
-**When does an action item become a GitHub issue?** Only when at least one is true:
-
-1. **Real bug** that affects users or operators — needs visibility outside the review.
-2. **Deferred work that needs scheduling** — milestone, external blocker, or dependency on another team / release.
-3. **Cross-cutting work** that won't fit in one review-driven PR and has its own multi-session lifecycle.
-
-Otherwise the action stays in the doc. Trivial cleanups, single-PR refactors, and small follow-ups are *not* issue-worthy — issuing them inflates the tracker without adding signal. The next review's [Phase 0.2](#02-ground-rules-read) opens by skimming this doc for open `[ ]` items.
-
-**Commit references.** Use the slug in commit message bodies: `closes plan: handler-coverage`. The plan, the git log, and (when it exists) the issue all line up.
-
-### Cross-phase blocks
-
-When one finding blocks another, note it inline rather than relying on the reader to spot it:
-
-> "Until `session-store-fix` lands, finding #2 (retry on stale session) cannot land cleanly — adding retries while the store returns stale rows just moves the bug, doesn't fix it."
-
-The blocker note belongs in the *Action items* section of the blocking phase, not buried in Findings.
-
-### Decision shapes
-
-When an action item has more than one reasonable execution path, present them as letters with a recommendation:
-
-```
-- [ ] **`dep-pinning-policy`** — Decide on dependency pinning policy. Addresses #4. Three reasonable shapes:
-  - **(A) Pin majors** — `httpx>=0.27,<1.0`. One-time edit, no new tooling.
-  - **(B) Lockfile via `pip-compile`** — reproducible, but ongoing bump churn.
-  - **(C) Accept current looseness with rationale** — cheapest, footgun.
-  - **Recommended: (A).** Catches the actual risk (surprise major bump at next build) without the lockfile maintenance burden.
-```
-
-The user picks; you implement. Don't act unilaterally on letter-shaped items. Every letter-shaped item has a [Decision register](#decision-register) row that links here by slug — the options prose lives here, not in the row.
-
 ## Closing out (Phase 12)
 
-```
+The machinery's close-out applies — delta table, ledger, every item closed, per-phase yield, register, freeze (`review_machinery.md` § Close-out). The code review adds three steps before it.
+
 ### 12.1 Self-enforcing rules
-- Lock invariants noticed during the review as tests so they don't rot.
-  Standard set: layer isolation, cross-transport import bans, single
-  version-string source, naming conventions, etc.
-- Keep each check tiny — one assertion. If a check would be flaky,
-  prefer a doc note.
+
+- Lock invariants noticed during the review as tests so they don't rot. Standard set: layer isolation, cross-transport import bans, single version-string source, naming conventions.
+- Keep each check tiny — one assertion. If a check would be flaky, prefer a doc note.
 
 ### 12.2 Final scan re-run
-- Re-run Phase 0.1 commands. Compare against baseline in a delta table:
 
-| Metric | Baseline ({date}) | Final ({date}) | Δ |
-|---|---|---|---|
-| Lint issues | 0 | 0 | — |
-| Tests passed | 1369 | 1421 | +52 |
-| Coverage | 86% | 84% | −2pt |
-| Wall time | 40s | 36s | −4s |
-| Source lines | 21,514 | 20,818 | −696 |
-| Direct dependencies | 14 | 12 | −2 |
+Re-run the Phase 0.1 commands and compare against the baseline in the delta table:
 
-Explain the deltas — coverage drops on real new code at <100% are
-expected and worth noting, not hiding. For a maturing codebase, negative
-source-line and dependency deltas are a success signal, not an anomaly:
-the removal bias should be visible right here.
+| Metric              | Baseline ({date}) | Final ({date}) | Δ     |
+| ------------------- | ----------------- | -------------- | ----- |
+| Lint issues         | 0                 | 0              | —     |
+| Tests passed        | 1369              | 1421           | +52   |
+| Coverage            | 86%               | 84%            | −2pt  |
+| Wall time           | 40s               | 36s            | −4s   |
+| Source lines        | 21,514            | 20,818         | −696  |
+| Direct dependencies | 14                | 12             | −2    |
+
+Explain the deltas — coverage drops on real new code at <100% are expected and worth noting, not hiding. For a maturing codebase, negative source-line and dependency deltas are a success signal, not an anomaly.
 
 ### 12.3 Doc + CHANGELOG sweep
-- For every commit landed during the review, confirm the relevant doc
-  was updated in the same commit.
-- One CHANGELOG line per user-visible change. Pure refactors don't
-  touch CHANGELOG.
-- Skim every file the review touched for stale comments and
-  docstrings — especially comments that referenced "the new X" or
-  "as of #Y" before the review and now describe a state that has
-  moved on.
 
-### 12.4 Simplification ledger
-- Collect every removal / collapse action item from all phases into one
-  ranked table: slug, what it removes (lines / dep / abstraction / config
-  keys / test layers), status (Done / Deferred).
-- Surface the top deferred simplifications as decision shapes, each
-  with a Decision-register row — the maintainer should leave the review knowing the three biggest
-  simplification opportunities, even if none ship now.
-- An empty ledger means the review didn't look. If that's truly the state
-  of the codebase, write the sentence saying so — don't omit the section.
+- For every commit landed during the review, confirm the relevant doc was updated in the same commit.
+- One CHANGELOG line per user-visible change. Pure refactors don't touch CHANGELOG.
+- Skim every file the review touched for stale comments and docstrings — especially comments that referenced "the new X" or "as of #Y" before the review and now describe a state that has moved on.
 
-### 12.5 Close out
-- For every `[DEFERRED]` item, decide: does it meet the issue-worthiness
-  threshold (see Action-item lifecycle)? If yes, file as a GitHub issue
-  with labels + project board, and update the line to `[DEFERRED → #N]`.
-  If no, leave it as `[DEFERRED]` for the next review to pick up.
-- Fill the Decision register — the plan's last section: every
-  Decision-pending finding and every letter-shaped action item has a
-  row; Open rows carry to the next review.
-- The plan file stays in the repo as historical record. Don't delete it.
-```
+## At task time
 
-## Decision register
+What a task's work round asks of one diff for this review (`task_review.md` § Lens reviewers): the classes of finding this review keeps meeting that a reader can see in the change that introduces them. The base reviewer asks them of every diff, after the work-round questions, which already cover siblings, failure paths, removals and growth. A class two reviews of this kind in a row meet with no question here gets one (`review_machinery.md` § Close-out).
 
-The last section of every review plan. One table, a snapshot as of close-out: every `Decision pending` finding and every letter-shaped action item has a row here, and nothing else does. The register is an *index* — the options and the rationale stay in the phase that raised them; the row says what was asked, what was chosen, and where that choice is recorded.
-
-Heading in the plan: `## Decision register`. Columns:
-
-| Slug                 | Question                                                    | Options → recommended                                             | Origin                       | Status                                                             | Recorded at |
-| -------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------ | ----------- |
-| `dep-pinning-policy` | Pin majors, lockfile, or accept looseness?                  | (A) majors · (B) lockfile · (C) accept → **A**                    | P5 #4                        | Decided (A) 2026-06-14                                             | ADR-0021    |
-| `logout-post`        | Should logout stay a `GET`?                                 | (A) POST + CSRF · (B) leave → **B**                               | P5 #6, carried from 2026-03  | Accepted risk — revisit when the session carries more than identity | this row    |
-| `single-dispatcher`  | Keep one dispatcher when the second transport bypasses it?  | (A) collapse · (B) second transport adopts it · (C) keep → **A**  | P3 #4                        | Open                                                               | —           |
-
-Status vocabulary — exactly these four:
-
-- **Open** — surfaced, not yet chosen.
-- **Decided (X) YYYY-MM-DD** — the maintainer picked. `Recorded at` names where the rationale lives: an ADR when the choice changes an architecture claim, the issue when it schedules work, *this row* otherwise. The register is never the only copy of a significant decision.
-- **Accepted risk — revisit when <trigger>** — a deliberate "leave it" is a decision, not an `Acceptable` finding. The trigger (a release, an event, a date) is what the next review re-checks, instead of re-discovering the finding and re-arguing it.
-- **Dropped (why)** — the question stopped mattering. One clause of why, so it isn't re-raised.
-
-Rules:
-
-- **Carry-forward.** [Phase 0.2](#02-ground-rules-read) copies every Open row, and every Accepted-risk row whose trigger has not fired, from the latest review *of each kind* (code, UX, design) into the new plan's register, origin pointing back. A fired trigger reopens the row. A decision parked in a UX review must be visible to the next codebase review, and vice versa.
-- **Third-review rule.** A row entering its third review is decided in that review's Phase 0 — by the maintainer, or by default to the recommendation. Carrying a question costs a re-read every time; three carries means the answer is the recommendation, or the question is dropped.
-- **Close-out block.** No action item is `[DONE]` while an Open row it depends on is still Open. Note the block in the action item, per [Cross-phase blocks](#cross-phase-blocks).
-- **Decision shapes stay put.** The `(A) / (B) / (C)` block lives in the phase's action items; the register links to it by slug and never repeats the options prose.
+- **Trust boundary.** Where does input the diff newly accepts — text, a header, a provider's error, a model's output — reach a prompt, storage, a log, a page or a query, and is it escaped, bound, signed and authorized for every actor there (5.3–5.5, 5.7)?
+- **Bounds.** What bounds each input, collection, loop and in-memory map the diff adds, and what happens at zero, at the cap and past it (5.5; *Starter sub-checks*, runtime hygiene)?
+- **Personal data.** Does the diff store, log or export personal data, and do erasure, export and the published policy reach it (5.1, 5.8)?
+- **External calls.** Does each new call to another service have a timeout and a bounded retry that is safe to repeat (*Starter sub-checks*, every external call)?
+- **One position.** Does each new setting, flag or mode have a second position someone will use, and each new table or column both a writer and a reader (Phases 4 and 6)?
 
 ## Conventions checklist
 
-When updating the plan during a session, double-check:
+The machinery's checklist applies (`review_machinery.md` § Conventions checklist); the code review adds:
 
-- [ ] Findings live in a table; one row per finding; columns are # / Finding / Location / Severity. Numbering resets per phase.
-- [ ] Severity uses the seven-label vocabulary, no ad-hoc labels.
-- [ ] Action items are markdown checkboxes (`- [ ]` / `- [x]`) keyed by a unique kebab-case slug, not prose paragraphs. Slugs are unique across the whole plan.
-- [ ] Done action items have a one-line note about what shipped + commit ref.
-- [ ] Deferred items either have a GitHub issue number (`[DEFERRED → #N]`) — only for issue-worthy work — or are flagged `[DEFERRED]` to be picked up at the next review.
-- [ ] Cross-phase blocks are noted in the *blocking* phase, not the blocked one.
-- [ ] File / line references are markdown links: `[path:line](path#L123)`. Line anchors are fine here, unlike in ADRs — the plan is a point-in-time record; rot doesn't matter.
-- [ ] Every phase closed with a written one-line "what can go?" answer — even when the answer is "nothing".
-- [ ] Phase 12 includes the simplification ledger, with the top deferred simplifications surfaced as decision shapes.
-- [ ] Decision-shape items present options as `(A) / (B) / (C)` with a recommendation; don't act unilaterally on them.
-- [ ] Decision register is the plan's last section; every Decision-pending finding and every letter-shaped action item has a row; carried rows name their origin; accepted risks carry a revisit trigger.
-- [ ] Every sub-check has a Checks-run line — clean, finding, unrun with the reason, or n/a for a tagged block the project lacks. Clean is recorded, not omitted.
-- [ ] File header states scope (in / out) and the phases deliberately skipped.
+- [ ] Phase 0 baseline metrics and hotspots captured before any code change; Phase 12.2 compares against the baseline.
 - [ ] Phase 2 covers comment & docstring hygiene against the project's "WHY not WHAT" rule, not just artifacts and tombstones.
 - [ ] Phase 3 produces a concept landscape map first (cite it in later phases), then runs the load-bearing assumption audit, pattern duplication, and ADR supersession against it.
 - [ ] Phase 3.W (load-bearing assumption audit) ran for every name in the concept map, with the surviving justification and any excess called out per row.
-- [ ] Phase 0 baseline metrics captured before any code change; Phase 12.2 compares against them.
-- [ ] Subagent claims spot-checked with at least one verifying `grep` before relaying into the findings table.
 - [ ] Sub-section numbering is consistent within each artifact (the template uses 3.W/3.X/3.Y/3.Z, 5.1/5.2, 10.A/10.B; pick one per phase, don't mix).
