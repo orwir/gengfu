@@ -196,55 +196,6 @@ public sealed class MainViewTests(WpfApp wpf)
         }
     }
 
-    [Fact]
-    public async Task Space_on_Test_call_calls_once_though_a_press_lost_to_a_held_mouse_button_left_it_holding_the_mouse()
-    {
-        using var server = new LocalTsServer("");
-        var folder = Path.Combine(Path.GetTempPath(), "gengfu-tests", Guid.NewGuid().ToString("N"));
-        var session = new Session(
-            CultureInfo.GetCultureInfo("en-US"),
-            new FakeTimeSource(),
-            new CallAudio(() => [], (_, _) => throw new InvalidOperationException(), (_, _) => throw new InvalidOperationException()),
-            folder,
-            new Log(folder));
-        Window? window = null;
-        try
-        {
-            await SessionTests.ReachAsync(session, server.Address);
-            session.ChooseGroup(new Named(1625, "GvG"));
-
-            var pressed = wpf.Invoke(() =>
-            {
-                var view = new MainView(session, () => { });
-                window = WpfApp.Show(view);
-                var clicks = 0;
-                view.TestButton.Click += (_, _) => clicks++;
-                view.TestButton.Focus();
-                // As a Space pressed while a mouse button is down leaves it: WPF's button keeps the
-                // mouse captured, and ignores Space while it does.
-                Assert.True(view.TestButton.CaptureMouse());
-                WpfApp.Press(Key.Space);
-                return (clicks, session.Caller.Testing, view.TestButton.IsMouseCaptured);
-            });
-
-            Assert.Equal((1, true, false), pressed);
-            Assert.True(SpinWait.SpinUntil(() => !session.Caller.Testing, TimeSpan.FromSeconds(10)));
-        }
-        finally
-        {
-            wpf.Invoke(() =>
-            {
-                window?.Close();
-                return true;
-            });
-            await session.DisposeAsync();
-            if (Directory.Exists(folder))
-            {
-                Directory.Delete(folder, recursive: true);
-            }
-        }
-    }
-
     [Theory]
     [MemberData(nameof(WpfApp.Scales), MemberType = typeof(WpfApp))]
     public async Task Start_Stop_and_Test_call_keep_their_icon_and_label_on_the_buttons_centre(double scale)

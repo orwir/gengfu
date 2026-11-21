@@ -1,8 +1,8 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -12,24 +12,40 @@ namespace Gengfu.App.Tests;
 /// <summary>
 /// Gengfu's own App, with its styles and the Fluent theme, on one STA thread for every test in its
 /// collection: WPF allows one Application in a process, and a view lives on the thread that made it.
+/// The thread is on a desktop of the test run's own. WPF reads the PC's real modifier keys and mouse
+/// buttons for synthetic strokes too, Shift turning Tab back and a held button eating Space, and
+/// Windows gives them only to the desktop taking input, so nothing done at the PC reaches the App.
 /// </summary>
 public sealed class WpfApp : IDisposable
 {
-    private const int VkLButton = 0x01;
-    private const int VkRButton = 0x02;
+    private const uint GenericAll = 0x10000000;
 
-    // How long a Space on a button may wait for the mouse buttons, and press again, before the test fails.
-    private static readonly TimeSpan PressFor = TimeSpan.FromSeconds(10);
-
+    private readonly IntPtr _desktop;
     private readonly Thread _thread;
     private readonly Dispatcher _dispatcher;
 
     public WpfApp()
     {
+        _desktop = CreateDesktop($"gengfu-tests-{Environment.ProcessId}", IntPtr.Zero, IntPtr.Zero, 0, GenericAll, IntPtr.Zero);
+        if (_desktop == IntPtr.Zero)
+        {
+            throw new Win32Exception();
+        }
+        StartFirstApartment();
         using var ready = new ManualResetEventSlim();
         Dispatcher? dispatcher = null;
+        Win32Exception? unmoved = null;
         _thread = new Thread(() =>
         {
+            if (!SetThreadDesktop(_desktop))
+            {
+                unmoved = new Win32Exception();
+                ready.Set();
+                return;
+            }
+            // The thread's keys start as the PC's were when it began, and no key let go at the PC
+            // reaches this desktop: they start up instead.
+            SetKeyboardState(new byte[256]);
             var app = new App();
             app.InitializeComponent();
             // Tests open windows of their own and close them; the App lasts until Dispose ends it.
@@ -42,6 +58,11 @@ public sealed class WpfApp : IDisposable
         _thread.SetApartmentState(ApartmentState.STA);
         _thread.Start();
         ready.Wait();
+        if (unmoved is not null)
+        {
+            CloseDesktop(_desktop);
+            throw unmoved;
+        }
         _dispatcher = dispatcher!;
         // Only Program opens Gengfu's window, on the folder it names; the App opens none itself,
         // so a test never runs a Gengfu on the user's own settings. Every view test fails if it does.
@@ -60,8 +81,8 @@ public sealed class WpfApp : IDisposable
 
     /// <summary>
     /// Shows a view in a window of its own, as Gengfu's window holds it, so it can take keyboard focus.
-    /// The window is off screen, never activated and out of the taskbar, so a test run leaves the
-    /// user's own windows alone. Close it when done.
+    /// The window is off screen, never activated and out of the taskbar, as when the App shared the
+    /// user's desktop; on its own desktop nobody sees it either way. Close it when done.
     /// </summary>
     public static Window Show(UIElement view)
     {
@@ -101,24 +122,10 @@ public sealed class WpfApp : IDisposable
     /// Presses and releases a key where focus is, through WPF's input as a typed key goes, so WPF's
     /// own handling of it runs too: Tab moves focus, Space presses a button.
     /// </summary>
-    /// <remarks>
-    /// WPF clicks a button on Space only while the PC's real left mouse button is up: on key down the
-    /// button captures the mouse, and on key up it lets go and clicks, or, with the mouse button down,
-    /// keeps the capture, clicks nothing and ignores the next Space. So a click anywhere on the PC
-    /// could eat a press: Space on a button waits for the mouse buttons first, and presses again
-    /// while the button kept the capture, for up to <see cref="PressFor"/> in all.
-    /// </remarks>
     public static void Press(Key key)
     {
         var focused = Focused() ?? throw new InvalidOperationException($"Nothing has keyboard focus to take {key}.");
-        if (key == Key.Space && focused is ButtonBase button)
-        {
-            PressButton(button);
-        }
-        else
-        {
-            Stroke(focused, key);
-        }
+        Stroke(focused, key);
         Settle();
     }
 
@@ -152,6 +159,7 @@ public sealed class WpfApp : IDisposable
         _dispatcher.Invoke(() => Application.Current.Shutdown());
         _dispatcher.InvokeShutdown();
         _thread.Join();
+        CloseDesktop(_desktop);
     }
 
     /// <summary>
@@ -197,31 +205,21 @@ public sealed class WpfApp : IDisposable
         return (text.TransformToVisual(mark).Transform(new Point(0, capitals)).Y - centre) * scale;
     }
 
-    private static void PressButton(ButtonBase button)
+    // In the test host the process's first STA thread can't move to another desktop: it is busy, as
+    // COM's main apartment holds a window. An STA thread with nothing else to do takes that place
+    // first, and pumps its messages, so a COM call or a message sent to that window still returns.
+    private static void StartFirstApartment()
     {
-        var until = Environment.TickCount64 + (long)PressFor.TotalMilliseconds;
-        while (true)
+        using var started = new ManualResetEventSlim();
+        var first = new Thread(() =>
         {
-            while (MouseButtonDown())
-            {
-                if (Environment.TickCount64 > until)
-                {
-                    throw new InvalidOperationException($"A mouse button stayed down for {PressFor.TotalSeconds} s, and Space doesn't press a button while one is.");
-                }
-                Thread.Sleep(10);
-            }
-            Stroke(button, Key.Space);
-            // Read at once, before Settle: the capture kept is the one sign this press was lost.
-            if (!button.IsMouseCaptured)
-            {
-                return;
-            }
-            button.ReleaseMouseCapture();
-            if (Environment.TickCount64 > until)
-            {
-                throw new InvalidOperationException($"For {PressFor.TotalSeconds} s the button kept the mouse after each Space, so none pressed it.");
-            }
-        }
+            started.Set();
+            Dispatcher.Run();
+        })
+        { IsBackground = true };
+        first.SetApartmentState(ApartmentState.STA);
+        first.Start();
+        started.Wait();
     }
 
     private static void Stroke(IInputElement focused, Key key)
@@ -232,10 +230,6 @@ public sealed class WpfApp : IDisposable
             InputManager.Current.ProcessInput(new KeyEventArgs(Keyboard.PrimaryDevice, source, Environment.TickCount, key) { RoutedEvent = stroke });
         }
     }
-
-    // The physical buttons, both, for a mouse whose buttons are swapped.
-    private static bool MouseButtonDown() =>
-        ((GetAsyncKeyState(VkLButton) | GetAsyncKeyState(VkRButton)) & 0x8000) != 0;
 
     private static void Arrange(Control view)
     {
@@ -252,8 +246,16 @@ public sealed class WpfApp : IDisposable
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetKeyboardState(byte[] state);
 
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern IntPtr CreateDesktop(string name, IntPtr device, IntPtr mode, int flags, uint access, IntPtr attributes);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetThreadDesktop(IntPtr desktop);
+
     [DllImport("user32.dll")]
-    private static extern short GetAsyncKeyState(int key);
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CloseDesktop(IntPtr desktop);
 
     private static void Invalidate(DependencyObject element)
     {
