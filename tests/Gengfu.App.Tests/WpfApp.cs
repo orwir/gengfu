@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -14,6 +15,12 @@ namespace Gengfu.App.Tests;
 /// </summary>
 public sealed class WpfApp : IDisposable
 {
+    private const int VkLButton = 0x01;
+    private const int VkRButton = 0x02;
+
+    // How long a Space on a button may wait for the mouse buttons, and press again, before the test fails.
+    private static readonly TimeSpan PressFor = TimeSpan.FromSeconds(10);
+
     private readonly Thread _thread;
     private readonly Dispatcher _dispatcher;
 
@@ -94,13 +101,23 @@ public sealed class WpfApp : IDisposable
     /// Presses and releases a key where focus is, through WPF's input as a typed key goes, so WPF's
     /// own handling of it runs too: Tab moves focus, Space presses a button.
     /// </summary>
+    /// <remarks>
+    /// WPF clicks a button on Space only while the PC's real left mouse button is up: on key down the
+    /// button captures the mouse, and on key up it lets go and clicks, or, with the mouse button down,
+    /// keeps the capture, clicks nothing and ignores the next Space. So a click anywhere on the PC
+    /// could eat a press: Space on a button waits for the mouse buttons first, and presses again
+    /// while the button kept the capture, for up to <see cref="PressFor"/> in all.
+    /// </remarks>
     public static void Press(Key key)
     {
         var focused = Focused() ?? throw new InvalidOperationException($"Nothing has keyboard focus to take {key}.");
-        var source = PresentationSource.FromVisual((Visual)focused);
-        foreach (var stroke in new[] { Keyboard.PreviewKeyDownEvent, Keyboard.PreviewKeyUpEvent })
+        if (key == Key.Space && focused is ButtonBase button)
         {
-            InputManager.Current.ProcessInput(new KeyEventArgs(Keyboard.PrimaryDevice, source, Environment.TickCount, key) { RoutedEvent = stroke });
+            PressButton(button);
+        }
+        else
+        {
+            Stroke(focused, key);
         }
         Settle();
     }
@@ -180,6 +197,46 @@ public sealed class WpfApp : IDisposable
         return (text.TransformToVisual(mark).Transform(new Point(0, capitals)).Y - centre) * scale;
     }
 
+    private static void PressButton(ButtonBase button)
+    {
+        var until = Environment.TickCount64 + (long)PressFor.TotalMilliseconds;
+        while (true)
+        {
+            while (MouseButtonDown())
+            {
+                if (Environment.TickCount64 > until)
+                {
+                    throw new InvalidOperationException($"A mouse button stayed down for {PressFor.TotalSeconds} s, and Space doesn't press a button while one is.");
+                }
+                Thread.Sleep(10);
+            }
+            Stroke(button, Key.Space);
+            // Read at once, before Settle: the capture kept is the one sign this press was lost.
+            if (!button.IsMouseCaptured)
+            {
+                return;
+            }
+            button.ReleaseMouseCapture();
+            if (Environment.TickCount64 > until)
+            {
+                throw new InvalidOperationException($"For {PressFor.TotalSeconds} s the button kept the mouse after each Space, so none pressed it.");
+            }
+        }
+    }
+
+    private static void Stroke(IInputElement focused, Key key)
+    {
+        var source = PresentationSource.FromVisual((Visual)focused);
+        foreach (var stroke in new[] { Keyboard.PreviewKeyDownEvent, Keyboard.PreviewKeyUpEvent })
+        {
+            InputManager.Current.ProcessInput(new KeyEventArgs(Keyboard.PrimaryDevice, source, Environment.TickCount, key) { RoutedEvent = stroke });
+        }
+    }
+
+    // The physical buttons, both, for a mouse whose buttons are swapped.
+    private static bool MouseButtonDown() =>
+        ((GetAsyncKeyState(VkLButton) | GetAsyncKeyState(VkRButton)) & 0x8000) != 0;
+
     private static void Arrange(Control view)
     {
         view.Measure(new Size(380, 584));
@@ -194,6 +251,9 @@ public sealed class WpfApp : IDisposable
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetKeyboardState(byte[] state);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int key);
 
     private static void Invalidate(DependencyObject element)
     {
