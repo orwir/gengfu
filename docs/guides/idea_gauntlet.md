@@ -119,7 +119,7 @@ ideas/
 ```
 
 Where the home's agent has a plugin system, the home turns the kit's plugin on as a
-project does (the kit's README). Its `.lifecycle.toml` names its one template under
+project does (the kit's `docs/guide.md`). Its `.lifecycle.toml` names its one template under
 `[templates]`, `"idea_gauntlet.md" = "AGENTS.md"`, and none of a project's. An upgrade
 then names this guide for the port whenever it changes, and what is ported is the
 fenced template below, nothing else of the guide.
