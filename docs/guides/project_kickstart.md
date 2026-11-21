@@ -271,7 +271,7 @@ Jobs: install deps, lint, format check, type check (if applicable), tests with a
 
 ### 2. `release.yml` — run on a dispatch, on the reviewed commit
 
-Triggered by `workflow_dispatch` alone, with the commit the release review read as its input: no push, tag or merge ships anything. Before it builds, it refuses a ref other than `main` or a hotfix branch, a head other than the reviewed commit, and a version tagged already; then it reuses `ci.yml` via `workflow_call`, builds, ships, and creates the tag last, so a failed release leaves no tag. The refusal steps keep the names below: `lifecycle release` reads them to say why a release was refused. One release runs at a time, never cancelled: a second dispatch waits for the first, then meets its tag.
+Triggered by `workflow_dispatch` alone, with the commit the release review read as its input: no push, tag or merge ships anything. Before it builds, it refuses a ref other than `main` or a hotfix branch, a head other than the reviewed commit, and a version tagged already; then it reuses `ci.yml` via `workflow_call`, builds, ships, and creates the tag last, so a failed release leaves no tag. The refusal steps keep the names below: `lifecycle release` reads them to say why a release was refused. `ship` reads the live branch head and tags again before it builds: a re-run keeps its first dispatch's head and inputs, and re-running only the failed jobs skips `refuse`, so without that second read a re-run of an old failed run would deploy over a newer release. One release runs at a time, never cancelled: a second dispatch waits for the first, then meets its tag.
 
 ```
 name: Release
@@ -330,6 +330,20 @@ jobs:
       VERSION: ${{ needs.refuse.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - name: Refuse a head the review did not read
+        env:
+          REVIEWED: ${{ inputs.commit }}
+        run: |
+          LIVE=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1) || { echo "::error::$GITHUB_REF could not be read"; exit 1; }
+          if [ "$LIVE" != "$REVIEWED" ]; then
+            echo "::error::the branch moved since the review: its head is $LIVE"; exit 1
+          fi
+      - name: Refuse a version released already
+        run: |   # exit 2 is "no such tag"; anything else, a failed read included, refuses
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null && found=0 || found=$?
+          if [ "$found" -ne 2 ]; then
+            echo "::error::v$VERSION is tagged already, or the tags could not be read"; exit 1
+          fi
       - name: Login to registry
         uses: docker/login-action@v3
         with: { registry: ghcr.io, username: ${{ github.actor }}, password: ${{ secrets.GITHUB_TOKEN }} }
@@ -508,7 +522,7 @@ If you use AI assistants to write code (Claude Code, Codex, Cursor, Gemini CLI, 
 
 - `.lifecycle.toml` at the root names its integration branch, board, gate commands, release workflow and review lenses — the structured values the skills read. Everything else they need stays in `AGENTS.md`.
 - `lifecycle upgrade --adopt` copies the method into `docs/guides/` and writes `.lifecycle.lock`.
-- The agent's adapter: for Claude Code, the kit's marketplace and plugin turned on in the committed `.claude/settings.json`, by the lines in the kit's README.
+- The agent's adapter: for Claude Code, the kit's marketplace and plugin turned on in the committed `.claude/settings.json`, by the kit's `docs/guide.md` (*Put a repository on the kit*).
 
 ---
 

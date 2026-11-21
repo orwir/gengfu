@@ -1,19 +1,19 @@
 {
-  "kit": "0.4.0",
+  "kit": "0.5.0",
   "guides": {
-    "README.md": "ee92e39e4ad08b725bf82b5319f30ea4bd5fb191b94a3b9836b8ded492758971",
+    "README.md": "63277d8b9e2211dcb77272aab3c9eb5021de4be886bcf5371661a0a05da66f85",
     "agents_template.md": "d76f1a6391a0fde5a188a2237642743ede1b500fb4f60c6080a94084f71518f8",
     "codebase_review.md": "47d6d50266c69ebcdf535e88fd894ebf75d77ecfed74b4bdc6a2016e3a93d484",
     "contributing_template.md": "09c0d77239c1aece5f67e98b1609e07dedf6274c9cb6e61d109abf74f1b29586",
     "design_review.md": "5b258129e2c9cdada771de3c70d2eac2cbaef61b5789355200621344aac80a97",
     "design_workflow.md": "eef5a7a3dd4eb7bacf411be30912904e2c256c99310b74834da5b88bc0398fea",
     "ia_review.md": "0dd8f879c6a182a550be634016889dd07716ff0b0be1791351957761dc399702",
-    "idea_gauntlet.md": "8f4aac4080b062c0a79fca244373dee7fb38db0f3174a283d4e30b2836ed0a87",
+    "idea_gauntlet.md": "03fc4a70f9a059821f2c2c2940708f4314af9388c807af9f5db5478c906e2565",
     "issue_template_bug.md": "fb70b4ec79f77be3c400eecce89e181fa2055639878f74092e08ff6faa468c63",
     "issue_template_task.md": "a8ab702cc7b921aab915f830b5d4bce23261ab3b3ec4f547bbbb44c0b4f79d1a",
     "llm_review.md": "d94fbe967085217872a45773591a52b0fb1d4cabe902e6cecf65b9d194598f1c",
     "pr_template.md": "09b47cc70f95085c939a6a47ac13d466c05de01d49d08238ce244c93990d758c",
-    "project_kickstart.md": "ca22a703780ee3ebb49df0e9ab25533bdfa15f5eb50b419fee50dc9b8edb8402",
+    "project_kickstart.md": "73caaa2b03dc61892e79c12a6d20df24b7a4134bb9bdb63a3c4b6a4630e5bae1",
     "review_machinery.md": "740665a9549c73e36b40dc0dcc5269da57d00d7d9366612dca24d93848d0ed2c",
     "task_review.md": "afdc6db96cb494f06bc1d50ea97a27bb69f8b1b8bcc377b57baab3159ff138ce",
     "ux_review.md": "ab4153ba90f9bc732c280208b53c86e2a26836141fac4ad5aa14f1b96454ef8d"

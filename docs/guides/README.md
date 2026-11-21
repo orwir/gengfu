@@ -84,9 +84,9 @@ the edit still goes to the kit at its task's *Complete*. It replaces each file a
 template ports into that the repository kept word for word, and names the templates
 left to port, each with its file: a project's `AGENTS.md`, `CONTRIBUTING.md` and
 `.github/` templates, unless `[templates]` in `.lifecycle.toml` names others. A
-release that needs any other change in each repository says so in a `Repositories:`
-line of the kit's changelog; `lifecycle upgraded` lists them, and whoever runs the
-upgrade makes each one. A repository behind the installed kit
+release that needs any other change in each repository writes its steps in the kit's
+`UPGRADING.md`; `lifecycle doctor` and `lifecycle upgraded` print them, and whoever
+runs the upgrade makes each one. A repository behind the installed kit
 upgrades as a tracked task's first step, and the task's briefs say what the upgrade
 brought; it lands as its own commit ahead of the task's where it can.
 
@@ -140,8 +140,10 @@ the rest of the task.
 1. **Edit the copy** inside the task. The task's hand-back names the push to the kit
    as a step of its *Complete*; `lifecycle guides check` lists the edited guides.
 2. **Push at *Complete***, on the task's go-ahead and before its commit:
-   `lifecycle guides push -m "<what changed and why, one line>"`, the line in the kit's
-   words, since every project on the kit reads it. It applies the edits
+   `lifecycle guides push -m "<what changed>"`, the line in the kit's words, since every
+   project on the kit reads it: it is the patch's entry in the kit's changelog, one claim
+   with no reason and no issue number, which the push holds to the changelog's style. It
+   applies the edits
    onto the release the copy is pinned to, replays them onto the kit's latest, and
    releases them as a patch; a conflict stops the push before anything lands, and goes
    back to the maintainer.
