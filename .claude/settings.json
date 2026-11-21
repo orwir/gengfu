@@ -4,6 +4,7 @@
       "Bash(lifecycle board:*)",
       "Bash(lifecycle doctor:*)",
       "Bash(lifecycle config:*)",
+      "Bash(lifecycle upgraded:*)",
       "Bash(lifecycle guides check:*)"
     ]
   },
