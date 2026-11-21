@@ -23,23 +23,27 @@ rationale that don't fit there. Reusable cross-project patterns live in
 
 ## Branching
 
-- **`master`** — releases. Merges only: release PRs from `develop`, or hotfix
-  PRs from `fix/…` branched off `master` (see Hotfixes below).
-- **`develop`** — default branch, where everyday work lands.
+- **`main`** — the one long-lived branch and the default branch, where
+  everyday work lands. A push to it ships nothing: a release goes out only
+  through the release workflow (Releasing below), and its tags are what
+  shipped.
 - **Feature branches** — `feat/… | fix/… | chore/… | docs/… | refactor/… |
-  perf/… | test/…`, branched from `develop`, squash-merged.
+  perf/… | test/…`, branched from `main`, squash-merged.
+- **Hotfix branches** — `hotfix/…`, cut from the last release's tag, released
+  from the branch, then merged into `main` with a merge commit, never squashed
+  (see Hotfixes below).
 - **Merged branches get deleted, immediately and on both ends.** `gh pr merge
   --delete-branch` removes the remote copy only; finish the job locally:
 
   ```bash
-  git checkout develop && git pull
+  git checkout main && git pull
   git branch -d feat/my-thing
   git fetch --prune
   ```
 
   A branch listed by `git branch` is either active work or it shouldn't exist.
-  Periodic sweep: `git branch --merged develop` should list nothing but
-  `develop` itself.
+  Periodic sweep: `git branch --merged main` should list nothing but `main`
+  itself.
 
 ## Commits
 
@@ -137,8 +141,8 @@ and one `area/…` when one fits — create the area label first if it's new.
 reuse it. How the release is built, published and rolled back:
 [release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`, publishes as
 a pre-release, which only installed test builds update to; it skips steps 1,
-4 and 9, keeps its CHANGELOG entries under `[Unreleased]`, and puts that section
-in the PR body. The checklist is literal — execute it in order, no shortcuts:
+4 and 9, and keeps its CHANGELOG entries under `[Unreleased]`, which become its
+notes. The checklist is literal — execute it in order, no shortcuts:
 
 1. **Confirm the milestone is clean.** `gh issue list --milestone v<X.Y>
    --state open` returns nothing (close or move out the rest).
@@ -146,30 +150,26 @@ in the PR body. The checklist is literal — execute it in order, no shortcuts:
    source of truth.
 3. **Update `CHANGELOG.md`**: date the new section, group entries under
    Added / Changed / Fixed / Removed, reference issues (`#N`).
-4. **Count the copies in use.** Before the merge, add the previous release's
-   downloads to [release.md § Copies in use](docs/guides/release.md#copies-in-use).
+4. **Count the copies in use.** Before the dispatch, add the previous
+   release's downloads to [release.md § Copies in use](docs/guides/release.md#copies-in-use).
    Gengfu sends no telemetry, so they are the only count of who runs it.
-5. **Open the release PR** `develop` → `master`, titled `Release v<X.Y.Z>`,
-   body = the new CHANGELOG section.
-6. **— Checkpoint —** Name the comprehensive reviews that are due
-   (`docs/guides/review_machinery.md` § When a review is due), with the trigger
-   that fired each. If an AI assistant is driving, it stops here and waits
-   for explicit approval. Step 7 is irreversible and ships to users; a prior
+5. **Commit and push** the release commit to `main`.
+6. **Review the release** on the compare link from the last tag (`git fetch
+   --tags origin` first: the workflow makes the tags on GitHub) to that commit
+   (`https://github.com/orwir/gengfu/compare/v<last>...<sha>`), and name the
+   comprehensive reviews that are due (`docs/guides/review_machinery.md` §
+   When a review is due), with the trigger that fired each. A correction lands
+   on `main`, and the review reads the new head.
+7. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
+   for explicit approval. Step 8 is irreversible and ships to users; a prior
    "do the release" does not extend past this line.
-7. **Merge after CI is green.** The merge to `master` runs the release
-   workflow: it builds the app, installs it on the CI machine, and publishes
-   the GitHub Release with its tag `v<X.Y.Z>` and the CHANGELOG section as its
-   notes. Follow it to the end with `gh run watch`.
-8. **Fast-forward `develop`** onto the release merge commit so the branches
-   don't diverge:
-
-   ```bash
-   git checkout develop
-   git merge --ff-only master && git push
-   ```
-
-   If `develop` moved during the release, use a regular merge instead of
-   `--ff-only`.
+8. **Dispatch the release workflow** on the reviewed commit and watch the run
+   to its end: `lifecycle release <sha>`, or `gh workflow run release.yml
+   --ref main -f commit=<sha>` and `gh run watch`. It refuses when `main` moved
+   since the review (review the new head, then dispatch that) or when the
+   version is tagged already; otherwise it builds the app, installs it on the
+   CI machine, and last publishes the GitHub Release with its tag `v<X.Y.Z>`
+   and the CHANGELOG section as its notes.
 9. **Close the milestone.**
 10. **Verify the release**: run the published Setup on a Windows 11 PC (or let
     an installed Gengfu update itself) and check that Settings › General shows
@@ -177,16 +177,22 @@ in the PR body. The checklist is literal — execute it in order, no shortcuts:
 
 ## Hotfixes
 
-For urgent fixes to a released version:
+For an urgent fix to a released version while `main` holds unreleased work:
 
-1. Branch `fix/…` from `master`.
-2. Fix, with a test that fails before and passes after.
-3. Bump the patch version, add the CHANGELOG entry.
-4. PR back to `master`; merge after CI. The merge publishes the release with
-   its tag, as in step 7 above.
-5. Forward-merge `master` → `develop` so the next regular release doesn't lose
-   the patch.
-6. Delete the hotfix branch — remote and local.
+1. Cut `hotfix/…` from the last release's tag: `git fetch --tags origin`, then
+   `git switch -c hotfix/<name> v<last>`. Where that tag is older than the
+   release workflow, bring `.github/workflows/release.yml` over from `main`
+   first: a dispatch runs the workflow file of the branch it names.
+2. Fix, with a test that fails before and passes after, and push the branch.
+   Nothing merges it yet.
+3. Release from the branch: the Releasing steps with the patch version, the
+   dispatch on the branch (`lifecycle release <sha> --ref hotfix/<name>`).
+4. Merge the branch into `main` with a merge commit (`git merge --no-ff`),
+   never squashed, so the tag stays in its history, and push.
+5. Delete the hotfix branch — remote and local.
+
+With nothing unreleased on `main`, a fix is an ordinary task and an ordinary
+patch release.
 
 ## Documentation
 

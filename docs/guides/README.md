@@ -102,7 +102,7 @@ When pointed at this method and asked to bootstrap or prepare the gauntlet:
    one up where the user chooses, private by default, with the layout in
    `idea_gauntlet.md` § *The ideas home*: its root `AGENTS.md` (the template
    there), `archived.md`, `graduated.md`, `active/`, `archive/`, a `.lifecycle.toml`
-   naming `main` as its integration branch, no protected branch and
+   naming `main` as its integration branch and
    `"idea_gauntlet.md" = "AGENTS.md"` under `[templates]`, and this method copied into
    `docs/guides/` (*Use in a project*).
 2. Check `archived.md`: if this idea, or a close variant, was killed before, show

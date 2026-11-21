@@ -20,12 +20,15 @@ rationale that don't fit there. Reusable cross-project patterns live in
 
 ## Branching
 
-- **`{{PRODUCTION_BRANCH}}`** — production. Merges only: release PRs from
-  `{{INTEGRATION_BRANCH}}`, or hotfix PRs from `fix/…` branched off
-  `{{PRODUCTION_BRANCH}}` (see Hotfixes below).
-- **`{{INTEGRATION_BRANCH}}`** — default branch, where everyday work lands.
+- **`{{INTEGRATION_BRANCH}}`** — the one long-lived branch and the default
+  branch, where everyday work lands. A push to it ships nothing: a release goes
+  out only through the release workflow (Releasing below), and its tags are what
+  shipped.
 - **Feature branches** — `feat/… | fix/… | chore/… | docs/… | refactor/… |
   perf/… | test/…`, branched from `{{INTEGRATION_BRANCH}}`, squash-merged.
+- **Hotfix branches** — `hotfix/…`, cut from the last release's tag, released
+  from the branch, then merged into `{{INTEGRATION_BRANCH}}` with a merge commit,
+  never squashed (see Hotfixes below).
 - **Merged branches get deleted, immediately and on both ends.** `gh pr merge
   --delete-branch` removes the remote copy only; finish the job locally:
 
@@ -115,42 +118,45 @@ reuse it. The checklist is literal — execute it in order, no shortcuts:
 2. **Bump the version** in `{{VERSION_FILE}}` — the single source of truth.
 3. **Update `CHANGELOG.md`**: date the new section, group entries under
    Added / Changed / Fixed / Removed, reference issues (`#N`).
-4. **Open the release PR** `{{INTEGRATION_BRANCH}}` → `{{PRODUCTION_BRANCH}}`,
-   titled `Release v<X.Y.Z>`, body = the new CHANGELOG section.
-5. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
-   for explicit approval. Steps 6–7 are irreversible and ship to production;
-   a prior "do the release" does not extend past this line.
-6. **Merge after CI is green.** The merge to `{{PRODUCTION_BRANCH}}` triggers
-   the deploy/publish workflow.
-7. **Tag** `v<X.Y.Z>` on the merge commit and push the tag.
-8. **Create the GitHub Release** from the tag, body = the CHANGELOG section.
-9. **Fast-forward `{{INTEGRATION_BRANCH}}`** onto the release merge commit so
-   the branches don't diverge:
-
-   ```bash
-   git checkout {{INTEGRATION_BRANCH}}
-   git merge --ff-only {{PRODUCTION_BRANCH}} && git push
-   ```
-
-   If `{{INTEGRATION_BRANCH}}` moved during the release, use a regular merge
-   instead of `--ff-only`.
-10. **Close the milestone.**
-11. **Verify the deployment**: `{{VERSION_PROBE}}` ({{e.g., `curl
-    https://…/health`, `--version` of the published artifact}}) reports the new
-    version. A release isn't done until this passes.
+4. **Commit and push** the release commit to `{{INTEGRATION_BRANCH}}`.
+5. **Review the release** on the compare link from the last tag (`git fetch
+   --tags origin` first: the workflow makes the tags on GitHub) to that commit
+   (`https://github.com/<owner>/<repo>/compare/v<last>...<sha>`), with the
+   readings of every check that runs only before a release. A correction lands
+   on `{{INTEGRATION_BRANCH}}`, and the review reads the new head.
+6. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
+   for explicit approval. Step 7 is irreversible and ships to production; a
+   prior "do the release" does not extend past this line.
+7. **Dispatch the release workflow** (`{{RELEASE_WORKFLOW}}`, named under
+   `[release]` in `.lifecycle.toml`) on the reviewed commit, and watch the run
+   to its end: `lifecycle release <sha>`. It refuses when
+   `{{INTEGRATION_BRANCH}}` moved since the review (review the new head, then
+   dispatch that) or when the version is tagged already; otherwise it builds,
+   ships, and creates the tag and the GitHub Release last.
+8. **Close the milestone.**
+9. **Verify the deployment**: `{{VERSION_PROBE}}` ({{e.g., `curl
+   https://…/health`, `--version` of the published artifact}}) reports the new
+   version. A release isn't done until this passes.
 
 ## Hotfixes
 
-For urgent production fixes:
+For an urgent production fix while `{{INTEGRATION_BRANCH}}` holds unreleased
+work:
 
-1. Branch `fix/…` from `{{PRODUCTION_BRANCH}}`.
-2. Fix, with a test that fails before and passes after.
-3. Bump the patch version, add the CHANGELOG entry.
-4. PR back to `{{PRODUCTION_BRANCH}}`; merge after CI (auto-deploys).
-5. Tag, create the GitHub Release.
-6. Forward-merge `{{PRODUCTION_BRANCH}}` → `{{INTEGRATION_BRANCH}}` so the next
-   regular release doesn't lose the patch.
-7. Delete the hotfix branch — remote and local.
+1. Cut `hotfix/…` from the last release's tag: `git fetch --tags origin`, then
+   `git switch -c hotfix/<name> v<last>`. Where that tag is older than the release workflow, bring the
+   workflow file over from `{{INTEGRATION_BRANCH}}` first: a dispatch runs the
+   workflow file of the branch it names.
+2. Fix, with a test that fails before and passes after, and push the branch.
+   Nothing merges it yet.
+3. Release from the branch: the Releasing steps with the patch version, the
+   dispatch on the branch (`lifecycle release <sha> --ref hotfix/<name>`).
+4. Merge the branch into `{{INTEGRATION_BRANCH}}` with a merge commit (`git
+   merge --no-ff`), never squashed, so the tag stays in its history, and push.
+5. Delete the hotfix branch — remote and local.
+
+With nothing unreleased on `{{INTEGRATION_BRANCH}}`, a fix is an ordinary task
+and an ordinary patch release.
 
 ## Documentation
 

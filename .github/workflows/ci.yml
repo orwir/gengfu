@@ -3,12 +3,12 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [develop]
+    branches: [main]
   workflow_call:
 
 # A newer run cancels the older one of the same ref: a branch's pushes, or one pull request's
-# commits. A push and a pull request never share a ref, so a release PR opened right after its
-# push to develop leaves that push's run alone; a cancelled gate would block the merge into master.
+# commits. A push and a pull request never share a ref, and release.yml's call runs under the
+# Release workflow's name, so neither a pull request nor a push to main cancels a release's gate.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

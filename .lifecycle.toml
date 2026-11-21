@@ -2,8 +2,10 @@
 # them. Everything else they need is in AGENTS.md.
 
 [branches]
-integration = "develop"
-protected = "master"
+integration = "main"
+
+[release]
+workflow = "release.yml"
 
 [board]
 owner = "orwir"

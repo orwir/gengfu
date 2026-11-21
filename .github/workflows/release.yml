@@ -1,13 +1,18 @@
 name: Release
 
-# A merge to master releases the version in Directory.Build.props: the CI gate, a self-contained
-# build that Velopack packs into Setup.exe, a full package and a delta from the last release, a
-# test install, then the GitHub Release and its tag. Why: ADR-0006. How: docs/guides/release.md.
+# A dispatch on the commit the release review read releases the version in Directory.Build.props:
+# the refusals, the CI gate, a self-contained build that Velopack packs into Setup.exe, a full
+# package and a delta from the last release, a test install, then the GitHub Release and its tag,
+# last, so a failed run publishes and tags nothing. Why: ADR-0006 and ADR-0008. How:
+# docs/guides/release.md.
 on:
-  push:
-    branches: [master]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: The commit the release review read, as a full SHA
+        required: true
 
-# One release at a time: a second merge waits for the first rather than racing it.
+# One release at a time, never cancelled: a second dispatch waits for the first, then meets its tag.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -16,34 +21,43 @@ permissions:
   contents: read
 
 jobs:
-  gate:
-    uses: ./.github/workflows/ci.yml
-
-  release:
-    needs: gate
-    runs-on: windows-latest
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+  # The refusal steps keep the kickstart recipe's names: `lifecycle release` reads them to say why
+  # a release was refused.
+  refuse:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      pre: ${{ steps.version.outputs.pre }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Refuse a ref other than the integration or a hotfix branch
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/main | refs/heads/hotfix/*) ;;
+            *) echo "::error::$GITHUB_REF is not main or a hotfix branch"; exit 1 ;;
+          esac
+
+      - name: Refuse a head the review did not read
+        env:
+          REVIEWED: ${{ inputs.commit }}
+        run: |
+          if [ "$GITHUB_SHA" != "$REVIEWED" ]; then
+            echo "::error::the branch moved since the review: its head is $GITHUB_SHA"
+            exit 1
+          fi
+
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
+      # Gengfu.Core targets plain net10.0, so it evaluates on Linux; its <Version> is the app's.
       - name: Read the version
         id: version
-        shell: bash
         run: |
-          version="$(dotnet msbuild src/Gengfu.App/Gengfu.App.csproj -getProperty:Version | tr -d '\r')"
+          version="$(dotnet msbuild src/Gengfu.Core/Gengfu.Core.csproj -getProperty:Version)"
           if [[ "$version" == *-dev* ]]; then
             echo "::error::$version is a development version: set the release's <Version> in Directory.Build.props."
-            exit 1
-          fi
-          if gh release view "v$version" > /dev/null 2>&1; then
-            echo "::error::v$version is released already: bump <Version> in Directory.Build.props."
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -52,9 +66,40 @@ jobs:
             echo "pre=--pre" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Refuse a version released already
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Exit 2 is "no such tag"; anything else, a failed read included, refuses.
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null && found=0 || found=$?
+          if [ "$found" -ne 2 ]; then
+            echo "::error::v$VERSION is tagged already, or the tags could not be read: bump <Version> in Directory.Build.props."
+            exit 1
+          fi
+
+  gate:
+    needs: refuse
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: [refuse, gate]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+      VERSION: ${{ needs.refuse.outputs.version }}
+      PRE: ${{ needs.refuse.outputs.pre }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
       - name: Write the release notes
         shell: bash
-        run: bash scripts/release-notes.sh "${{ steps.version.outputs.version }}" > release-notes.md
+        run: bash scripts/release-notes.sh "$VERSION" > release-notes.md
 
       - name: Build, self-contained
         run: dotnet publish src/Gengfu.App/Gengfu.App.csproj -c Release -r win-x64 --self-contained -o publish
@@ -73,12 +118,12 @@ jobs:
 
       - name: Fetch the last release, to pack the delta from
         shell: bash
-        run: vpk download github --repoUrl "$REPO_URL" --token "$GH_TOKEN" ${{ steps.version.outputs.pre }} -o releases
+        run: vpk download github --repoUrl "$REPO_URL" --token "$GH_TOKEN" $PRE -o releases
 
       - name: Pack
         shell: bash
         run: >-
-          vpk pack --packId Gengfu --packVersion "${{ steps.version.outputs.version }}"
+          vpk pack --packId Gengfu --packVersion "$VERSION"
           --packTitle Gengfu --packAuthors orwir --packDir publish --mainExe Gengfu.exe
           --icon src/Gengfu.App/Gengfu.ico --releaseNotes release-notes.md
           --runtime win-x64 --noPortable -o releases
@@ -87,9 +132,9 @@ jobs:
         shell: pwsh
         run: scripts/smoke-install.ps1 -Releases releases
 
-      - name: Publish
+      - name: Publish, with the tag
         shell: bash
         run: >-
           vpk upload github --repoUrl "$REPO_URL" --token "$GH_TOKEN" -o releases --publish
-          --tag "v${{ steps.version.outputs.version }}" --targetCommitish "$GITHUB_SHA"
-          --releaseName "Gengfu ${{ steps.version.outputs.version }}" ${{ steps.version.outputs.pre }}
+          --tag "v$VERSION" --targetCommitish "$GITHUB_SHA"
+          --releaseName "Gengfu $VERSION" $PRE

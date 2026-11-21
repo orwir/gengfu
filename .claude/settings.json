@@ -6,6 +6,11 @@
       "Bash(lifecycle config:*)",
       "Bash(lifecycle upgraded:*)",
       "Bash(lifecycle guides check:*)"
+    ],
+    "ask": [
+      "Bash(gh workflow run:*)",
+      "Bash(lifecycle release:*)",
+      "Bash(bin/lifecycle release:*)"
     ]
   },
   "extraKnownMarketplaces": {

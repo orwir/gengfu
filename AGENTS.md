@@ -4,7 +4,7 @@ You are working in the `orwir/gengfu` repository: a C# / .NET 10 Windows desktop
 
 For the full rationale behind any rule, read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/guides/project_kickstart.md](docs/guides/project_kickstart.md). These rules are the compressed operating contract; those files are the source of truth when details are ambiguous.
 
-**Hard gates, before anything else:** never push to `master`; never commit, push, merge, or close work without explicit approval (see *Task workflow*); never bypass hooks with `--no-verify`; never commit or print secrets. Everything below is detail around these four.
+**Hard gates, before anything else:** never start a release workflow without the release's own "proceed"; never commit, push, merge, or close work without explicit approval (see *Task workflow*); never bypass hooks with `--no-verify`; never commit or print secrets. Everything below is detail around these four.
 
 ---
 
@@ -20,19 +20,19 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
 
 ## Branching and commits
 
-- **Default flow:** commit directly to `develop`. Solo-maintained with AI assistants; the pre-push hook runs the same gate as CI. Stick to it; mixing flows breaks the project board lifecycle.
+- **Default flow:** commit directly to `main`. Solo-maintained with AI assistants; the pre-push hook runs the same gate as CI. Stick to it; mixing flows breaks the project board lifecycle.
 - **When to use a feature branch:** open one (`feat/…`, `fix/…`, `chore/…`, `docs/…`, `refactor/…`, `perf/…`) when the work is multi-commit and should land atomically, is risky or invasive (vendored-library updates, cross-cutting refactors), spans multiple sessions, or benefits from a diff-review pass before merging. When in doubt, branch.
-- **Never push directly to `master`.** It triggers the release pipeline; merges only via release PRs from `develop`.
+- **A push ships nothing.** `main` is the one long-lived branch; a release publishes to players only through the release workflow, dispatched on the commit the release review read (*Versioning and release* below), which creates the `v*` tag. Never create one by hand. A fix that cannot wait for what `main` holds goes on a `hotfix/…` branch cut from the last release's tag ([CONTRIBUTING.md § Hotfixes](CONTRIBUTING.md)).
 - **Automated feature-branch flow:**
   ```bash
   git checkout -b feat/my-thing
   # ... work, commit, push ...
   git push -u origin feat/my-thing
-  gh pr create --base develop --title "<subject>" --body-file <pr.md outside the tree>
+  gh pr create --base main --title "<subject>" --body-file <pr.md outside the tree>
   gh pr merge --squash --auto --delete-branch
   ```
   The PR body is `.github/pull_request_template.md`, filled for a reader who never saw the review rounds; `--fill` would send the commit messages instead.
-  `--delete-branch` removes only the **remote** copy — once the merge lands, delete the local branch too: `git checkout develop && git pull && git branch -d feat/my-thing && git fetch --prune`.
+  `--delete-branch` removes only the **remote** copy — once the merge lands, delete the local branch too: `git checkout main && git pull && git branch -d feat/my-thing && git fetch --prune`.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): prefixes `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`; optional scope (`fix(teamspeak): …`); imperative subject, no trailing period, under 72 characters; the body explains **why**.
 - Never use `--no-verify`. If a hook fails, fix the underlying issue; if the hook is wrong, say so and propose a fix.
 
@@ -41,7 +41,7 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
 Every tracked task moves through three explicit phases. **Do not collapse them** — each gate is the user's, not yours to assume. The issue carries the task between sessions: a session that picks it up cold continues from the issue body, its ticked boxes and the tree, so nothing a later session needs may live only in the conversation.
 
 1. **Clarify.** Read the ticket and/or description and the code it touches, ask for any missing detail, and surface scope or constraint conflicts *before* writing code. Move the board item to `In Progress` when you pick it up (skip the board steps for an untracked task; the approval gates still apply). Write the issue's *Plan* from the code as it stands, run the plan round where it applies, and render the Clarify brief. Implementation does not begin until the plan is accepted: by the maintainer's "go", with their answers in the plan's *Decisions*, or — when the round was skipped and nothing is left to answer — by you, going straight on.
-2. **Implement & stop.** Do the work in full — code, tests, docs — to the *Definition of Done* below, ticking each Technical-details box as its path lands and recording a departure from the accepted plan under its *Departures* when you make it. Run the local gate — never report it as passed without having run it in this session, and say so explicitly if something couldn't be run. Run the work round, then **stop and hand back** with the hand-back brief: on `develop` leave the changes **uncommitted**; on a feature branch WIP commits are fine. Do **not** push, merge, or close anything in this phase.
+2. **Implement & stop.** Do the work in full — code, tests, docs — to the *Definition of Done* below, ticking each Technical-details box as its path lands and recording a departure from the accepted plan under its *Departures* when you make it. Run the local gate — never report it as passed without having run it in this session, and say so explicitly if something couldn't be run. Run the work round, then **stop and hand back** with the hand-back brief: on `main` leave the changes **uncommitted**; on a feature branch WIP commits are fine. Do **not** push, merge, or close anything in this phase.
    - The rounds are [docs/guides/task_review.md](docs/guides/task_review.md), each read by a fresh subagent with no author context; the lifecycle kit's `clarify`, `review` and `handback` skills run them, and its `complete` skill the close-out. An untracked micro-task has no plan and skips both rounds; any other task with no issue skips the plan round and runs the work round untracked.
 3. **Complete — on explicit approval only.** An explicit go-ahead ("complete the task", "lgtm") is the *only* trigger to commit, push, close the ticket, move the board item to `Done`, and delete a merged feature branch, remote and local. The same gate applies to `git push`, `gh pr create`, and `gh pr merge` — auto mode is permission to write code without re-asking, not permission to land it. A task that changed a lifecycle guide pushes it to the kit in the same close-out (`lifecycle guides push`; `docs/guides/README.md`, *Change a guide*).
 
@@ -66,7 +66,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 - The version string lives in exactly one place: `Directory.Build.props` → `<Version>`. The About entry (`AppVersion.Current`) and the release workflow read it from the build. **Do not duplicate it.**
 - Update `CHANGELOG.md` for any user-visible change: **one claim per entry, at most 120 characters before the `(#N)`**, grouped Added / Changed / Fixed / Removed once per version, no rationale prose.
-- Releases follow the numbered checklist in [CONTRIBUTING.md § Releasing](CONTRIBUTING.md), in three phases: **Prepare** (pick the semver bump, bump `<Version>`, date the CHANGELOG, count the copies in use, open the `develop → master` PR, check which comprehensive reviews are due by `docs/guides/review_machinery.md`), **Review** (stop, surface the PR URL, a summary and the reviews that are due, wait for "proceed"), **Ship — on explicit approval only** (merge, which tags and publishes through `release.yml`; fast-forward `develop`, close the milestone, verify). A prior "do the release" does not extend past the review checkpoint.
+- Releases follow the numbered checklist in [CONTRIBUTING.md § Releasing](CONTRIBUTING.md), in three phases: **Prepare** (pick the semver bump, bump `<Version>`, date the CHANGELOG, count the copies in use, commit and push `main` (or the hotfix branch), check which comprehensive reviews are due by `docs/guides/review_machinery.md`), **Review** (stop, surface the compare link from the last tag to the head, a summary and the reviews that are due, wait for "proceed"; a correction lands on the release's branch and the review reads the new head), **Ship — on explicit approval only** (dispatch the release workflow on the head the review read and watch it to its end with `lifecycle release <sha>`: it tags and publishes, and the dispatch is irreversible; merge a hotfix branch into `main` with a merge commit; close the milestone, verify). A prior "do the release" does not extend past the review checkpoint.
 
 ## Tests and quality gates
 
@@ -142,7 +142,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 ## What NOT to do
 
-- Do not push to `master`, duplicate the version string, or use `--no-verify`.
+- Do not start the release workflow or create a `v*` tag outside a release's Ship phase, duplicate the version string, or use `--no-verify`.
 - Do not reference WPF, Windows APIs or TSLib from `Gengfu.Core`.
 - Do not edit `lib/` outside the patch process.
 - Do not commit secrets, identities or local `*.local.*` files.

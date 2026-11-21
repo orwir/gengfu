@@ -138,41 +138,41 @@ For non-service projects, the equivalent is a `--version` flag (CLI), an About d
 
 ## Branching model
 
-Two branches are mandatory. Feature branches are optional and earn their keep only in specific situations.
+One long-lived branch, `main`, and two events kept apart: a task **lands** on `main`, and nothing deploys; a **release** is a version-bump commit on `main`, reviewed, then shipped by the release workflow, which creates the tag `v<version>`. Short-lived branches come off `main` and go back into it.
 
-- **`master` (or `main`)** — production. Every commit here is deployed. Nobody pushes directly; merges only.
-- **`develop`** — integration branch. Default branch in GitHub. **The pre-push hook runs the same lint + test gate as CI before any push lands**, so it is safe to commit directly here; CI itself re-runs on PRs as a backstop.
-- **feature branches** — optional, branched from `develop`, named `feat/…`, `fix/…`, `chore/…`, `docs/…`, `refactor/…`. Used only when the change warrants them (see below).
+- **`main`** — the default branch on GitHub, where every task lands, and the record of every release: its tags are what shipped, and after `git fetch --tags` (the release workflow makes the tags on GitHub), `git log $(git describe --tags --abbrev=0)..main` is what has not. **The pre-push hook runs the same lint + test gate as CI before any push lands**, so it is safe to commit directly here; CI re-runs on every push to `main` and on PRs as a backstop.
+- **feature branches** — optional, branched from `main`, named `feat/…`, `fix/…`, `chore/…`, `docs/…`, `refactor/…`. Used only when the change warrants them (see below).
+- **hotfix branches** — `hotfix/<name>`, cut from the last release's tag when a production fix cannot wait for what `main` holds (*Hotfix variant*).
 - **Commit messages** — [Conventional Commits](https://www.conventionalcommits.org/) (`feat` / `fix` / `chore` / `docs` / `refactor` / `test` / `perf`), imperative subject under 72 characters, body for the *why* when it isn't obvious. Squash-merge titles inherit their quality from these.
 
 ### Pick the flow that matches the situation
 
-Your default flow depends on team size and the nature of the work. For a **solo developer (especially one working through AI assistants)**, most work should land on `develop` directly — the PR ceremony is pure overhead when there's nobody else to review and the pre-push hook already runs the same lint + test + coverage-floor gate as CI. For a **team or open-source project**, feature branches become the default because the PR *is* the review surface.
+Your default flow depends on team size and the nature of the work. For a **solo developer (especially one working through AI assistants)**, most work should land on `main` directly — the PR ceremony is pure overhead when there's nobody else to review and the pre-push hook already runs the same lint + test + coverage-floor gate as CI. For a **team or open-source project**, feature branches become the default because the PR *is* the review surface.
 
 Either way, feature branches remain the right call for specific kinds of work, and automating them brings the cost down to near zero.
 
 ### Solo + AI-assisted flow
 
-For everyday work — small features, fixes, docs, chores — commit directly to `develop`:
+For everyday work — small features, fixes, docs, chores — commit directly to `main`:
 
 ```
-git checkout develop
+git checkout main
 git pull
 # ... work, commit ...
 git push
 ```
 
-The pre-push stage of the local hook config runs the identical lint, format-check, and test commands (with the coverage floor) that CI runs, so every push has already cleared the CI gate locally. CI itself re-runs on PRs as a backstop. Releases still go through a `develop → master` PR, so the auto-deploy gate on `master` stays intact. Broken commits on `develop` are a fix-forward or `git revert` problem, not a crisis — nothing is deployed.
+The pre-push stage of the local hook config runs the identical lint, format-check, and test commands (with the coverage floor) that CI runs, so every push has already cleared the CI gate locally. CI itself re-runs on the push as a backstop. A push ships nothing: a release goes out only through the release workflow, dispatched on a reviewed commit (*Release process*). Broken commits on `main` are a fix-forward or `git revert` problem, not a crisis — nothing is deployed.
 
-The hook is the mechanical gate; the read is `task_review.md` (copied alongside this playbook). Before a task is handed back, the developer session hands a packet to reviewer agents with no author context — subagents it launches, or fresh sessions where the tool has none — and renders a hand-back brief for the maintainer from their return packets: plain-text packets between the agents, and the same round whether the work rides a PR or lands on `develop` directly. The maintainer reads the brief and nothing else of the round, then the diff, with what a gate cannot check (scope, decisions, invariants, truth, docs) already read by reviewers the author could not steer. The same guide runs a plan round at *Clarify*, before any code: where the plan in the issue has one of the shapes that have shipped holes before, a reviewer with no author context reads it against the code, and the maintainer accepts it from a Clarify brief.
+The hook is the mechanical gate; the read is `task_review.md` (copied alongside this playbook). Before a task is handed back, the developer session hands a packet to reviewer agents with no author context — subagents it launches, or fresh sessions where the tool has none — and renders a hand-back brief for the maintainer from their return packets: plain-text packets between the agents, and the same round whether the work rides a PR or lands on `main` directly. The maintainer reads the brief and nothing else of the round, then the diff, with what a gate cannot check (scope, decisions, invariants, truth, docs) already read by reviewers the author could not steer. The same guide runs a plan round at *Clarify*, before any code: where the plan in the issue has one of the shapes that have shipped holes before, a reviewer with no author context reads it against the code, and the maintainer accepts it from a Clarify brief.
 
 ### Feature-branch flow (escape hatch for riskier work)
 
 Use a branch when the change is:
 
-- **Multi-commit** and should land atomically on `develop`
+- **Multi-commit** and should land atomically on `main`
 - **Risky or invasive** (schema migrations, auth, payments, cross-cutting refactors)
-- **Spanning multiple sessions** — save progress on a branch without polluting `develop`
+- **Spanning multiple sessions** — save progress on a branch without polluting `main`
 - Something you want to **review as a diff** before merging
 - Something that benefits from a **PR description as a mini-changelog**
 
@@ -182,16 +182,16 @@ When those apply, automate the flow end-to-end. The overhead is ~30 seconds per 
 git checkout -b feat/my-thing
 # ... work, commit ...
 git push -u origin feat/my-thing
-gh pr create --base develop --title "<subject>" --body-file <pr.md outside the tree>
+gh pr create --base main --title "<subject>" --body-file <pr.md outside the tree>
 gh pr merge --squash --auto --delete-branch
 ```
 
 - The PR body is `.github/pull_request_template.md`, filled for a reader who never saw the review rounds (`task_review.md`). `--fill` would send the commit messages instead.
-- `gh pr merge --squash --auto --delete-branch` waits for CI to pass, squashes the branch into one commit on `develop`, and deletes the remote branch. You can close the terminal; the merge completes in the background.
+- `gh pr merge --squash --auto --delete-branch` waits for CI to pass, squashes the branch into one commit on `main`, and deletes the remote branch. You can close the terminal; the merge completes in the background.
 - `--delete-branch` removes only the **remote** copy. Once the merge lands, finish the job locally — stale merged branches are how `git branch` output turns into noise:
 
   ```
-  git checkout develop && git pull
+  git checkout main && git pull
   git branch -d feat/my-thing
   git fetch --prune
   ```
@@ -202,17 +202,17 @@ gh pr merge --squash --auto --delete-branch
 
 ### Team / open-source flow
 
-Once you have more than one contributor, invert the defaults: **feature branches become the default** and direct commits to `develop` stop. The PR is the review surface; you don't want two people stomping on each other in a shared branch. Route all normal work through branches so the PR-triggered CI run is the single gate of record; contributors who can't be trusted to keep pre-push hooks installed should not be direct-committing to `develop` anyway.
+Once you have more than one contributor, invert the defaults: **feature branches become the default** and direct commits to `main` stop. The PR is the review surface; you don't want two people stomping on each other in a shared branch. Route all normal work through branches so the PR-triggered CI run is the single gate of record; contributors who can't be trusted to keep pre-push hooks installed should not be direct-committing to `main` anyway.
 
-### Why not trunk-based?
+### Why not deploy every merge?
 
-Trunk-based (single `main` branch, feature flags for in-progress work) is excellent once you have:
+GitHub flow — every merge to `main` deploys — is excellent once you have:
 
 - A test suite you trust to catch regressions immediately.
 - Feature flag infrastructure.
 - Observability to catch production issues fast.
 
-Until then, `develop` as a staging buffer costs nothing and catches mistakes before they deploy.
+Until then, a release as an event of its own costs one dispatch and buys a batch reviewed as a whole, a paid check before shipping, and a deploy nobody starts by accident. A second long-lived branch that deploys on merge buys the same separation at a price: a release PR, a fast-forward back after every release, a forward-merge after every hotfix, and guards for a branch that a private repository on the free plan cannot protect.
 
 ---
 
@@ -226,26 +226,24 @@ Use [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`. Each `MAJOR.
 
 1. **Pick the milestone.** Open `v<MAJOR.MINOR>` if it doesn't exist. Don't pre-create a dozen — create them as you commit to scope.
 2. **Triage.** Move issues from `Backlog` to `Ready` and assign them to the milestone. Reshuffling between milestones is free until release work starts.
-3. **Work the issues.** Branch from `develop`, reference the issue in the PR (`Closes #N`), merge to `develop`, delete the merged branch — remote and local.
+3. **Work the issues.** Land each on `main`, directly or by a PR that references it (`Closes #N`); delete a merged branch — remote and local.
 4. **Confirm the milestone is ready.** All issues closed or moved out. `gh issue list --milestone v1.2 --state open` should be empty.
 
 ### Cutting the release
 
 5. **Bump the version** in the single source of truth file.
 6. **Update `CHANGELOG.md`** with the new version and date, grouped Added / Changed / Fixed / Removed, referencing issue numbers.
-7. **Open release PR `develop` → `master`** with title `Release v<version>` and body containing the new CHANGELOG section.
-8. **Merge after CI green.** The merge to `master` triggers the deploy workflow.
-9. **Tag the release** and push the tag.
-10. **Create a GitHub Release** from the tag (gh CLI or UI).
-11. **Fast-forward `develop`** onto the release merge commit (`git merge --ff-only master`) so the branches don't diverge.
-12. **Close the milestone.**
-13. **Verify deployment** — curl `/health` and confirm it reports the new version.
+7. **Commit and push** the release commit to `main`. The push gate and CI run on it like on any other commit.
+8. **Review the release** on the compare link from the last tag (`git fetch --tags` first) to that commit (`https://github.com/<owner>/<repo>/compare/v<last>...<sha>`), with the readings of every check the checklist runs before shipping. A correction lands on `main` and the review reads the new head.
+9. **Dispatch the release workflow** on the reviewed commit: `lifecycle release <sha>`, or `gh workflow run release.yml --ref main -f commit=<sha>` and a watch of the run. It refuses when `main` moved since the review or the version is tagged already; otherwise it runs CI, builds, deploys, smoke-checks, and creates the tag and the GitHub Release last.
+10. **Close the milestone.**
+11. **Verify deployment** — curl `/health` and confirm it reports the new version.
 
-**AI assistant checkpoint.** Steps 8 and 9 are irreversible and deploy to production. If an AI agent is executing this release, it should draft the CHANGELOG, open the release PR, and then **stop and require explicit user approval** before running the merge or pushing the tag. Confirm each of the two steps individually — a prior "do the release" does not extend to them. Codify this rule in your agent-instructions file (see the *AI agent instructions* section below) so assistants apply it consistently.
+**AI assistant checkpoint.** Step 9 is irreversible and deploys to production. If an AI agent is executing this release, it should draft the CHANGELOG, push the release commit, surface the compare link, and then **stop and require explicit user approval** before the dispatch. A prior "do the release" does not extend to it. Codify this rule in your agent-instructions file (see the *AI agent instructions* section below) so assistants apply it consistently.
 
 ### Hotfix variant
 
-For urgent fixes: branch from `master`, fix, PR back to `master`, bump patch, update CHANGELOG, merge (auto-deploy), tag, release. Then forward-merge `master → develop` so the patch isn't lost on the next regular release, and delete the hotfix branch — remote and local.
+For an urgent fix while `main` holds unreleased work: cut `hotfix/<name>` from the last release's tag (`git fetch --tags` first), fix with a test, bump the patch, update the CHANGELOG, push the branch, review it, and dispatch the release workflow on it. Once it shipped, merge the branch into `main` with a merge commit — never squashed, so the tag stays in `main`'s history and the next release's compare starts after it — and delete it, remote and local. A dispatch runs the workflow file of the ref it names, so a hotfix cut from a tag older than the release workflow brings that file over from `main` first. With nothing unreleased on `main`, a fix is an ordinary task and an ordinary patch release.
 
 ---
 
@@ -253,47 +251,85 @@ For urgent fixes: branch from `master`, fix, PR back to `master`, bump patch, up
 
 Three workflows. Each has one job.
 
-### 1. `ci.yml` — run on every PR and on `develop`
+### 1. `ci.yml` — run on every PR and on `main`
 
-Triggered by `pull_request` plus `push` to `develop`. Feature-branch pushes already fire the PR-triggered run (no duplicates); the `develop` push trigger is the backstop for the solo direct-commit flow — without it nothing independently re-checks `develop` until the release PR, and a machine with stale or missing hooks goes unnoticed for weeks.
+Triggered by `pull_request` plus `push` to `main`. Feature-branch pushes already fire the PR-triggered run (no duplicates); the `main` push trigger is the backstop for the direct-commit flow — without it nothing independently re-checks `main` until the release, and a machine with stale or missing hooks goes unnoticed for weeks.
 
 ```
 name: CI
 on:
   pull_request:
   push:
-    branches: [develop]
-  workflow_call:     # lets deploy.yml reuse this
-concurrency:         # by ref: push and PR runs apart, so a release PR can't cancel its push's run
+    branches: [main]
+  workflow_call:     # lets release.yml reuse this
+concurrency:         # by ref: a push's run and a PR's run never cancel each other
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 ```
 
 Jobs: install deps, lint, format check, type check (if applicable), tests with a coverage floor. Nothing else belongs here.
 
-### 2. `deploy.yml` — run on push to `master`
+### 2. `release.yml` — run on a dispatch, on the reviewed commit
 
-Triggered by `push` to `master`. Reuses `ci.yml` via `workflow_call`, then builds and deploys.
+Triggered by `workflow_dispatch` alone, with the commit the release review read as its input: no push, tag or merge ships anything. Before it builds, it refuses a ref other than `main` or a hotfix branch, a head other than the reviewed commit, and a version tagged already; then it reuses `ci.yml` via `workflow_call`, builds, ships, and creates the tag last, so a failed release leaves no tag. The refusal steps keep the names below: `lifecycle release` reads them to say why a release was refused. One release runs at a time, never cancelled: a second dispatch waits for the first, then meets its tag.
 
 ```
-name: Deploy
+name: Release
 on:
-  push:
-    branches: [master]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: The commit the release review read, as a full SHA
+        required: true
+concurrency:         # one at a time, never cancelled: a second dispatch waits, then meets the tag
+  group: release
+  cancel-in-progress: false
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-  build-and-deploy:
-    needs: ci
+  refuse:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - name: Refuse a ref other than the integration or a hotfix branch
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/main | refs/heads/hotfix/*) ;;
+            *) echo "::error::$GITHUB_REF is not main or a hotfix branch"; exit 1 ;;
+          esac
+      - name: Refuse a head the review did not read
+        env:
+          REVIEWED: ${{ inputs.commit }}
+        run: |
+          if [ "$GITHUB_SHA" != "$REVIEWED" ]; then
+            echo "::error::the branch moved since the review: its head is $GITHUB_SHA"; exit 1
+          fi
       - name: Read version
         id: version
-        run: echo "version=$(<command to extract version>)" >> $GITHUB_OUTPUT
+        run: echo "version=$(<command to extract version>)" >> "$GITHUB_OUTPUT"
+      - name: Refuse a version released already
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |   # exit 2 is "no such tag"; anything else, a failed read included, refuses
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null && found=0 || found=$?
+          if [ "$found" -ne 2 ]; then
+            echo "::error::v$VERSION is tagged already, or the tags could not be read"; exit 1
+          fi
+  ci:
+    needs: refuse
+    uses: ./.github/workflows/ci.yml
+  ship:
+    needs: [refuse, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      VERSION: ${{ needs.refuse.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
       - name: Login to registry
         uses: docker/login-action@v3
         with: { registry: ghcr.io, username: ${{ github.actor }}, password: ${{ secrets.GITHUB_TOKEN }} }
@@ -305,12 +341,18 @@ jobs:
           tags: |
             ghcr.io/<owner>/<repo>:latest
             ghcr.io/<owner>/<repo>:${{ github.sha }}
-            ghcr.io/<owner>/<repo>:v${{ steps.version.outputs.version }}
+            ghcr.io/<owner>/<repo>:v${{ env.VERSION }}
       - name: Deploy
         # SSH into VPS, `docker compose pull && up -d`, wait for healthy, verify /health version
+      - name: Tag and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v$VERSION" --target "$GITHUB_SHA" --title "v$VERSION" --notes-file <the version's CHANGELOG section>
 ```
 
-Three image tags on every deploy: `latest`, the git SHA, and `v<version>`. SHA tags give you exact-commit rollback; version tags give you human-readable rollback. Document the actual rollback procedure in the deploy guide and run it once before you need it — pin the previous tag (`IMAGE_TAG=<sha> docker compose up -d`) or revert the merge on `master` and let the pipeline redeploy.
+For an artifact released through GitHub Releases — a desktop installer under an auto-updater, a package a registry takes from the release — publishing is the ship: build, smoke-install from the build, then publish with the tag in one step, so a failed smoke check leaves nothing tagged or published.
+
+Three image tags on every deploy: `latest`, the git SHA, and `v<version>`. SHA tags give you exact-commit rollback; version tags give you human-readable rollback. Document the actual rollback procedure in the deploy guide and run it once before you need it — pin the previous tag (`IMAGE_TAG=<sha> docker compose up -d`), or release a revert as a patch.
 
 **Smoke check is not optional.** After `docker compose up -d`, the workflow should:
 
@@ -462,9 +504,9 @@ If you use AI assistants to write code (Claude Code, Codex, Cursor, Gemini CLI, 
 
 **Starting point:** `agents_template.md` (copied alongside this playbook in `docs/guides/`) is a copy-and-fill skeleton with the cross-project essence of these rules pre-filled. Drop it in as your new repo's `AGENTS.md`, replace the `{{placeholders}}`, prune the project-type-specific lines, and you have a working operating contract in ten minutes.
 
-**The lifecycle kit carries the mechanics.** The method these guides describe ships with its machinery as the lifecycle kit (`orwir/lifecycle-kit`): the `lifecycle` command keeps `docs/guides/` pinned to a kit release, moves board cards to the top of their column, guards the protected branch at push and deploy, and says what a repository needs before its next task; the kit's skills run the review rounds, the close-out and the release for any agent that loads Agent Skills. A new project turns it on at day zero:
+**The lifecycle kit carries the mechanics.** The method these guides describe ships with its machinery as the lifecycle kit (`orwir/lifecycle-kit`): the `lifecycle` command keeps `docs/guides/` pinned to a kit release, moves board cards to the top of their column, ships a reviewed commit through the release workflow and watches the run, and says what a repository needs before its next task; the kit's skills run the review rounds, the close-out and the release for any agent that loads Agent Skills. A new project turns it on at day zero:
 
-- `.lifecycle.toml` at the root names its branches, board, gate commands and review lenses — the structured values the skills read. Everything else they need stays in `AGENTS.md`.
+- `.lifecycle.toml` at the root names its integration branch, board, gate commands, release workflow and review lenses — the structured values the skills read. Everything else they need stays in `AGENTS.md`.
 - `lifecycle upgrade --adopt` copies the method into `docs/guides/` and writes `.lifecycle.lock`.
 - The agent's adapter: for Claude Code, the kit's marketplace and plugin turned on in the committed `.claude/settings.json`, by the lines in the kit's README.
 
@@ -543,15 +585,15 @@ gh project create --owner <owner> --title "<project-name>"
 
 ## Deployment pattern
 
-This section is shaped for a **long-running server-side service** (bot, API, web app). If you're shipping a desktop app, mobile app, CLI tool, or library, the principle is the same — *push to `master` triggers a fully automated, smoke-checked release artifact* — but the artifact changes:
+This section is shaped for a **long-running server-side service** (bot, API, web app). If you're shipping a desktop app, mobile app, CLI tool, or library, the principle is the same — *a dispatch of the release workflow on the reviewed commit produces a fully automated, smoke-checked release artifact* — but the artifact changes:
 
-- **Desktop:** signed installer/`.dmg`/`.AppImage` uploaded as a GitHub Release asset by the deploy workflow.
+- **Desktop:** signed installer/`.dmg`/`.AppImage` uploaded as a GitHub Release asset by the release workflow.
 - **Mobile:** signed `.ipa`/`.aab` uploaded to TestFlight / Play Console internal track via Fastlane or equivalent.
-- **CLI / library:** package published to the relevant registry (PyPI, npm, crates.io, Homebrew tap) by the deploy workflow.
+- **CLI / library:** package published to the relevant registry (PyPI, npm, crates.io, Homebrew tap) by the release workflow.
 
 Whatever the artifact, the rules below still apply: tag with the version, smoke-check the output, fail loud, never deploy what didn't pass CI. Skip the Docker/VPS specifics that don't apply to your project.
 
-The target for a service: **push to `master` → container built → deployed to VPS → smoke-checked → done.** Under 5 minutes, fully automated.
+The target for a service: **release dispatched → container built → deployed to VPS → smoke-checked → tagged.** Under 5 minutes, fully automated.
 
 ### Building blocks
 
@@ -568,7 +610,7 @@ The target for a service: **push to `master` → container built → deployed to
 - **Layer-cache dependencies first.** Copy the manifest + lockfile, install deps, *then* copy source. Changing a source file doesn't reinstall deps.
 - **Build from a committed lockfile.** The manifest declares intent; the lockfile pins reality. Without one, every image build resolves dependencies differently — the single-source-of-truth principle, applied to deps.
 - **Run as non-root.** `RUN useradd --create-home app && USER app`. Defense in depth against container escapes.
-- **Declare a `HEALTHCHECK`.** Docker and the deploy workflow both use it.
+- **Declare a `HEALTHCHECK`.** Docker and the release workflow both use it.
 - **One process per container.** Use a separate service for each long-running process.
 
 ### docker-compose essentials
@@ -612,9 +654,9 @@ The minimum every project should have on day zero:
 Copy-pasteable, in order.
 
 ```
-# 1. Initialize on develop (or cd into the existing idea folder and init in place)
+# 1. Initialize on main (or cd into the existing idea folder and init in place)
 mkdir -p my-project && cd my-project
-git init -b develop
+git init -b main
 
 # 2. Create the scaffold (adjust for your language)
 mkdir -p .github/{workflows,ISSUE_TEMPLATE} src tests docs/{product,architecture,guides,adr} scripts
@@ -624,7 +666,7 @@ touch README.md CHANGELOG.md CONTRIBUTING.md LICENSE .env.example .gitignore
 touch Dockerfile docker-compose.yml .pre-commit-config.yaml
 touch .github/SECURITY.md .github/pull_request_template.md .github/dependabot.yml
 touch .github/ISSUE_TEMPLATE/{bug.md,task.md,config.yml}
-touch .github/workflows/{ci.yml,deploy.yml}
+touch .github/workflows/{ci.yml,release.yml}
 # Add codeql.yml only if the repo is public or the org has Code Security
 touch docs/README.md
 
@@ -632,37 +674,28 @@ touch docs/README.md
 git add .
 git commit -m "chore: initial scaffold"
 
-# 5. Create the remote and push develop (the first branch pushed becomes the default)
+# 5. Create the remote and push main, which becomes the default branch
 gh repo create <owner>/<repo> --private --source=. --push --description "..."
 
-# 6. Create master from develop — the release-PR target must exist
-git branch master
-git push -u origin master
+# 6. Labels + first milestone (see commands above)
+# 7. Project board (see commands above)
 
-# 7. Labels + first milestone (see commands above)
-# 8. Project board (see commands above)
-
-# 9. Guard master. GitHub refuses branch protection (HTTP 403) on a private repo
-#    without a paid plan; where it does, two checks stand in. A pre-push hook that
-#    refuses a push whose target is master catches the everyday spellings. A first
-#    job in the deploy workflow that refuses to deploy a master head that is not
-#    the merge commit of a merged pull request into master holds however master
-#    moved: a deletion, a force push, or a ref moved through the API.
-# Where the plan allows protection (JSON body — nested fields don't work with -F);
-# "contexts" must match your CI job name exactly
-gh api -X PUT repos/<owner>/<repo>/branches/master/protection --input - <<'JSON'
+# 8. Keep main from force pushes and deletion where the plan allows branch protection
+#    (a public repo, or a paid plan). A private repo on the free plan gets HTTP 403 and
+#    needs nothing in its place for shipping: no push ships, only the release workflow.
+# JSON body — nested fields don't work with -F
+gh api -X PUT repos/<owner>/<repo>/branches/main/protection --input - <<'JSON'
 {
-  "required_status_checks": { "strict": true, "contexts": ["CI / lint-and-test"] },
-  "required_pull_request_reviews": { "required_approving_review_count": 0 },
+  "required_status_checks": null,
+  "required_pull_request_reviews": null,
   "enforce_admins": false,
   "restrictions": null,
-  "required_linear_history": false,
   "allow_force_pushes": false,
   "allow_deletions": false
 }
 JSON
 
-# 10. Design foundation — before screen 2, for any human-driven surface (see guides/design_workflow.md)
+# 9. Design foundation — before screen 2, for any human-driven surface (see guides/design_workflow.md)
 #   pick the component vocabulary (record in an ADR) · set tokens once, centrally (fonts, semantic
 #   colors, spacing, radius, elevation, motion) · write docs/guides/design_language.md · add the
 #   "every UI edit conforms to the reference" rule to AGENTS.md · pair each screen with its
@@ -670,7 +703,7 @@ JSON
 #   the open round
 ```
 
-After this checklist you have a repo that is wired end-to-end: CI runs on PRs, deploy runs on merge to master, docs have a home, issues have templates, contributions have a process, secrets are scanned, and the design foundation is set before the second screen.
+After this checklist you have a repo that is wired end-to-end: CI runs on PRs and on `main`, a release ships only through its workflow, docs have a home, issues have templates, contributions have a process, secrets are scanned, and the design foundation is set before the second screen.
 
 ---
 

@@ -8,7 +8,7 @@ It does not cover the maintainer's own read of the diff, the comprehensive passe
 
 **The plan round** runs when the plan has one of four shapes, the ones in which plans have shipped holes: a rule that must hold at more than one entry point; persisted, billed, auth or safety state; a wait, retry or failure the user sees; a decision that wants an ADR. A plan with none of them skips the round, and the Clarify brief says so; the plan is still written into the issue. One plan round per plan; what stays disputed after it is the maintainer's decision.
 
-**The work round** runs on every task after the local gate is green and before the hand-back, in both flows: the packet points at the uncommitted tree on `develop`, or at the branch's diff against `develop`. Nothing is pushed for it — the PR, when the work rides a branch, is opened at *Complete* as before. A second work round is bought only by a `Real bug` in the first, from the reviewer that found it. Anything still disputed after that goes to the maintainer, never to a third round between agents.
+**The work round** runs on every task after the local gate is green and before the hand-back, in both flows: the packet points at the uncommitted tree on the integration branch, or at the branch's diff against it. Nothing is pushed for it — the PR, when the work rides a branch, is opened at *Complete* as before. A second work round is bought only by a `Real bug` in the first, from the reviewer that found it. Anything still disputed after that goes to the maintainer, never to a third round between agents.
 
 A task with no issue is untracked, and nothing of it goes on the board. An untracked micro-task — one obvious change, nothing to decide — has no plan and skips both rounds, and its hand-back brief says so. Any other untracked task skips the plan round, having no issue to hold a plan, and runs the work round with an `untracked:` packet. Its hand-back brief is its only record, so it finishes in the session it started; one that needs a second session, or makes a decision worth keeping, gets an issue then and is tracked from there: its plan written at *Clarify*, its item on the board.
 
@@ -124,8 +124,8 @@ Read by the reviewer. Claims with coordinates, never the diff: the reviewer read
 ```
 Review request: #<N> <title> | untracked: <one line of intent>
 Lens: base | person-facing | model-facing
-Flow: direct on develop, uncommitted (base <sha>) | branch <name> | PR #<M>
-Diff: git diff | git diff develop...HEAD | <the command or link that shows PR M's diff>
+Flow: direct on <integration>, uncommitted (base <sha>) | branch <name> | PR #<M>
+Diff: git diff | git diff <integration>...HEAD | <the command or link that shows PR M's diff>
 New files: <paths, which git diff does not show> | none
 Ticket: <the command or link that shows issue N> | untracked
 Read first: <the docs, ADR sections or guides the diff is held to, beyond the operating contract> | none
@@ -172,7 +172,7 @@ What the maintainer reads at the hand-back, and the only thing they read of the 
 
 ```
 **Hand-back #<N>** <title> | **Hand-back** untracked: <one line of intent>
-<approve | corrections | split: <what lands now, what is filed> | round skipped: untracked micro-task> · <k> round(s) · <base | base, person-facing | base, model-facing | base, person-facing, model-facing | no reviewer> · <develop, uncommitted on <sha> | branch <name> | PR #<M>> · gate <green | not run> · <n> decision(s) to answer | nothing to answer
+<approve | corrections | split: <what lands now, what is filed> | round skipped: untracked micro-task> · <k> round(s) · <base | base, person-facing | base, model-facing | base, person-facing, model-facing | no reviewer> · <<integration>, uncommitted on <sha> | branch <name> | PR #<M>> · gate <green | not run> · <n> decision(s) to answer | nothing to answer
 
 **Upgrade** <release before → after: what the kit changed; each change it required of this repository and what was done; the templates installed whole; what was ported into the repository's own files and what was left, with why> (only while the tree holds an upgrade not yet landed on the integration branch)
 
@@ -253,4 +253,4 @@ What the maintainer reads at the hand-back, and the only thing they read of the 
 
 ## Where the packets land
 
-The packets are data between the agents: they sit in each reviewer's task and its result, and are never printed for the maintainer or posted anywhere. The rounds are the team's own process, so nothing of them reaches GitHub, before the maintainer's approval or after — except the plan, which is not a packet: it lives in the issue, where the developer writes it and the maintainer accepts it, and a plan-round finding reaches GitHub only as the change it made to the plan. At *Complete*, a feature branch's PR body follows the repository's PR template, written for a reader who never saw the round: no packet field, finding id or reviewer verdict in it. What that reader needs from the round, such as a decision, a deviation or a follow-up, goes into the PR body or an issue in that reader's words. On `develop` the close-out comment may quote the brief's *In the tree* bullets.
+The packets are data between the agents: they sit in each reviewer's task and its result, and are never printed for the maintainer or posted anywhere. The rounds are the team's own process, so nothing of them reaches GitHub, before the maintainer's approval or after — except the plan, which is not a packet: it lives in the issue, where the developer writes it and the maintainer accepts it, and a plan-round finding reaches GitHub only as the change it made to the plan. At *Complete*, a feature branch's PR body follows the repository's PR template, written for a reader who never saw the round: no packet field, finding id or reviewer verdict in it. What that reader needs from the round, such as a decision, a deviation or a follow-up, goes into the PR body or an issue in that reader's words. On the integration branch the close-out comment may quote the brief's *In the tree* bullets.

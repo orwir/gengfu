@@ -109,7 +109,7 @@ ideas/
 ├── archived.md      one line per killed idea -> its folder in archive/
 ├── graduated.md     one line per graduated idea -> its repo, status and next check
 ├── docs/guides/     the kit's method, shared by every idea
-├── .lifecycle.toml  the kit's settings: integration branch `main`, no protected branch,
+├── .lifecycle.toml  the kit's settings: integration branch `main`,
 │                    and this guide as the template AGENTS.md follows
 ├── .lifecycle.lock  the kit release docs/guides/ is pinned to
 ├── active/          every idea still in the gauntlet, parked ones included

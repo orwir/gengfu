@@ -38,7 +38,7 @@ You are working in the `{{OWNER}}/{{REPO}}` repository: a {{LANGUAGE}} {{PROJECT
 
 For the full rationale behind any rule, read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/guides/project_kickstart.md](docs/guides/project_kickstart.md). These rules are the compressed operating contract; those files are the source of truth when details are ambiguous.
 
-**Hard gates, before anything else:** never push to `{{PRODUCTION_BRANCH}}`; never commit, push, merge, or close work without explicit approval (see *Task workflow*); never bypass hooks with `--no-verify`; never commit or print secrets. Everything below is detail around these four.
+**Hard gates, before anything else:** never start a release workflow without the release's own "proceed"; never commit, push, merge, or close work without explicit approval (see *Task workflow*); never bypass hooks with `--no-verify`; never commit or print secrets. Everything below is detail around these four.
 
 ---
 
@@ -54,9 +54,9 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
 
 ## Branching and commits
 
-- **Default flow:** {{commit directly to `develop` | open a feature branch}}. {{Reason: solo-maintained with pre-push hooks mirroring CI | reason: multiple contributors review via PR}}. Pick one and stick to it; mixing flows breaks the project board lifecycle.
+- **Default flow:** {{commit directly to the integration branch | open a feature branch}}. {{Reason: solo-maintained with pre-push hooks mirroring CI | reason: multiple contributors review via PR}}. Pick one and stick to it; mixing flows breaks the project board lifecycle.
 - **When to use a feature branch:** open one (`feat/…`, `fix/…`, `chore/…`, `docs/…`, `refactor/…`, `perf/…`) when the work is multi-commit and should land atomically, is risky or invasive (schema migrations, auth, payments, cross-cutting refactors), spans multiple sessions, or benefits from a diff-review pass before merging. When in doubt, branch.
-- **Never push directly to `{{PRODUCTION_BRANCH}}`** ({{e.g., `master`, `main`, `release`}}). It {{auto-deploys | triggers the release pipeline | publishes artifacts}}; merges only via release PRs from `{{INTEGRATION_BRANCH}}`.
+- **A push ships nothing.** `{{INTEGRATION_BRANCH}}` is the one long-lived branch; a release {{deploys | publishes artifacts}} only through the release workflow, dispatched on the commit the release review read (*Release workflow* below), which creates the `v*` tag. Never create one by hand. A production fix that cannot wait for what `{{INTEGRATION_BRANCH}}` holds goes on a `hotfix/…` branch cut from the last release's tag ([CONTRIBUTING.md § Hotfixes](CONTRIBUTING.md)).
 - **Automated feature-branch flow:**
   ```bash
   git checkout -b feat/my-thing
@@ -114,9 +114,9 @@ The bar is the maintainer's. A shortfall in 1 or 2 found after landing is unfini
 
 Releases run in three explicit phases too, mirroring the task workflow. Full mechanics (commands, file targets, post-merge steps) live in [CONTRIBUTING.md § Releasing](CONTRIBUTING.md); this section is the contract.
 
-1. **Prepare.** Decide the next version yourself from [semver](https://semver.org/) based on the changes since the last release (breaking → major, additive → minor, fixes only → patch) — unless the user names a specific version. Bump the version string in `{{VERSION_FILE}}`, date the CHANGELOG entry, complete any doc-sync, commit, open the `{{INTEGRATION_BRANCH}} → {{PRODUCTION_BRANCH}}` release PR, and check which comprehensive reviews are due (`docs/guides/review_machinery.md` § When a review is due). All reversible inside this phase; no extra approval needed.
-2. **Review.** **Stop** and surface the PR URL, a one-paragraph summary and the reviews that are due. Wait for explicit "proceed". Work out any corrections here, then stop again.
-3. **Ship — on explicit approval only.** The "proceed" authorizes the entire ship phase in one batch: merge the release PR, push the `vX.Y.Z` tag, fast-forward the integration branch, publish the GitHub release, close the milestone, and verify post-deploy. A prior "do the release" instruction does **not** extend past the review checkpoint — only the phase-3 approval does. The publish steps (PR merge + tag push) are irreversible.
+1. **Prepare.** Decide the next version yourself from [semver](https://semver.org/) based on the changes since the last release (breaking → major, additive → minor, fixes only → patch) — unless the user names a specific version. Bump the version string in `{{VERSION_FILE}}`, date the CHANGELOG entry, complete any doc-sync, commit, push `{{INTEGRATION_BRANCH}}` (or the hotfix branch), and check which comprehensive reviews are due (`docs/guides/review_machinery.md` § When a review is due). All reversible inside this phase; no extra approval needed.
+2. **Review.** **Stop** and surface the compare link from the last tag to the head, a one-paragraph summary and the reviews that are due. Wait for explicit "proceed". Work out any corrections here, then stop again on the new head.
+3. **Ship — on explicit approval only.** The "proceed" authorizes the entire ship phase in one batch: dispatch the release workflow on the head the review read and watch it to its end (`lifecycle release <sha>`), merge a hotfix branch into `{{INTEGRATION_BRANCH}}` with a merge commit, close the milestone, and verify post-deploy. A prior "do the release" instruction does **not** extend past the review checkpoint — only the phase-3 approval does. The dispatch is irreversible: the workflow ships and tags once its checks pass.
 
 ## Tests and quality gates
 
@@ -242,7 +242,7 @@ Only after this checklist passes should you report the task as done.
 
 ## What NOT to do
 
-- Do not push to `{{PRODUCTION_BRANCH}}`.
+- Do not start the release workflow, or create a `v*` tag, outside a release's Ship phase.
 - Do not duplicate the version string.
 - Do not `--no-verify`.
 - Do not leave a merged feature branch behind — delete it, remote and local, in the same close-out.
@@ -280,8 +280,7 @@ Quick reference for each `{{token}}` used above.
 | `{{LANGUAGE}}` | "Python 3.13", "Rust 2024", "TypeScript / Node 22", "Swift 5.10" | Primary language and version |
 | `{{PROJECT_TYPE}}` | "chat bot", "macOS menu-bar app", "iOS app", "CLI tool", "library" | One-noun shape |
 | `{{ONE_LINE_DESCRIPTION}}` | "REST API with SQLite storage, Docker deployment" | Sub-30 words |
-| `{{PRODUCTION_BRANCH}}` | `master`, `main`, `release` | Auto-deploy or publish target |
-| `{{INTEGRATION_BRANCH}}` | `develop`, `main`, `next` | Default branch, where work lands |
+| `{{INTEGRATION_BRANCH}}` | `main` | The one long-lived branch, where work lands and releases are cut |
 | `{{ENTRY_DIR}}` / `{{LOGIC_DIR}}` | `apps/` + `packages/`; `cmd/` + `internal/`; `src/bin/` + `src/lib/` | Transport-vs-logic split |
 | `{{EXT}}` | `py`, `ts`, `tsx`, `go`, `rs`, `swift`, `kt` | Primary source extension |
 | `{{VERSION_FILE}}` | `packages/core/__init__.py`, `package.json`, `Cargo.toml`, `pubspec.yaml` | Single source of truth |
@@ -304,7 +303,7 @@ Where the template's defaults assume a long-running service, here's how each pro
 
 - Default template fits.
 - `/health` version probe is mandatory; smoke-check it post-deploy.
-- Production branch auto-deploys to a runtime host.
+- The release workflow deploys to a runtime host.
 
 ### Desktop app (Electron / Tauri / Qt / native)
 

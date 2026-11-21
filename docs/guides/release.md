@@ -2,13 +2,15 @@
 
 How a release is built, published, checked and rolled back, for whoever cuts one. The checklist is
 [CONTRIBUTING.md § Releasing](../../CONTRIBUTING.md#releasing); this guide is the machinery behind
-it. Why it works this way: [ADR-0006](../adr/0006-self-contained-installer-and-updates.md).
+it. Why it works this way: [ADR-0006](../adr/0006-self-contained-installer-and-updates.md) for
+the installer and its updates, [ADR-0008](../adr/0008-releases-by-a-dispatched-workflow.md) for
+what starts a release.
 
 ## What a release is
 
-A merge to `master` runs [release.yml](../../.github/workflows/release.yml), which publishes the
-version in `Directory.Build.props` as a GitHub Release tagged `v<version>`, its notes the version's
-CHANGELOG section. Its files:
+A dispatch of [release.yml](../../.github/workflows/release.yml) on the commit the release review
+read publishes the version in `Directory.Build.props` as a GitHub Release tagged `v<version>`, its
+notes the version's CHANGELOG section. A push to `main` ships nothing. Its files:
 
 - `Gengfu-win-Setup.exe`: what players download and run.
 - `Gengfu-<version>-full.nupkg`: the whole app, for new installs and for updates from far behind.
@@ -18,33 +20,40 @@ CHANGELOG section. Its files:
 
 ## Versions
 
-- A version ending in `-dev` never releases: the job fails at once. So does a version already
-  released.
+- A version ending in `-dev` never releases: the run refuses it before the gate. So does a
+  version tagged already.
 - A version with a suffix, such as `0.1.0-rc.1`, is a test build and publishes as a pre-release.
   Only installed test builds take it; an installed test build moves on to the release when it
   comes. Its notes are the CHANGELOG's `[Unreleased]` section unless it has a section of its own.
-- `scripts/release-notes.sh <version>` prints a version's notes, to check them before the merge.
+- `scripts/release-notes.sh <version>` prints a version's notes, to check them before the
+  dispatch.
 
-## The release job
+## The release run
 
-1. The CI gate, [ci.yml](../../.github/workflows/ci.yml), as for any change.
-2. The version and its notes; either missing stops the job.
-3. A self-contained win-x64 build. It takes .NET's license and notices from the runtime pack into
+1. The refusals, before anything is built: a branch other than `main` or a `hotfix/…` one, a head
+   other than the commit the review read, and a version tagged already, each in a step named as
+   `lifecycle release` reads it to say why a run was refused; and a `-dev` version, which fails
+   the step that reads the version.
+2. The CI gate, [ci.yml](../../.github/workflows/ci.yml), as for any change, except that under a
+   dispatch its gitleaks scan reads the whole history rather than one push's commits.
+3. The version's notes; without them the run stops.
+4. A self-contained win-x64 build. It takes .NET's license and notices from the runtime pack into
    its `dotnet` folder, beside Gengfu's [THIRD-PARTY-NOTICES.txt](../../THIRD-PARTY-NOTICES.txt).
-4. `vpk download github` fetches the last release, for `vpk pack` to make the delta from. A test
+5. `vpk download github` fetches the last release, for `vpk pack` to make the delta from. A test
    build counts earlier test builds; a release counts only releases.
-5. `vpk pack` builds Setup and the packages. Nothing is signed.
-6. [smoke-install.ps1](../../scripts/smoke-install.ps1) installs Setup silently on the CI machine
+6. `vpk pack` builds Setup and the packages. Nothing is signed.
+7. [smoke-install.ps1](../../scripts/smoke-install.ps1) installs Setup silently on the CI machine
    and starts Gengfu twice, each time waiting for its window, closing it and checking where its
    settings landed: first on a settings folder of its own, then as a player's copy starts, on its
    usual folder with its updates. A test PC gets only the first start, and the script refuses to
    run where Gengfu is installed, as on a developer's PC
    ([ADR-0007](../adr/0007-gengfus-folder-and-isolated-copies.md)).
-7. `vpk upload github` creates the release and its tag on the merge commit, and publishes it.
+8. `vpk upload github` creates the release and its tag on the reviewed commit, and publishes it.
+   It runs last, so a failed run leaves nothing published or tagged.
 
 ## Velopack
 
-The release job installs vpk at the version of the Velopack package in `Gengfu.App.csproj`, since a
+The release run installs vpk at the version of the Velopack package in `Gengfu.App.csproj`, since a
 build packed by another version may not update. Bumping the package, Dependabot's way or by hand,
 moves both.
 
@@ -82,9 +91,9 @@ blocks Gengfu. When signing is added, record here where the certificate lives an
 Gengfu sends no telemetry, so a release's downloads are the only count of the copies that run it.
 An installed copy fetches a release's delta package once when it updates, or its full package when
 it is too far behind for a delta; Setup brings the app with it, so a new install counts as a Setup
-download alone. At step 4 of the checklist, before the merge, the previous release's counts go in
-the table: once merged, the release job's `vpk download github` fetches the previous full package
-once more.
+download alone. At step 4 of the checklist, before the dispatch, the previous release's counts go
+in the table: once dispatched, the release run's `vpk download github` fetches the previous full
+package once more.
 
 ```bash
 gh api repos/orwir/gengfu/releases/tags/v<X.Y.Z> --jq '.assets[] | "\(.name): \(.download_count)"'
