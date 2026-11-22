@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Concentus" Version="2.2.2" />
+    <PackageReference Include="Concentus" Version="2.2.3" />
     <!-- release.yml installs the vpk tool at this version, as the two must match. -->
     <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
