@@ -2,7 +2,7 @@
 
 You are working in the `orwir/gengfu` repository: a C# / .NET 10 Windows desktop app (a TeamSpeak bot that whispers jungle calls for Where Winds Meet guild wars, on a clock matched to the in-game timer). Follow every rule below on every code change. When a rule conflicts with a direct user instruction in the current session, ask the user to clarify before proceeding.
 
-For the full rationale behind any rule, read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/guides/project_kickstart.md](docs/guides/project_kickstart.md). These rules are the compressed operating contract; those files are the source of truth when details are ambiguous.
+These rules are the compressed operating contract. Why each exists is the lifecycle kit's [project_kickstart.md](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md); setting up and releasing is [CONTRIBUTING.md](CONTRIBUTING.md). Every link to the lifecycle kit, here or in any other file, opens its `main` on GitHub: read the file at the same path in the folder `lifecycle where` prints instead (`method/…`, `docs/guide.md`), the release this machine runs.
 
 **Hard gates, before anything else:** never start a release workflow without the release's own "proceed"; never commit, push, merge, or close work without explicit approval (see *Task workflow*); never bypass hooks with `--no-verify`; never commit or print secrets. Everything below is detail around these four.
 
@@ -29,10 +29,10 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
   # ... work, commit, push ...
   git push -u origin feat/my-thing
   gh pr create --base main --title "<subject>" --body-file <pr.md outside the tree>
-  gh pr merge --squash --auto --delete-branch
+  gh pr checks feat/my-thing --watch && gh pr merge feat/my-thing --squash --delete-branch
+  git fetch --prune
   ```
-  The PR body is `.github/pull_request_template.md`, filled for a reader who never saw the review rounds; `--fill` would send the commit messages instead.
-  `--delete-branch` removes only the **remote** copy — once the merge lands, delete the local branch too: `git checkout main && git pull && git branch -d feat/my-thing && git fetch --prune`.
+  The PR body is `.github/pull_request_template.md`, filled for a reader who never saw the review rounds; `--fill` would send the commit messages instead. The merge runs only once `--watch` exits 0, every check passed (before the first check registers it reports none and fails: run it again); `--delete-branch` then deletes the branch on GitHub and here, after switching to `main` and pulling it, and `git fetch --prune` drops its remote-tracking ref.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): prefixes `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`; optional scope (`fix(teamspeak): …`); imperative subject, no trailing period, under 72 characters; the body explains **why**.
 - Never use `--no-verify`. If a hook fails, fix the underlying issue; if the hook is wrong, say so and propose a fix.
 
@@ -40,10 +40,10 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
 
 Every tracked task moves through three explicit phases. **Do not collapse them** — each gate is the user's, not yours to assume. The issue carries the task between sessions: a session that picks it up cold continues from the issue body, its ticked boxes and the tree, so nothing a later session needs may live only in the conversation.
 
-1. **Clarify.** Read the ticket and/or description and the code it touches, ask for any missing detail, and surface scope or constraint conflicts *before* writing code. Move the board item to `In Progress` when you pick it up (skip the board steps for an untracked task; the approval gates still apply). Write the issue's *Plan* from the code as it stands, run the plan round where it applies, and render the Clarify brief. Implementation does not begin until the plan is accepted: by the maintainer's "go", with their answers in the plan's *Decisions*, or — when the round was skipped and nothing is left to answer — by you, going straight on.
-2. **Implement & stop.** Do the work in full — code, tests, docs — to the *Definition of Done* below, ticking each Technical-details box as its path lands and recording a departure from the accepted plan under its *Departures* when you make it. Run the local gate — never report it as passed without having run it in this session, and say so explicitly if something couldn't be run. Run the work round, then **stop and hand back** with the hand-back brief: on `main` leave the changes **uncommitted**; on a feature branch WIP commits are fine. Do **not** push, merge, or close anything in this phase.
-   - The rounds are [docs/guides/task_review.md](docs/guides/task_review.md), each read by a fresh subagent with no author context; the lifecycle kit's `clarify`, `review` and `handback` skills run them, and its `complete` skill the close-out. An untracked micro-task has no plan and skips both rounds; any other task with no issue skips the plan round and runs the work round untracked.
-3. **Complete — on explicit approval only.** An explicit go-ahead ("complete the task", "lgtm") is the *only* trigger to commit, push, close the ticket, move the board item to `Done`, and delete a merged feature branch, remote and local. The same gate applies to `git push`, `gh pr create`, and `gh pr merge` — auto mode is permission to write code without re-asking, not permission to land it. A task that changed a lifecycle guide pushes it to the kit in the same close-out (`lifecycle guides push`; `docs/guides/README.md`, *Change a guide*).
+1. **Clarify.** Read the ticket and the code it touches, ask for any missing detail, and surface scope or constraint conflicts *before* writing code. Move the board item to `In Progress` when you pick it up (an untracked task has no board item; the approval gates still apply). Write the issue's *Plan* and run the plan round where it applies. Implementation begins only once the plan is accepted: by the maintainer's "go", or, when the round was skipped and nothing is left to answer, by you. Accepting a plan opens implementation and nothing more.
+2. **Implement & stop.** Do the work in full to the *Definition of Done* below, ticking each Technical-details box as its path lands and recording a departure under the plan's *Departures* when you make it. Run the local gate in this session, and say what could not run. Run the work round, then **stop and hand back** with the hand-back brief: on `main` the changes stay **uncommitted**; on a feature branch WIP commits are fine. Corrections, and answers to the brief given without the go-ahead, are worked here, then you stop again. Do **not** push, merge, or close anything in this phase.
+   - The rounds, their packets and the briefs are the lifecycle kit's [task_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/task_review.md); its `clarify`, `review` and `handback` skills run them, and its `complete` skill the close-out.
+3. **Complete — on explicit approval only.** An explicit go-ahead ("complete the task", "lgtm") is the *only* trigger to commit, push, close the ticket, move the board item to `Done`, and delete a merged feature branch, remote and local. Answers to the brief given with the go-ahead are made first, within the size the brief stated; a veto, or a bigger change, renders the brief again and waits for a new go-ahead. A gap found in one of the kit's guides is filed on the kit as an issue when it is found ([task_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/task_review.md) § Developer rules). The same gate applies to `git push`, `gh pr create` and `gh pr merge`: auto mode is permission to write code without re-asking, not permission to land it.
 
 ### Definition of Done
 
@@ -51,7 +51,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 2. **It was used the way its user uses it.** A UI change is looked at running: light and dark, English and Russian, by keyboard alone. A TeamSpeak change is heard on a real server. Not having looked is a task not done.
 3. **Every scenario in the plan, and every other new behaviour, has a test that fails without it.**
 4. **The gate is green and the work round ran.**
-5. **The docs are in sync:** the *Task-closing checklist*.
+5. **The docs are in sync** (*Change → required doc mapping*): every doc the change touches, a `CHANGELOG.md` entry for any user-visible change, new settings, commands, labels or workflows documented where someone would look, an ADR for a non-obvious decision referenced where it surfaces, and a pattern reusable across projects filed on the lifecycle kit.
 
 ## Code layout
 
@@ -65,8 +65,8 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 ## Versioning and release
 
 - The version string lives in exactly one place: `Directory.Build.props` → `<Version>`. The About entry (`AppVersion.Current`) and the release workflow read it from the build. **Do not duplicate it.**
-- Update `CHANGELOG.md` for any user-visible change: **one claim per entry, at most 120 characters before the `(#N)`**, grouped Added / Changed / Fixed / Removed once per version, no rationale prose.
-- Releases follow the numbered checklist in [CONTRIBUTING.md § Releasing](CONTRIBUTING.md), in three phases: **Prepare** (pick the semver bump, bump `<Version>`, date the CHANGELOG, count the copies in use, commit and push `main` (or the hotfix branch), check which comprehensive reviews are due by `docs/guides/review_machinery.md`), **Review** (stop, surface the compare link from the last tag to the head, a summary and the reviews that are due, wait for "proceed"; a correction lands on the release's branch and the review reads the new head), **Ship — on explicit approval only** (dispatch the release workflow on the head the review read and watch it to its end with `lifecycle release <sha>`: it tags and publishes, and the dispatch is irreversible; merge a hotfix branch into `main` with a merge commit; close the milestone, verify). A prior "do the release" does not extend past the review checkpoint.
+- Update `CHANGELOG.md` for any user-visible change: **one claim per entry, at most 120 characters before the `(#N)`**. The rest of the style is [project_kickstart.md § CHANGELOG style](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md).
+- **Releases run by the lifecycle kit's `release` skill: prepare, review, ship.** The ship phase starts only on the maintainer's own "proceed" for that release; a prior "do the release" stops at the review. The steps are [CONTRIBUTING.md § Releasing](CONTRIBUTING.md) and § Hotfixes, run as written.
 
 ## Tests and quality gates
 
@@ -79,7 +79,7 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 ## Documentation
 
-- Layers: `README.md` + `README.ru.md` (the front page: what Gengfu is, install) · `docs/guide.md` + `docs/guide.ru.md` (the player guide: install, set up, use) · `CONTRIBUTING.md` (how to work here) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (howtos, playbooks, `design_language.md`; the lifecycle guides in it are a copy of the lifecycle kit's method, pinned by `.lifecycle.lock`) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
+- Layers: `README.md` + `README.ru.md` (the front page: what Gengfu is, install) · `docs/guide.md` + `docs/guide.ru.md` (the player guide: install, set up, use) · `CONTRIBUTING.md` (setting up, releasing, hotfixing; the design round, vendored code, player docs) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (Gengfu's own howtos: `design_language.md`, `release.md`; the lifecycle kit's guides are read from the installed kit, not copied here, and a gap found in one is filed on the kit as an issue) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
 - **Player docs come in pairs**, English and Russian: a change to one updates its twin in the same commit, the Russian in the app's own Russian labels (`src/Gengfu.App/Strings/Strings.ru.resx`).
 - **Do not create new documentation files unprompted**; suggest an ADR and wait. **Do not recreate `roadmap.md`** — tracked work lives on GitHub.
 - Cite code as `file.cs:123` in conversation; in docs use file-relative links and no `#L123` anchors.
@@ -99,25 +99,16 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 | New or removed user journey | `docs/product/vision.md` § CUJs |
 | Change to vendored code | `lib/README.md` § Local patches |
 | Release or packaging change | `docs/guides/release.md` (created with the release issue); the install steps of both READMEs and both guides when what a player does changes |
-| Process / workflow change | `CONTRIBUTING.md`; if reusable, the lifecycle guide it belongs in (`docs/guides/`), pushed to the kit at *Complete* |
-
-### Task-closing checklist
-
-1. Every doc touched by the change is up to date.
-2. `CHANGELOG.md` has an entry for any user-visible change.
-3. New settings, commands, labels or workflows are documented where someone would look for them.
-4. Non-obvious decisions have an ADR, referenced from the code or doc where they surface.
-5. A reusable pattern is reflected in the relevant guide.
+| Process / workflow change | this file, or `CONTRIBUTING.md` for setup and releasing; a pattern reusable across projects is filed on the lifecycle kit |
 
 ## Issues and pull requests
 
 - New issues use `.github/ISSUE_TEMPLATE/` (`bug.md`, `task.md`); `gh issue create --body` bypasses them — reproduce their structure.
-- **File in two stages.** At capture an issue says what and why, with no plan: one written then is stale by the time the work starts. Its *Plan* is written at *Clarify*, from the code as it stands then, and once accepted it changes only through its *Departures*.
-- Technical details use file-path checkboxes with `[NEW]` / `[MODIFY]` / `[DELETE]` markers; tick boxes to track progress, never edit prose.
-- Label every issue on three axes (`type/…`, `area/…`, `priority/…`), add it to the milestone if scoped, and add it to the project board in **Backlog** (`lifecycle board <N> Backlog`) — never "No Status".
-- Board transitions: `Backlog → Ready` is the maintainer's call. Move an issue to **In Progress** as your first step when you start it, and to **Done** in the same close-out that closes it. `lifecycle board <N> "In Progress"` and `lifecycle board <N> Done` make every move and put the card at the top of its column.
+- An issue is captured with no plan; its *Plan* is written at *Clarify*, and changes after acceptance only through its *Departures*. Tick a Technical-details box when its path lands; never edit prose to track progress.
+- **Labels:** one `type/…`, one `area/…` and one `priority/…` on every issue. Add the issue to the milestone if scoped.
+- **The board:** every write is `lifecycle board <N> <column>`, which puts the card at the top of its column: **Backlog** when you file an issue; the other moves are *Task workflow*'s, and `Backlog → Ready` is the maintainer's triage. What each column means, milestones, why an issue is filed in two stages, and the label taxonomy behind the labels above: [project_kickstart.md § GitHub tracking setup](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md).
 - PRs use `.github/pull_request_template.md`: Summary, `Closes #N`, concrete Verification. Never invent issue numbers — check with `gh issue view <N>`.
-- Dependabot PRs: read the changelog first; patch/minor may auto-merge once CI is green, majors get a manual review.
+- Dependabot PRs: read the changelog first; patch/minor may merge once CI is green, majors get a manual review.
 
 ## Secrets and security
 
@@ -133,28 +124,23 @@ Every tracked task moves through three explicit phases. **Do not collapse them**
 
 ## When editing code
 
-- **Simplicity First** ([docs/guides/codebase_review.md](docs/guides/codebase_review.md)): when a load-bearing abstraction no longer earns its shape, surface the simplification before patching around it.
+- **Simplicity First** ([codebase_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/codebase_review.md)): when a load-bearing abstraction no longer earns its shape, surface the simplification before patching around it.
 - **Stay in scope.** No drive-by refactors, renames, dependency bumps or reformatting. Prefer editing existing files.
-- **Conform to the design language.** Every UI edit reuses [docs/guides/design_language.md](docs/guides/design_language.md); one screen, one design file (pairing table there). New screens and visual changes are designed first ([docs/guides/design_workflow.md](docs/guides/design_workflow.md)) and approved before code.
-- Comments explain **why**, never what. Budget: 6 lines per comment block, 12 per doc comment, 8 per file header — provisional, re-derive per `codebase_review.md` § Phase 2 after v0.1. Rationale beyond that goes to an ADR or the issue.
+- **Conform to the design language.** Every UI edit reuses [docs/guides/design_language.md](docs/guides/design_language.md); one screen, one design file (pairing table there). New screens and visual changes are designed first ([design_workflow.md](https://github.com/orwir/lifecycle-kit/blob/main/method/design_workflow.md)) and approved before code.
+- Comments explain **why**, never what. Budget: 6 lines per comment block, 12 per doc comment, 8 per file header — provisional, re-derive per [codebase_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/codebase_review.md) § Phase 2 after v0.1. Rationale beyond that goes to an ADR or the issue.
 - Write for the next editor: present tense, the surviving constraint only; no history, no tracker tombstones.
 - No compatibility shims, feature flags for work that can ship, half-finished implementations, or error handling for impossible cases. Validate at boundaries: user input, TeamSpeak, files.
 
 ## What NOT to do
 
-- Do not start the release workflow or create a `v*` tag outside a release's Ship phase, duplicate the version string, or use `--no-verify`.
 - Do not reference WPF, Windows APIs or TSLib from `Gengfu.Core`.
 - Do not edit `lib/` outside the patch process.
-- Do not commit secrets, identities or local `*.local.*` files.
-- Do not recreate `roadmap.md` or create documentation files unprompted.
-- Do not leave a merged feature branch behind.
-- Do not add dependencies casually, or competing lint/format tools.
+- Do not add dependencies casually.
 - Do not use emojis in code or docs unless asked.
-- Do not edit a lifecycle guide outside a task, or leave the edit unpushed past the task's *Complete*.
-- Do not improvise a review process — a task's plan and work rounds follow `task_review.md`; the comprehensive reviews run on `review_machinery.md`: `codebase_review.md`, `ux_review.md`, `ia_review.md`, `design_review.md`.
+- Do not improvise a review process: the comprehensive reviews follow the kit's guides on [review_machinery.md](https://github.com/orwir/lifecycle-kit/blob/main/method/review_machinery.md) — [codebase_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/codebase_review.md), [ux_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/ux_review.md), [ia_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/ia_review.md) and [design_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/design_review.md).
 
 ## When in doubt
 
-1. Read the relevant section of `CONTRIBUTING.md` or `docs/guides/project_kickstart.md`.
+1. Read the lifecycle kit's guide for it: [project_kickstart.md](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md) says why each rule exists.
 2. Check whether an existing file already solves the problem.
 3. Mid-task fork: internal and reversible → decide and record it under the plan's *Departures* (in the hand-back where there is no plan); user-visible, hard to undo or scope-changing → stop and ask.

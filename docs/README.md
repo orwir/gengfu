@@ -3,7 +3,8 @@
 Where each kind of Gengfu document lives. Start with the vision for what Gengfu is, the
 architecture for how it works, and the decision records for why. Installing the app is on the front
 page, the root [README](../README.md), and using it is in the [player guide](guide.md), both also in
-Russian; how to work in the repo is in [CONTRIBUTING](../CONTRIBUTING.md).
+Russian; the rules for working in the repo are in [AGENTS](../AGENTS.md), and setting it up and
+releasing it in [CONTRIBUTING](../CONTRIBUTING.md).
 
 | Doc | What's in it |
 | --- | --- |
@@ -12,7 +13,8 @@ Russian; how to work in the repo is in [CONTRIBUTING](../CONTRIBUTING.md).
 | [product/idea.md](product/idea.md) | Frozen origins: the idea gauntlet that led to Gengfu |
 | [architecture/architecture.md](architecture/architecture.md) | Projects, data flow, clock model, threading, configuration |
 | [guides/design_language.md](guides/design_language.md) | Tokens, components, patterns; each screen's design file |
-| `guides/*.md` (other) | Process playbooks: a copy of the lifecycle kit's method, pinned by `.lifecycle.lock` |
+| [guides/release.md](guides/release.md) | How a release is built, published, checked and rolled back; the copies in use |
+| Lifecycle guides | Not copied here: read from the installed lifecycle kit; a gap found in one is filed on the kit as an issue |
 | [reviews/](reviews/) | Review plans and records: what each review found and decided, for the next to start from |
 | `adr/` | Decision records — index below |
 

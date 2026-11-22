@@ -33,7 +33,9 @@ notes the version's CHANGELOG section. A push to `main` ships nothing. Its files
 1. The refusals, before anything is built: a branch other than `main` or a `hotfix/…` one, a head
    other than the commit the review read, and a version tagged already, each in a step named as
    `lifecycle release` reads it to say why a run was refused; and a `-dev` version, which fails
-   the step that reads the version.
+   the step that reads the version. The job that publishes refuses a moved head and a tagged
+   version again before it builds, from the live branch and tags: a re-run keeps its first
+   dispatch's head, and re-running only the failed jobs skips the first refusals.
 2. The CI gate, [ci.yml](../../.github/workflows/ci.yml), as for any change, except that under a
    dispatch its gitleaks scan reads the whole history rather than one push's commits.
 3. The version's notes; without them the run stops.

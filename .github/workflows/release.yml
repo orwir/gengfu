@@ -93,6 +93,27 @@ jobs:
       PRE: ${{ needs.refuse.outputs.pre }}
     steps:
       - uses: actions/checkout@v7
+
+      # A re-run keeps its first dispatch's head and inputs, and re-running only the failed jobs
+      # skips refuse: read the live head and the tags again before anything is built.
+      - name: Refuse a head the review did not read
+        shell: bash
+        env:
+          REVIEWED: ${{ inputs.commit }}
+        run: |
+          LIVE=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1) || { echo "::error::$GITHUB_REF could not be read"; exit 1; }
+          if [ "$LIVE" != "$REVIEWED" ]; then
+            echo "::error::the branch moved since the review: its head is $LIVE"; exit 1
+          fi
+
+      - name: Refuse a version released already
+        shell: bash
+        run: |   # exit 2 is "no such tag"; anything else, a failed read included, refuses
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null && found=0 || found=$?
+          if [ "$found" -ne 2 ]; then
+            echo "::error::v$VERSION is tagged already, or the tags could not be read"; exit 1
+          fi
+
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json

@@ -1,7 +1,7 @@
 # Gengfu design language
 
 The *what* of Gengfu's interface: tokens, components, patterns. The *how* is
-[design_workflow.md](design_workflow.md). The visual source of truth is the Claude
+[design_workflow.md](https://github.com/orwir/lifecycle-kit/blob/main/method/design_workflow.md). The visual source of truth is the Claude
 Design canvas (https://claude.ai/artifact/5VwWCavteqkpQQadJMEeBR — private until shared). It
 has a page per surface (Main window, Settings, Foundations), each with its state boards grouped
 by kind, one notes card, and the options a fork turned down, labelled NOT TAKEN.

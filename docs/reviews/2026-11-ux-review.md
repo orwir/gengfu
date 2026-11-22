@@ -2,7 +2,7 @@
 
 The first UX review of Gengfu, run for #42 before 0.4.0 opens Gengfu to players who have never
 heard of it. This file is its plan and its record: the baseline, a walk of every journey, what
-the walks found, and what was decided. It follows [ux_review.md](../guides/ux_review.md), and the
+the walks found, and what was decided. It follows [ux_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/ux_review.md), and the
 next review starts from its open items and its decision register.
 
 **Goal.** Walk Gengfu's journeys as a newcomer from the promo video would, and fix or file what
@@ -23,7 +23,7 @@ walk, and Update in Russian at the 0.4.0 release's step 10.
 **How to use this file**
 
 - Findings are numbered per phase (P1 #3); action items carry a slug that is unique in this file.
-- Severity uses the seven labels of [codebase_review.md](../guides/codebase_review.md) § Severity
+- Severity uses the seven labels of [codebase_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/codebase_review.md) § Severity
   vocabulary.
 - A letter-shaped item waits for the maintainer's pick; its register row says when it was decided.
 - Journeys are named as `cuj-set` (A) names them; 0.1 maps them to the eight they replace.
