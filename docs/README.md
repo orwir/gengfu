@@ -14,7 +14,7 @@ releasing it in [CONTRIBUTING](../CONTRIBUTING.md).
 | [architecture/architecture.md](architecture/architecture.md) | Projects, data flow, clock model, threading, configuration |
 | [guides/design_language.md](guides/design_language.md) | Tokens, components, patterns; each screen's design file |
 | [guides/release.md](guides/release.md) | How a release is built, published, checked and rolled back; the copies in use |
-| Lifecycle guides | Not copied here: read from the installed lifecycle kit; a gap found in one is filed on the kit as an issue |
+| Lifecycle guides | Not copied here: read from the installed lifecycle kit; a gap found in one is filed with `lifecycle gap`: on the kit for one who can push to it, otherwise here, labelled `kit-gap` |
 | [reviews/](reviews/) | Review plans and records: what each review found and decided, for the next to start from |
 | `adr/` | Decision records — index below |
 

@@ -53,10 +53,15 @@ list — never edit prose to track progress).
 
 ### Decisions
 
-The maintainer's choices, each as **(A) / (B)** with a recommendation. The pick
-and its reason replace the recommendation before implementation starts.
+The maintainer's choices: the one-way doors (user-visible behaviour, hard to
+undo, scope or spend) and any reviewer finding the developer disputes, each as
+**(A) / (B)** with a recommendation. The pick and its reason replace the
+recommendation before implementation starts. Below them,
+a `Taken:` line for each choice made without the maintainer, with its reason;
+the maintainer may veto any of them.
 
 - **D1.** <question> (A) <option> · (B) <option> — recommended A | picked A: <why>
+- Taken: <what> — <why>
 
 ### Verification
 
