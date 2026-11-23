@@ -165,7 +165,7 @@ public sealed class MainViewTests(WpfApp wpf)
                 WpfApp.Press(Key.Space);
                 view.Refresh();
                 WpfApp.Settle();
-                return (view, (session.Caller.Testing, view.TestText.Text, view.TestButton.IsEnabled, ReferenceEquals(WpfApp.Focused(), view.TestButton)));
+                return (view, (session.Caller.Testing, view.TestText.Text, view.TestButton.IsEnabled, ReferenceEquals(Keyboard.FocusedElement, view.TestButton)));
             });
             Assert.Equal((true, "Calling…", true, true), calling);
 
@@ -174,7 +174,7 @@ public sealed class MainViewTests(WpfApp wpf)
             {
                 view.Refresh();
                 WpfApp.Settle();
-                var focused = ReferenceEquals(WpfApp.Focused(), view.TestButton);
+                var focused = ReferenceEquals(Keyboard.FocusedElement, view.TestButton);
                 WpfApp.Press(Key.Space);
                 return (focused, session.Caller.Testing);
             });

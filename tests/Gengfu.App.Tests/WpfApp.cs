@@ -81,8 +81,7 @@ public sealed class WpfApp : IDisposable
 
     /// <summary>
     /// Shows a view in a window of its own, as Gengfu's window holds it, so it can take keyboard focus.
-    /// The window is off screen, never activated and out of the taskbar, as when the App shared the
-    /// user's desktop; on its own desktop nobody sees it either way. Close it when done.
+    /// Close it when done.
     /// </summary>
     public static Window Show(UIElement view)
     {
@@ -92,30 +91,10 @@ public sealed class WpfApp : IDisposable
             Width = 380,
             Height = 616,
             WindowStyle = WindowStyle.None,
-            ShowInTaskbar = false,
-            ShowActivated = false,
-            WindowStartupLocation = WindowStartupLocation.Manual,
-            Left = -20000,
-            Top = -20000,
         };
         window.Show();
         Settle();
         return window;
-    }
-
-    /// <summary>
-    /// What has keyboard focus in the window shown. Windows may take activation from that window,
-    /// which is never the foreground one, and WPF then drops keyboard focus but remembers where it
-    /// was: this puts it back there first, as activating the window would.
-    /// </summary>
-    public static IInputElement? Focused()
-    {
-        if (Keyboard.FocusedElement is null)
-        {
-            var window = Application.Current.Windows.OfType<Window>().Single();
-            Keyboard.Focus(FocusManager.GetFocusedElement(window) ?? window);
-        }
-        return Keyboard.FocusedElement;
     }
 
     /// <summary>
@@ -124,7 +103,7 @@ public sealed class WpfApp : IDisposable
     /// </summary>
     public static void Press(Key key)
     {
-        var focused = Focused() ?? throw new InvalidOperationException($"Nothing has keyboard focus to take {key}.");
+        var focused = Keyboard.FocusedElement ?? throw new InvalidOperationException($"Nothing has keyboard focus to take {key}.");
         Stroke(focused, key);
         Settle();
     }
@@ -146,7 +125,7 @@ public sealed class WpfApp : IDisposable
     /// <summary>Types text where focus is, as a keyboard's characters arrive.</summary>
     public static void Type(string text)
     {
-        var focused = Focused() ?? throw new InvalidOperationException($"Nothing has keyboard focus to take “{text}”.");
+        var focused = Keyboard.FocusedElement ?? throw new InvalidOperationException($"Nothing has keyboard focus to take “{text}”.");
         TextCompositionManager.StartComposition(new TextComposition(InputManager.Current, focused, text));
         Settle();
     }

@@ -42,11 +42,11 @@ public sealed class EventRowTests(WpfApp wpf)
                     WpfApp.Press(Key.Tab);
                     WpfApp.Press(Key.Space);
                     Assert.Null(removed);
-                    Assert.Same(row.SpawnsBox, WpfApp.Focused());
+                    Assert.Same(row.SpawnsBox, Keyboard.FocusedElement);
 
                     row.SoundSwitch.Focus();
                     WpfApp.Press(Key.Tab);
-                    Assert.Same(row.RemoveButton, WpfApp.Focused());
+                    Assert.Same(row.RemoveButton, Keyboard.FocusedElement);
                 }
                 finally
                 {

@@ -21,7 +21,7 @@ public sealed class ClockDigitsTests(WpfApp wpf)
             WpfApp.Type("26");
             WpfApp.Press(Key.Enter);
             // The digits read as plain text again, focus on the clock as a whole.
-            Assert.Same(digits, WpfApp.Focused());
+            Assert.Same(digits, Keyboard.FocusedElement);
             WpfApp.Press(Key.Tab);
             WpfApp.Type("05");
             WpfApp.Press(Key.Enter);
@@ -76,7 +76,7 @@ public sealed class ClockDigitsTests(WpfApp wpf)
             {
                 WpfApp.Press(Key.Tab);
             }
-            Assert.Same(digits.MinutesBox, WpfApp.Focused());
+            Assert.Same(digits.MinutesBox, Keyboard.FocusedElement);
             WpfApp.Press(Key.Tab);
             WpfApp.Type("05");
             WpfApp.Press(Key.Enter);
@@ -93,7 +93,7 @@ public sealed class ClockDigitsTests(WpfApp wpf)
             WpfApp.Press(Key.Escape);
             WpfApp.Press(Key.Tab);
 
-            Assert.Same(after, WpfApp.Focused());
+            Assert.Same(after, Keyboard.FocusedElement);
             Assert.Equal("35:00", clock.Display);
         });
 
@@ -108,7 +108,7 @@ public sealed class ClockDigitsTests(WpfApp wpf)
                 WpfApp.Press(Key.Tab);
             }
 
-            Assert.Same(digits.MinutesBox, WpfApp.Focused());
+            Assert.Same(digits.MinutesBox, Keyboard.FocusedElement);
         });
 
     // A left button's press as it reaches the element under the mouse, which a field takes focus on.
