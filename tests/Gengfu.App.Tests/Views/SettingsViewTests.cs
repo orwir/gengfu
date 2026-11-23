@@ -340,7 +340,7 @@ public sealed class SettingsViewTests(WpfApp wpf)
                 WpfApp.Press(Key.Space);
                 view.Refresh();
                 WpfApp.Settle();
-                var pressed = (added.TestText.Text, added.TestButton.IsEnabled, ReferenceEquals(WpfApp.Focused(), added.TestButton));
+                var pressed = (added.TestText.Text, added.TestButton.IsEnabled, ReferenceEquals(Keyboard.FocusedElement, added.TestButton));
                 return (view, (pressed, view.TestButton.IsEnabled, Rows(view)[0].TestButton.IsEnabled));
             });
             Assert.Equal((("Calling…", true, true), false, false), calling);
@@ -350,7 +350,7 @@ public sealed class SettingsViewTests(WpfApp wpf)
             {
                 view.Refresh();
                 WpfApp.Settle();
-                return (ReferenceEquals(WpfApp.Focused(), Rows(view)[1].TestButton), view.TestButton.IsEnabled, Rows(view)[0].TestButton.IsEnabled);
+                return (ReferenceEquals(Keyboard.FocusedElement, Rows(view)[1].TestButton), view.TestButton.IsEnabled, Rows(view)[0].TestButton.IsEnabled);
             });
             Assert.Equal((true, true, true), after);
 
@@ -362,7 +362,7 @@ public sealed class SettingsViewTests(WpfApp wpf)
                 WpfApp.Press(Key.Space);
                 view.Refresh();
                 WpfApp.Settle();
-                var pressed = (view.TestText.Text, view.TestButton.IsEnabled, ReferenceEquals(WpfApp.Focused(), view.TestButton));
+                var pressed = (view.TestText.Text, view.TestButton.IsEnabled, ReferenceEquals(Keyboard.FocusedElement, view.TestButton));
                 return (pressed, Rows(view)[0].TestButton.IsEnabled, Rows(view)[1].TestButton.IsEnabled);
             });
             Assert.Equal((("Calling…", true, true), false, false), calls);

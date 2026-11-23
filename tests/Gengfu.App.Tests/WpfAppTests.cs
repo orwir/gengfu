@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Gengfu.App.Tests;
 
@@ -17,6 +19,31 @@ public sealed class WpfAppTests(WpfApp wpf)
         var app = wpf.Invoke(DesktopOfThisThread);
 
         Assert.NotEqual(started, app);
+    }
+
+    // On its own desktop the window keeps keyboard focus, so a focus lost in a view test is a real
+    // fault in the test: it fails where it happens, not quietly put back.
+    [Fact]
+    public void A_key_pressed_or_text_typed_once_keyboard_focus_is_lost_fails_the_test()
+    {
+        var lost = wpf.Invoke(() =>
+        {
+            var box = new TextBox();
+            var window = WpfApp.Show(box);
+            try
+            {
+                box.Focus();
+                Keyboard.ClearFocus();
+                return (Pressed: Record.Exception(() => WpfApp.Press(Key.Tab)), Typed: Record.Exception(() => WpfApp.Type("x")));
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
+        Assert.StartsWith("Nothing has keyboard focus", Assert.IsType<InvalidOperationException>(lost.Pressed).Message);
+        Assert.StartsWith("Nothing has keyboard focus", Assert.IsType<InvalidOperationException>(lost.Typed).Message);
     }
 
     private static string DesktopOfThisThread()
