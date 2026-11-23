@@ -19,7 +19,8 @@ One sentence: what does "fixed" look like?
 
 ## Context
 
-State of the **system**, not of the work — work state lives on the project board.
+State of the **system**, not of the work — work state lives on the project board
+where the repository keeps one, otherwise in the issue's state and its plan.
 Version where it happens, environment, when it started, who or what is affected.
 
 ## Reproduction

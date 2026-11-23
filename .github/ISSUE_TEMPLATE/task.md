@@ -17,7 +17,8 @@ One or two sentences: the outcome, not the steps.
 
 ## Context
 
-State of the **system**, not of the work — work state lives on the project board.
+State of the **system**, not of the work — work state lives on the project board
+where the repository keeps one, otherwise in the issue's state and its plan.
 Why now, constraints, links to prior discussion or ADRs.
 
 ## Related

@@ -22,7 +22,9 @@ if [ -n "$cs" ]; then
     "$DOTNET" format whitespace Gengfu.slnx --verify-no-changes --include $cs
 fi
 
-# Secret scan when gitleaks is installed; CI always runs it.
+# Secret scan; CI always runs it. A missing gitleaks says so, so a skipped scan is never silent.
 if command -v gitleaks >/dev/null 2>&1; then
     gitleaks protect --staged --redact --no-banner
+else
+    echo "pre-commit: gitleaks is not installed, so the secret scan did not run" >&2
 fi

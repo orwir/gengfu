@@ -15,8 +15,10 @@ kit's
    that a .NET 10 SDK is reachable. Non-negotiable — the pre-push stage is the
    local CI gate. The commit stage (`.githooks/pre-commit`, staged files) checks
    the whitespace and layout of C# files, a 1 MB large-file guard, and a
-   gitleaks secret scan when gitleaks is installed (CI always runs it); the push
-   stage (`.githooks/pre-push`) runs `scripts/check.sh`, the script CI runs.
+   gitleaks secret scan (CI always runs it); the push stage
+   (`.githooks/pre-push`) runs `scripts/check.sh`, the script CI runs. Install
+   [gitleaks](https://github.com/gitleaks/gitleaks) on `PATH` too: where it is
+   missing, the commit stage says its secret scan did not run.
 3. There is no `.env`. The app keeps its settings in `%AppData%\Gengfu`, or in
    the folder the `GENGFU_HOME` environment variable names. Tests, harnesses and
    checks never use yours: a test gives its `Session` a temp folder, a run of
@@ -45,15 +47,20 @@ only by adding a patch to the list in [lib/README.md](lib/README.md), marked
 
 ## Releasing
 
-[SemVer](https://semver.org). Each `MAJOR.MINOR` maps to a milestone; patches
-reuse it. How the release is built, published and rolled back:
-[release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`, publishes as
-a pre-release, which only installed test builds update to; it skips steps 1,
-4 and 9, and keeps its CHANGELOG entries under `[Unreleased]`, which become its
-notes. The checklist is literal — execute it in order, no shortcuts:
+[SemVer](https://semver.org), picked by what landed since the last tag: a
+release ships what has landed. How the release is built, published and rolled
+back: [release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`,
+publishes as a pre-release, which only installed test builds update to; it
+skips step 4, and keeps its CHANGELOG entries under `[Unreleased]`, which
+become its notes. The checklist is literal — execute it in order, no shortcuts:
 
-1. **Confirm the milestone is clean.** `gh issue list --milestone v<X.Y>
-   --state open` returns nothing (close or move out the rest).
+1. **Read what the release's CI will read.** Under the release's dispatch,
+   CI's secret scan (gitleaks-action) reads the whole history, not only the
+   commits a push brings: run `gitleaks git -v --redact` on a fresh clone, at
+   the gitleaks version the action's last run printed, with the repository's
+   `.gitleaks.toml` and `.gitleaksignore`, and land what it finds before the
+   bump. A secret it finds is rotated and its fingerprint added to
+   `.gitleaksignore`, never only deleted: the history keeps it.
 2. **Bump the version** in `Directory.Build.props` (`<Version>`) — the single
    source of truth.
 3. **Update `CHANGELOG.md`**: date the new section, group entries under
@@ -75,15 +82,14 @@ notes. The checklist is literal — execute it in order, no shortcuts:
 8. **Dispatch the release workflow** on the reviewed commit and watch the run
    to its end: `lifecycle release <sha>`, or `gh workflow run release.yml
    --ref main -f commit=<sha>` and `gh run watch`. It refuses when `main` moved
-   since the review (check the version, the changelog and step 1's milestone
-   against the new head, review it, then dispatch that) or when the
-   version is tagged already; otherwise it builds the app, installs it on the
-   CI machine, and last publishes the GitHub Release with its tag `v<X.Y.Z>`
-   and the CHANGELOG section as its notes.
-9. **Close the milestone.**
-10. **Verify the release**: run the published Setup on a Windows 11 PC (or let
-    an installed Gengfu update itself) and check that Settings › General shows
-    the new version. A release isn't done until this passes.
+   since the review (check the version and the changelog against the new
+   head, review it, then dispatch that) or when the version is tagged already;
+   otherwise it builds the app, installs it on the CI machine, and last
+   publishes the GitHub Release with its tag `v<X.Y.Z>` and the CHANGELOG
+   section as its notes.
+9. **Verify the release**: run the published Setup on a Windows 11 PC (or let
+   an installed Gengfu update itself) and check that Settings › General shows
+   the new version. A release isn't done until this passes.
 
 ## Hotfixes
 
@@ -98,8 +104,7 @@ For an urgent fix to a released version while `main` holds unreleased work:
 3. Release from the branch by the Releasing steps, with `hotfix/<name>`
    wherever they name `main`: the patch version, the release commit pushed to
    the branch, corrections landed on it, and the dispatch
-   `lifecycle release <sha> --ref hotfix/<name>`. Skip steps 1 and 9: the
-   milestone holds the unreleased work.
+   `lifecycle release <sha> --ref hotfix/<name>`.
 4. Merge the branch into `main` with a merge commit (`git merge --no-ff`),
    never squashed, so the tag stays in its history, and push.
 5. Delete the hotfix branch — remote and local.
