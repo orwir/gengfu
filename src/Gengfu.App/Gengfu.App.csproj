@@ -8,8 +8,6 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <!-- The Fluent theme API is still experimental; accepted in ADR-0001. -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>

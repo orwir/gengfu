@@ -10,9 +10,9 @@ kit's
 
 1. Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
    and clone the repo. Windows 11 is needed to build and run the app.
-2. Install the git hooks: `powershell -File scripts/setup.ps1`. It also checks
-   that a .NET 10 SDK is reachable. Non-negotiable — the pre-push stage is the
-   local CI gate. Install [gitleaks](https://github.com/gitleaks/gitleaks) too,
+2. Install the git hooks: `powershell -File scripts/setup.ps1`.
+   Non-negotiable — the pre-push stage is the local CI gate.
+   Install [gitleaks](https://github.com/gitleaks/gitleaks) too,
    at the version CI's last `secrets` run printed (8.19 or later, which has the
    `git` command the hook runs), and pin it there:
    `winget install --id Gitleaks.Gitleaks --exact --scope user --version <v>`,

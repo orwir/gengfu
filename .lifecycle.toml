@@ -15,8 +15,7 @@ number = 13
 commands = ["scripts/check.sh"]
 # A new test run alone on a worktree of the base, to prove it fails without the change:
 # {root} is the worktree, {tests} a dotnet test filter (FullyQualifiedName~ClockTests; several
-# tests join with |). Where the dotnet on PATH lacks the .NET 10 SDK, use the one
-# scripts/dotnet.sh finds.
+# tests join with |).
 targeted = "dotnet test {root}/Gengfu.slnx --filter \"{tests}\""
 
 [review]

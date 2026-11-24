@@ -8,6 +8,3 @@ coverage.json
 
 # Local settings, identities and test clips — never committed
 *.local.*
-
-# Phase 3 spike: throwaway, kept on the machine only
-spike/

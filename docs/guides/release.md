@@ -20,8 +20,7 @@ section. Its files:
 
 ## Versions
 
-- A version ending in `-dev` never releases: the run refuses it before the gate. So does a
-  version tagged already.
+- A version tagged already never releases: the run refuses it before the gate.
 - A version with a suffix, such as `0.1.0-rc.1`, is a test build and publishes as a pre-release.
   Only installed test builds take it; an installed test build moves on to the release when it
   comes. Its notes are the CHANGELOG's `[Unreleased]` section unless it has a section of its own.
@@ -32,10 +31,10 @@ section. Its files:
 
 1. The refusals, before anything is built: a branch other than `main` or a `hotfix/…` one, a head
    other than the commit the review read, and a version tagged already, each in a step named as
-   `lifecycle release` reads it to say why a run was refused; and a `-dev` version, which fails
-   the step that reads the version. The job that publishes refuses a moved head and a tagged
-   version again before it builds, from the live branch and tags, for the reasons the lifecycle
-   kit's [project_kickstart.md](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md)
+   `lifecycle release` reads it to say why a run was refused. The job that publishes refuses a
+   moved head and a tagged version again before it builds, from the live branch and tags, for the
+   reasons the lifecycle kit's
+   [project_kickstart.md](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md)
    § CI/CD recipe gives.
 2. The CI gate, [ci.yml](../../.github/workflows/ci.yml), as for any change, except that under a
    dispatch its gitleaks scan reads the whole history rather than one push's commits.

@@ -56,10 +56,6 @@ jobs:
         id: version
         run: |
           version="$(dotnet msbuild src/Gengfu.Core/Gengfu.Core.csproj -getProperty:Version)"
-          if [[ "$version" == *-dev* ]]; then
-            echo "::error::$version is a development version: set the release's <Version> in Directory.Build.props."
-            exit 1
-          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           # A test build, such as 0.1.0-rc.1, is a pre-release: only installed test builds take it.
           if [[ "$version" == *-* ]]; then

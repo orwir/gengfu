@@ -20,7 +20,7 @@ These rules are the compressed operating contract. Why each exists is the lifecy
 - Run locally: `GENGFU_HOME=<folder> dotnet run --project src/Gengfu.App`
 - Lifecycle: `lifecycle doctor --json` before a task. A finding whose fix is `upgrade` runs the lifecycle kit's upgrade skill first, alone, unless a task's edits are in the tree: that task lands first. Any other `block`, or a failure of the command, goes to the user. `.lifecycle.toml` holds this repository's settings for the kit's skills and command.
 
-These are the canonical invocations — the same ones the hooks and CI run. Don't improvise variants. When the `dotnet` on PATH lacks the .NET 10 SDK, use the one `scripts/dotnet.sh` finds.
+These are the canonical invocations — the same ones the hooks and CI run. Don't improvise variants.
 
 ## Branching and commits
 

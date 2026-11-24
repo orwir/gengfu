@@ -2,7 +2,7 @@
 # Commit stage: quick checks on staged files only. The full gate runs on push (scripts/check.sh).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
-. scripts/dotnet.sh
+export DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 # Every staged change but a deletion: a rename with edits must reach the checks below too.
 staged="$(git diff --cached --name-only --diff-filter=d)"
@@ -20,7 +20,7 @@ done <<<"$staged"
 cs="$(grep -E '\.cs$' <<<"$staged" | grep -v '^lib/' || true)"
 if [ -n "$cs" ]; then
     # shellcheck disable=SC2086
-    "$DOTNET" format whitespace Gengfu.slnx --verify-no-changes --include $cs
+    dotnet format whitespace Gengfu.slnx --verify-no-changes --include $cs
 fi
 
 # Secret scan; CI always runs it. A missing gitleaks says so, so a skipped scan is never silent.
