@@ -14,11 +14,11 @@ These rules are the compressed operating contract. Why each exists is the lifecy
 
 ## Commands
 
-- Setup: `powershell -File scripts/setup.ps1` (git hooks + .NET 10 SDK check)
+- Setup: `powershell -File scripts/setup.ps1`
 - Gate — format, build, test, coverage: `scripts/check.sh`; given tests alone: `dotnet test Gengfu.slnx --filter "<tests>"`
 - Format: `dotnet format Gengfu.slnx --exclude lib`
-- Run locally, on a folder of its own: `GENGFU_HOME=<folder> dotnet run --project src/Gengfu.App`
-- Lifecycle: `lifecycle doctor --json` before a task. A finding whose fix is `upgrade` runs the lifecycle kit's upgrade skill first, alone, unless a task's edits are in the tree: that task lands first. Any other `block`, or a failure of the command, goes to the user. `.lifecycle.toml` holds this repository's settings for the kit's skills and command. Without the kit's Claude plugin, use `bin/lifecycle` and `skills/*/SKILL.md` in a checkout of the kit (`lifecycle where` names it), and with neither, say so and stop before any round
+- Run locally: `GENGFU_HOME=<folder> dotnet run --project src/Gengfu.App`
+- Lifecycle: `lifecycle doctor --json` before a task. A finding whose fix is `upgrade` runs the lifecycle kit's upgrade skill first, alone, unless a task's edits are in the tree: that task lands first. Any other `block`, or a failure of the command, goes to the user. `.lifecycle.toml` holds this repository's settings for the kit's skills and command.
 
 These are the canonical invocations — the same ones the hooks and CI run. Don't improvise variants. When the `dotnet` on PATH lacks the .NET 10 SDK, use the one `scripts/dotnet.sh` finds.
 
@@ -26,7 +26,7 @@ These are the canonical invocations — the same ones the hooks and CI run. Don'
 
 - **Default flow:** commit directly to `main`, since one maintainer's pre-push hook runs the same gate as CI.
 - **A feature branch** (`feat/…`, `fix/…`, `chore/…`, `docs/…`, `refactor/…`, `perf/…`), whatever the default, for work that is multi-commit and should land atomically, risky or invasive (vendored-library updates, cross-cutting refactors), spans sessions, or wants a diff review before merging. When in doubt, branch. It lands by the lifecycle kit's `complete` skill: a PR from `.github/pull_request_template.md` for a reader who never saw the review rounds, merged once every check passed, the branch deleted on both ends. A branch listed by `git branch` is either active work or it shouldn't exist.
-- **A push ships nothing.** `main` is the one long-lived branch; a release publishes to players only through the release workflow, dispatched on the commit the release review read (*Versioning and release* below), which creates the `v*` tag. Never create one by hand. A fix that cannot wait for what `main` holds goes on a `hotfix/…` branch cut from the last release's tag ([CONTRIBUTING.md § Hotfixes](CONTRIBUTING.md)).
+- **A push ships nothing.** `main` is the one long-lived branch; a release publishes to players only through the release workflow (*Versioning and release* below), which creates the `v*` tag. Never create one by hand. A fix that cannot wait for what `main` holds goes on a `hotfix/…` branch cut from the last release's tag ([CONTRIBUTING.md § Hotfixes](CONTRIBUTING.md)).
 - **Commits** follow [Conventional Commits](https://www.conventionalcommits.org/): a prefix of `feat`, `fix`, `refactor`, `docs`, `test`, `chore` or `perf`, an optional scope (`fix(teamspeak): …`), a subject in the imperative with no trailing period and under 72 characters, and a body, when used, that says **why**.
 
 ## Task workflow — three phases
@@ -65,19 +65,19 @@ What the kit's skills read here:
 
 - The version string lives in exactly one place: `Directory.Build.props` → `<Version>`. The About entry (`AppVersion.Current`) and the release workflow read it from the build. **Do not duplicate it.**
 - Update `CHANGELOG.md` for any user-visible change: **one claim per entry, at most 120 characters before the `(#N)`**. The rest of the style is [project_kickstart.md § CHANGELOG style](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md).
-- **Releases run by the lifecycle kit's `release` skill: prepare, review, ship.** The ship phase starts only on the maintainer's own "proceed" for that release; a prior "do the release" stops at the review. The steps are [CONTRIBUTING.md § Releasing](CONTRIBUTING.md) and § Hotfixes, run as written.
+- **Releases run by the lifecycle kit's `release` skill: prepare, review, ship.** The steps are [CONTRIBUTING.md § Releasing](CONTRIBUTING.md) and § Hotfixes, run as written.
 
 ## Tests and quality gates
 
 - Tests run with xUnit via `dotnet test`. Pure logic takes its time from a fake clock, never the wall clock.
-- Coverage floor: 80% of `Gengfu.Core` lines, enforced by `scripts/check.sh` (pre-push and CI). Add tests, don't lower the floor.
+- Coverage floor: 80% of `Gengfu.Core` lines, enforced by `scripts/check.sh`. Add tests, don't lower the floor.
 - Integration tests hit real I/O — a real filesystem for settings, a real local socket for address lookup. **Do not mock the filesystem in integration tests.**
 - **Tests, harnesses and checks run on folders of their own** — a temp folder for a `Session`, `GENGFU_HOME` for Gengfu itself — never on the user's settings, secrets or install. The smoke install refuses to run where Gengfu is installed.
 - Lint + format: `dotnet format` with `.editorconfig` only. Outside `lib/` the build treats warnings as errors.
 
 ## Documentation
 
-- Layers: `README.md` + `README.ru.md` (the front page: what Gengfu is, install) · `docs/guide.md` + `docs/guide.ru.md` (the player guide: install, set up, use) · `CONTRIBUTING.md` (setting up, releasing, hotfixing; the design round, vendored code, player docs) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (Gengfu's own howtos: `design_language.md`, `release.md`; the lifecycle kit's guides are read from the installed kit, not copied here, and a gap found in one is filed with `lifecycle gap`: on the kit for one who can push to it, otherwise here, labelled `kit-gap`) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
+- Layers: `README.md` + `README.ru.md` (the front page: what Gengfu is, install) · `docs/guide.md` + `docs/guide.ru.md` (the player guide: install, set up, use) · `CONTRIBUTING.md` (setting up, releasing, hotfixing) · `CHANGELOG.md` · `docs/product/` (vision incl. CUJs; `idea.md` is frozen — never edit it) · `docs/architecture/architecture.md` (the how) · `docs/guides/` (Gengfu's own howtos: `design_language.md`, `release.md`; the lifecycle kit's guides are read from the installed kit, not copied here) · `docs/adr/` (one record per significant choice; index in `docs/README.md`).
 - **Player docs come in pairs**, English and Russian: a change to one updates its twin in the same commit, the Russian in the app's own Russian labels (`src/Gengfu.App/Strings/Strings.ru.resx`).
 - **A new documentation file is written only where the accepted plan has a box for it, or, outside a tracked task, where the user asks for it.** An ADR for a non-obvious decision is proposed as a box; a file a mapping row names that Gengfu lacks is surfaced. A file a kit flow writes (a review's report, an upgrade's port) is that flow's.
 - **Do not recreate `roadmap.md`** — tracked work lives on GitHub.
@@ -94,15 +94,14 @@ What the kit's skills read here:
 | Non-obvious design decision | new ADR in `docs/adr/` + its row in `docs/README.md` |
 | Any user-visible change | `CHANGELOG.md` |
 | New/changed UI component or pattern | `docs/guides/design_language.md` (and the design canvas) |
-| Visible change to the main window or Settings | The front-page teaser in both READMEs: the maintainer re-renders it and uploads it again |
+| Visible change to the main window or Settings | The front-page teaser in both READMEs: the maintainer re-renders it from its source, the private repository `orwir/gengfu-teaser`, and uploads it again |
 | New or removed user journey | `docs/product/vision.md` § CUJs |
-| Change to vendored code | `lib/README.md` § Local patches |
-| Release or packaging change | `docs/guides/release.md` (created with the release issue); the install steps of both READMEs and both guides when what a player does changes |
+| Release or packaging change | `docs/guides/release.md`; the install steps of both READMEs and both guides when what a player does changes |
 | Process / workflow change | this file, or `CONTRIBUTING.md` for setup and releasing; a pattern reusable across projects is filed with `lifecycle gap` |
 
 ## Issues and pull requests
 
-- New issues use `.github/ISSUE_TEMPLATE/` (`bug.md`, `task.md`); `gh issue create --body` bypasses them — reproduce their structure.
+- New issues use `.github/ISSUE_TEMPLATE/` (`bug.md`, `task.md`).
 - An issue is captured with no plan; its *Plan* is written at *Clarify*, and changes after acceptance only through its *Departures*. Tick a Technical-details box when its path lands; never edit prose to track progress.
 - **Labels:** one `type/…`, one `area/…` and one `priority/…` on every issue.
 - **The board:** every write is `lifecycle board <N> <column>`, which puts the card at the top of its column: **Backlog** when you file an issue; the other moves are *Task workflow*'s, and `Backlog → Ready` is the maintainer's triage. Ready's order is the plan: the top card is next. The columns, the workflows the board keeps on, two-stage issues and the label taxonomy: [project_kickstart.md § GitHub tracking setup](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md).
@@ -115,7 +114,6 @@ What the kit's skills read here:
 - Never commit secrets: server passwords, the bot identity, tokens, signing material. Local test settings live in git-ignored `*.local.*` files.
 - Never log or print the server password or the identity's private key — log the server address and nickname instead, and refer to secrets by name only.
 - New CI workflows declare least-privilege `permissions:` blocks.
-- Releases are unsigned so far. When code signing is added, document the certificate's location and rotation in `docs/guides/release.md`.
 
 ## Executing actions
 
@@ -127,14 +125,12 @@ What the kit's skills read here:
 - **Simplicity First** ([codebase_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/codebase_review.md)): when a load-bearing abstraction no longer earns its shape, surface the simplification before patching around it.
 - **Stay in scope.** No drive-by refactors, renames, dependency bumps or reformatting.
 - **Conform to the design language.** Every UI edit reuses [docs/guides/design_language.md](docs/guides/design_language.md); one screen, one design file (pairing table there). New screens and visual changes are designed first ([design_workflow.md](https://github.com/orwir/lifecycle-kit/blob/main/method/design_workflow.md)) and approved before code.
-- Comments explain **why**, never what. Budget: 6 lines per comment block, 12 per doc comment, 8 per file header — provisional, re-derive per [codebase_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/codebase_review.md) § Phase 2 after v0.1. Rationale beyond that goes to an ADR or the issue.
+- Comments explain **why**, never what. Budget: 6 lines per comment block, 12 per doc comment, 8 per file header, measured by [codebase_review.md](https://github.com/orwir/lifecycle-kit/blob/main/method/codebase_review.md) § Phase 2 on 2026-11-24 over 377 comment blocks (longest 5), 362 doc comments (longest 10) and 1 file header (4). Rationale beyond that goes to an ADR or the issue.
 - Write for the next editor: present tense, the surviving constraint only; no history, no tracker tombstones.
 - No compatibility shims, feature flags for work that can ship, half-finished implementations, or error handling for impossible cases. Validate at boundaries: user input, TeamSpeak, files.
 
 ## What NOT to do
 
-- Do not reference WPF, Windows APIs or TSLib from `Gengfu.Core`.
-- Do not edit `lib/` outside the patch process.
 - Do not add dependencies casually.
 - Do not use emojis in code or docs unless asked.
 - Do not improvise a review process: a comprehensive review follows the kit's guide for it, on [review_machinery.md](https://github.com/orwir/lifecycle-kit/blob/main/method/review_machinery.md), which names them.

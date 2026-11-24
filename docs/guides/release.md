@@ -1,6 +1,6 @@
 # Releasing Gengfu
 
-How a release is built, published, checked and rolled back, for whoever cuts one. The checklist is
+How a release is built, published and rolled back, for whoever cuts one. The checklist is
 [CONTRIBUTING.md § Releasing](../../CONTRIBUTING.md#releasing); this guide is the machinery behind
 it. Why it works this way: [ADR-0006](../adr/0006-self-contained-installer-and-updates.md) for
 the installer and its updates, [ADR-0008](../adr/0008-releases-by-a-dispatched-workflow.md) for
@@ -8,9 +8,9 @@ what starts a release.
 
 ## What a release is
 
-A dispatch of [release.yml](../../.github/workflows/release.yml) on the commit the release review
-read publishes the version in `Directory.Build.props` as a GitHub Release tagged `v<version>`, its
-notes the version's CHANGELOG section. A push to `main` ships nothing. Its files:
+A dispatch of [release.yml](../../.github/workflows/release.yml) publishes the version in
+`Directory.Build.props` as a GitHub Release tagged `v<version>`, its notes the version's CHANGELOG
+section. Its files:
 
 - `Gengfu-win-Setup.exe`: what players download and run.
 - `Gengfu-<version>-full.nupkg`: the whole app, for new installs and for updates from far behind.
@@ -34,8 +34,9 @@ notes the version's CHANGELOG section. A push to `main` ships nothing. Its files
    other than the commit the review read, and a version tagged already, each in a step named as
    `lifecycle release` reads it to say why a run was refused; and a `-dev` version, which fails
    the step that reads the version. The job that publishes refuses a moved head and a tagged
-   version again before it builds, from the live branch and tags: a re-run keeps its first
-   dispatch's head, and re-running only the failed jobs skips the first refusals.
+   version again before it builds, from the live branch and tags, for the reasons the lifecycle
+   kit's [project_kickstart.md](https://github.com/orwir/lifecycle-kit/blob/main/method/project_kickstart.md)
+   § CI/CD recipe gives.
 2. The CI gate, [ci.yml](../../.github/workflows/ci.yml), as for any change, except that under a
    dispatch its gitleaks scan reads the whole history rather than one push's commits.
 3. The version's notes; without them the run stops.
@@ -43,21 +44,13 @@ notes the version's CHANGELOG section. A push to `main` ships nothing. Its files
    its `dotnet` folder, beside Gengfu's [THIRD-PARTY-NOTICES.txt](../../THIRD-PARTY-NOTICES.txt).
 5. `vpk download github` fetches the last release, for `vpk pack` to make the delta from. A test
    build counts earlier test builds; a release counts only releases.
-6. `vpk pack` builds Setup and the packages. Nothing is signed.
+6. `vpk pack` builds Setup and the packages.
 7. [smoke-install.ps1](../../scripts/smoke-install.ps1) installs Setup silently on the CI machine
    and starts Gengfu twice, each time waiting for its window, closing it and checking where its
    settings landed: first on a settings folder of its own, then as a player's copy starts, on its
-   usual folder with its updates. A test PC gets only the first start, and the script refuses to
-   run where Gengfu is installed, as on a developer's PC
-   ([ADR-0007](../adr/0007-gengfus-folder-and-isolated-copies.md)).
+   usual folder with its updates. A test PC gets only the first start.
 8. `vpk upload github` creates the release and its tag on the reviewed commit, and publishes it.
    It runs last, so a failed run leaves nothing published or tagged.
-
-## Velopack
-
-The release run installs vpk at the version of the Velopack package in `Gengfu.App.csproj`, since a
-build packed by another version may not update. Bumping the package, Dependabot's way or by hand,
-moves both.
 
 ## Rolling back
 
@@ -80,32 +73,6 @@ its SDK knows, so a patch release after a monthly .NET update brings it to playe
 Releases are unsigned so far, so Windows warns about an unknown publisher, and Smart App Control
 blocks Gengfu. When signing is added, record here where the certificate lives and how it rotates.
 
-## Checking a release
+## Velopack's log
 
-- The release lists the files above, and its notes are the version's.
-- Install it as a player would: download Setup and run it on a Windows 11 PC without a developer's
-  tools (Windows Sandbox will do), or let an installed Gengfu update itself. Settings › General
-  then shows the new version.
-- When an install or an update goes wrong, Velopack's log is `%LocalAppData%\velopack\velopack_Gengfu.log`.
-
-## Copies in use
-
-Gengfu sends no telemetry, so a release's downloads are the only count of the copies that run it.
-An installed copy fetches a release's delta package once when it updates, or its full package when
-it is too far behind for a delta; Setup brings the app with it, so a new install counts as a Setup
-download alone. At step 4 of the checklist, before the dispatch, the previous release's counts go
-in the table: once dispatched, the release run's `vpk download github` fetches the previous full
-package once more.
-
-```bash
-gh api repos/orwir/gengfu/releases/tags/v<X.Y.Z> --jq '.assets[] | "\(.name): \(.download_count)"'
-```
-
-| Release | Setup | Delta + full | Counted |
-| --- | --- | --- | --- |
-| 0.1.0 | 1 | 0 + 2 | 2026-11-10 |
-| 0.2.0 | 2 | 3 + 2 | 2026-11-11 |
-| 0.3.0 | 2 | 1 + 1 | 2026-11-12 |
-
-0.3.0's row leaves out the walks of the [UX review](../reviews/2026-11-ux-review.md): one Setup
-and one delta.
+When an install or an update goes wrong, Velopack's log is `%LocalAppData%\velopack\velopack_Gengfu.log`.

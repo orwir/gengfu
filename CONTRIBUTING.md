@@ -1,7 +1,6 @@
 # Contributing — Gengfu
 
-How to set this repository up and how to release it, with where its design
-rounds, vendored code and player docs are kept. Branching, commits, the
+How to set this repository up and how to release it. Branching, commits, the
 quality gates, the task's review rounds and the board are this repository's
 operating contract, [AGENTS.md](AGENTS.md); why each rule exists is the lifecycle
 kit's
@@ -13,46 +12,22 @@ kit's
    and clone the repo. Windows 11 is needed to build and run the app.
 2. Install the git hooks: `powershell -File scripts/setup.ps1`. It also checks
    that a .NET 10 SDK is reachable. Non-negotiable — the pre-push stage is the
-   local CI gate. The commit stage (`.githooks/pre-commit`, staged files) checks
-   the whitespace and layout of C# files, a 1 MB large-file guard, and a
-   gitleaks secret scan (CI always runs it); the push stage
-   (`.githooks/pre-push`) runs `scripts/check.sh`, the script CI runs. Install
-   [gitleaks](https://github.com/gitleaks/gitleaks) on `PATH` too: where it is
-   missing, the commit stage says its secret scan did not run.
+   local CI gate. Install [gitleaks](https://github.com/gitleaks/gitleaks) on
+   `PATH` too: where it is missing, the commit stage says its secret scan did
+   not run.
 3. There is no `.env`. The app keeps its settings in `%AppData%\Gengfu`, or in
-   the folder the `GENGFU_HOME` environment variable names. Tests, harnesses and
-   checks never use yours: a test gives its `Session` a temp folder, a run of
-   Gengfu itself sets `GENGFU_HOME`, and the smoke install refuses to run where
-   Gengfu is installed, since Setup would take over its registration. Local test
-   settings go in `*.local.*` files, which git ignores.
-4. Build with `dotnet build Gengfu.slnx`, and run Gengfu on a folder of its own
-   with `GENGFU_HOME=<folder> dotnet run --project src/Gengfu.App`.
-
-## Design
-
-New screens and visual changes are designed before they are built:
-the lifecycle kit's
-[design_workflow.md](https://github.com/orwir/lifecycle-kit/blob/main/method/design_workflow.md)
-is the how,
-[docs/guides/design_language.md](docs/guides/design_language.md) the resolved
-tokens, components and patterns. Each design round runs on a Claude Design
-canvas in the same session as the code, and the maintainer approves the drawing
-before code.
-
-## Vendored code
-
-`lib/` holds third-party code built from source (TSLib and friends). Change it
-only by adding a patch to the list in [lib/README.md](lib/README.md), marked
-`gengfu patch` in the source; never reformat it.
+   the folder the `GENGFU_HOME` environment variable names.
+4. Build with `dotnet build Gengfu.slnx`, and run Gengfu with
+   `GENGFU_HOME=<folder> dotnet run --project src/Gengfu.App`.
 
 ## Releasing
 
 [SemVer](https://semver.org), picked by what landed since the last tag: a
 release ships what has landed. How the release is built, published and rolled
-back: [release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`,
-publishes as a pre-release, which only installed test builds update to; it
-skips step 4, and keeps its CHANGELOG entries under `[Unreleased]`, which
-become its notes. The checklist is literal — execute it in order, no shortcuts:
+back: [release.md](docs/guides/release.md). A test build, `X.Y.Z-rc.N`
+([release.md § Versions](docs/guides/release.md#versions)), keeps its CHANGELOG
+entries under `[Unreleased]`, which become its notes. The checklist is literal —
+execute it in order, no shortcuts:
 
 1. **Read what the release's CI will read.** Under the release's dispatch,
    CI's secret scan (gitleaks-action) reads the whole history, not only the
@@ -65,31 +40,27 @@ become its notes. The checklist is literal — execute it in order, no shortcuts
    source of truth.
 3. **Update `CHANGELOG.md`**: date the new section, group entries under
    Added / Changed / Fixed / Removed, reference issues (`#N`).
-4. **Count the copies in use.** Before the dispatch, add the previous
-   release's downloads to [release.md § Copies in use](docs/guides/release.md#copies-in-use).
-   Gengfu sends no telemetry, so they are the only count of who runs it.
-5. **Commit and push** the release commit to `main`.
-6. **Review the release** on the compare link from the last tag (`git fetch
+4. **Commit and push** the release commit to `main`.
+5. **Review the release** on the compare link from the last tag (`git fetch
    --tags origin` first: the workflow makes the tags on GitHub) to that commit
-   (`https://github.com/orwir/gengfu/compare/v<last>...<sha>`), and name the
-   comprehensive reviews that are due (the lifecycle kit's
-   [review_machinery.md](https://github.com/orwir/lifecycle-kit/blob/main/method/review_machinery.md)
-   § When a review is due), with the trigger that fired each. A correction lands
+   (`https://github.com/orwir/gengfu/compare/v<last>...<sha>`), with the
+   readings of every check that runs only before a release. A correction lands
    on `main`, and the review reads the new head.
-7. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
-   for explicit approval. Step 8 is irreversible and ships to users; a prior
+6. **— Checkpoint —** If an AI assistant is driving, it stops here and waits
+   for explicit approval. Step 7 is irreversible and ships to users; a prior
    "do the release" does not extend past this line.
-8. **Dispatch the release workflow** on the reviewed commit and watch the run
-   to its end: `lifecycle release <sha>`, or `gh workflow run release.yml
-   --ref main -f commit=<sha>` and `gh run watch`. It refuses when `main` moved
-   since the review (check the version and the changelog against the new
+7. **Dispatch the release workflow** (`release.yml`) on the reviewed commit and
+   watch the run to its end: `lifecycle release <sha>`. It refuses when `main`
+   moved since the review (check the version and the changelog against the new
    head, review it, then dispatch that) or when the version is tagged already;
-   otherwise it builds the app, installs it on the CI machine, and last
-   publishes the GitHub Release with its tag `v<X.Y.Z>` and the CHANGELOG
-   section as its notes.
-9. **Verify the release**: run the published Setup on a Windows 11 PC (or let
-   an installed Gengfu update itself) and check that Settings › General shows
-   the new version. A release isn't done until this passes.
+   otherwise it runs as
+   [release.md § The release run](docs/guides/release.md#the-release-run) says.
+8. **Verify the release**: it lists the files
+   [release.md § What a release is](docs/guides/release.md#what-a-release-is)
+   names, with the version's notes. Run the published Setup on a Windows 11 PC
+   without a developer's tools (Windows Sandbox will do), or let an installed
+   Gengfu update itself, and check that Settings › General shows the new
+   version. A release isn't done until this passes.
 
 ## Hotfixes
 
@@ -111,14 +82,3 @@ For an urgent fix to a released version while `main` holds unreleased work:
 
 With nothing unreleased on `main`, a fix is an ordinary task and an ordinary
 patch release.
-
-## Documentation
-
-Players read English and Russian, so their docs come in both: `README.md` and
-`README.ru.md` are the front page, `docs/guide.md` and `docs/guide.ru.md` the
-player guide. A change to one updates its twin in the same commit, so neither
-language falls behind. The Russian names controls by the app's own Russian
-labels, from `Strings.ru.resx`, so a player finds on screen what the guide says.
-The front page also carries the teaser, a video the maintainer renders outside
-this repo: a visible change to the main window or Settings means rendering it
-again and uploading the new cuts.
