@@ -4,7 +4,8 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 . scripts/dotnet.sh
 
-staged="$(git diff --cached --name-only --diff-filter=ACM)"
+# Every staged change but a deletion: a rename with edits must reach the checks below too.
+staged="$(git diff --cached --name-only --diff-filter=d)"
 [ -n "$staged" ] || exit 0
 
 # Large-file guard: nothing over 1 MB enters history.
@@ -24,7 +25,8 @@ fi
 
 # Secret scan; CI always runs it. A missing gitleaks says so, so a skipped scan is never silent.
 if command -v gitleaks >/dev/null 2>&1; then
-    gitleaks protect --staged --redact --no-banner
+    gitleaks git --pre-commit --staged --redact --verbose --no-banner
 else
-    echo "pre-commit: gitleaks is not installed, so the secret scan did not run" >&2
+    echo "pre-commit: gitleaks was not found on this shell's PATH, so the secret scan did not run." >&2
+    echo "pre-commit: install it (CONTRIBUTING.md, Local setup), or restart a shell or app opened before the install." >&2
 fi

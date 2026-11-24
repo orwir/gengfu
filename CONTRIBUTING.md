@@ -12,9 +12,17 @@ kit's
    and clone the repo. Windows 11 is needed to build and run the app.
 2. Install the git hooks: `powershell -File scripts/setup.ps1`. It also checks
    that a .NET 10 SDK is reachable. Non-negotiable — the pre-push stage is the
-   local CI gate. Install [gitleaks](https://github.com/gitleaks/gitleaks) on
-   `PATH` too: where it is missing, the commit stage says its secret scan did
-   not run.
+   local CI gate. Install [gitleaks](https://github.com/gitleaks/gitleaks) too,
+   at the version CI's last `secrets` run printed (8.19 or later, which has the
+   `git` command the hook runs), and pin it there:
+   `winget install --id Gitleaks.Gitleaks --exact --scope user --version <v>`,
+   then `winget pin add --id Gitleaks.Gitleaks --version <major.minor>.*`.
+   Restart the shells and apps you commit from, so they find it on `PATH`:
+   where it is missing, the commit stage says its secret scan did not run.
+   When CI's version moves, move this copy with it:
+   `winget pin remove --id Gitleaks.Gitleaks`,
+   `winget upgrade --id Gitleaks.Gitleaks --exact --version <v>`, and the pin
+   again at the new line.
 3. There is no `.env`. The app keeps its settings in `%AppData%\Gengfu`, or in
    the folder the `GENGFU_HOME` environment variable names.
 4. Build with `dotnet build Gengfu.slnx`, and run Gengfu with
@@ -32,9 +40,10 @@ execute it in order, no shortcuts:
 1. **Read what the release's CI will read.** Under the release's dispatch,
    CI's secret scan (gitleaks-action) reads the whole history, not only the
    commits a push brings: run `gitleaks git -v --redact` on a fresh clone, at
-   the gitleaks version the action's last run printed, with the repository's
-   `.gitleaks.toml` and `.gitleaksignore`, and land what it finds before the
-   bump. A secret it finds is rotated and its fingerprint added to
+   the gitleaks version the action's last run printed (the copy Local setup
+   pins, moved first as it says where the action's version moved), with the
+   repository's `.gitleaks.toml` and `.gitleaksignore`, and land what it finds
+   before the bump. A secret it finds is rotated and its fingerprint added to
    `.gitleaksignore`, never only deleted: the history keeps it.
 2. **Bump the version** in `Directory.Build.props` (`<Version>`) — the single
    source of truth.
